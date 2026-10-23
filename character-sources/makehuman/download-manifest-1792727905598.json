@@ -1,0 +1,63 @@
+{
+  "source": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "sourcePage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "files": [
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05.thumb",
+      "method": 8,
+      "compressed": 38934,
+      "bytes": 39378,
+      "offset": 127992682,
+      "sha256": "ad39df902cbf63ce390e00bf3ceec495a6f94c3827875f57f669746cccf51ffb"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05.mhmat",
+      "method": 8,
+      "compressed": 634,
+      "bytes": 1396,
+      "offset": 128031723,
+      "sha256": "e29fdf895bfc03ebf49f1fcb784cd41cfd8cf95beba4a0a54bc95c084b9b9528"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05.mhclo",
+      "method": 8,
+      "compressed": 78965,
+      "bytes": 217422,
+      "offset": 127913610,
+      "sha256": "df41c9fba3da054e35b964706ad2f8d189e65cc00a45f4a34f65235946f647f0"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05.obj",
+      "method": 8,
+      "compressed": 85137,
+      "bytes": 261223,
+      "offset": 129743390,
+      "sha256": "6069dd8b828591c16f74678c235387954775b815b5b77640d24fb7c9541b85c2"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05_diffuse.png",
+      "method": 8,
+      "compressed": 3336906,
+      "bytes": 3345738,
+      "offset": 139089726,
+      "sha256": "d4345efe9332c23e9302f5a3bca8c895004be841b5ebea593c96189870e3852a"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05_ao.png",
+      "method": 8,
+      "compressed": 1710818,
+      "bytes": 1724222,
+      "offset": 128032464,
+      "sha256": "cf22b778ce3d2c92cf0c5e7eef2bcc2a0d9812e578d4c08a4bb428eb33eacc66"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05_normal.png",
+      "method": 8,
+      "compressed": 9260982,
+      "bytes": 9295328,
+      "offset": 129828632,
+      "sha256": "aec19a8fa1988aa178e7ead9f9c0b290fc441ed62ce47d5c4dd611a0037a796c"
+    }
+  ]
+}

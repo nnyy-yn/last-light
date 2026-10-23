@@ -1,0 +1,119 @@
+{
+  "source": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "sourcePage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "files": [
+    {
+      "name": "clothes/shoes02/shoes02.mhmat",
+      "method": 8,
+      "compressed": 586,
+      "bytes": 1184,
+      "offset": 204677391,
+      "sha256": "7f2cb19506784fbe22ba3f766f94bb13d1eee1712dd29ed10b926c5905bab924"
+    },
+    {
+      "name": "clothes/shoes02/shoes02.mhw",
+      "method": 8,
+      "compressed": 24109,
+      "bytes": 309023,
+      "offset": 204627384,
+      "sha256": "dba34894b93f102ea64d7ad21968894a9788c7a0770c066584a66a536a3e92b6"
+    },
+    {
+      "name": "clothes/shoes02/shoes02.mhclo",
+      "method": 8,
+      "compressed": 25726,
+      "bytes": 110217,
+      "offset": 204651578,
+      "sha256": "0d447fd6b7415d6b2603e91697336ee51ac2f00ef85878d6667e9acfb45a20fe"
+    },
+    {
+      "name": "clothes/shoes05/shoes05.thumb",
+      "method": 8,
+      "compressed": 40368,
+      "bytes": 41218,
+      "offset": 110088732,
+      "sha256": "f5d86e0427638e592c787f91a0427ae09df51f0a4d34665a069cfa3fcbc451b8"
+    },
+    {
+      "name": "clothes/shoes03/shoes03.thumb",
+      "method": 8,
+      "compressed": 36927,
+      "bytes": 37720,
+      "offset": 178529774,
+      "sha256": "ac461bf40bb9e125526198c6c827c0f5cfa5538ac86f25dd3efbff7d5aaf5a3c"
+    },
+    {
+      "name": "clothes/shoes06/shoes06.thumb",
+      "method": 8,
+      "compressed": 42429,
+      "bytes": 43267,
+      "offset": 180193890,
+      "sha256": "31b24009786e31ccb0620adff6859fb23b907ffb98209b60f5121aececa8b5b2"
+    },
+    {
+      "name": "clothes/shoes01/shoes01.thumb",
+      "method": 8,
+      "compressed": 39421,
+      "bytes": 40319,
+      "offset": 171176077,
+      "sha256": "a118291fe3e83e3c616febf52fdb480186c816e7cd4d77d331adffd457421cbb"
+    },
+    {
+      "name": "clothes/shoes04/shoes04.thumb",
+      "method": 8,
+      "compressed": 36498,
+      "bytes": 37350,
+      "offset": 98051440,
+      "sha256": "f6f6f0d30733ac1491072a453a82d105619c2af99228ec51d251cbf4776b8b7c"
+    },
+    {
+      "name": "clothes/shoes02/shoes02.thumb",
+      "method": 8,
+      "compressed": 43142,
+      "bytes": 43978,
+      "offset": 205993170,
+      "sha256": "0e41c095f5ff5a13c0d2b12a6c96d65d907137e1ae3fb120ff14300fc818015d"
+    },
+    {
+      "name": "hair/short01/short01.thumb",
+      "method": 8,
+      "compressed": 34218,
+      "bytes": 35055,
+      "offset": 236093078,
+      "sha256": "7e942d29322841a07a8a3feaf438fb9efb6b54f5b733909cecc51e79dcaca995"
+    },
+    {
+      "name": "hair/short02/short02.thumb",
+      "method": 8,
+      "compressed": 40255,
+      "bytes": 41127,
+      "offset": 254689035,
+      "sha256": "af21a0e84bfcc294b9840d90a04f1b6655ad909bc09328251886adffbc0727e8"
+    },
+    {
+      "name": "clothes/shoes02/shoes02.obj",
+      "method": 8,
+      "compressed": 34275,
+      "bytes": 125457,
+      "offset": 205958810,
+      "sha256": "5726aabac42ff489998d0a769545dea013961bbb71b9c6024d75170181a98818"
+    },
+    {
+      "name": "hair/short04/short04.thumb",
+      "method": 8,
+      "compressed": 40914,
+      "bytes": 41792,
+      "offset": 268213476,
+      "sha256": "a7db8f3db6e2a53194993de73b875d000f928b66a8ac4d6efab51bfd8e6664fd"
+    },
+    {
+      "name": "clothes/shoes02/shoes02_diffuse.png",
+      "method": 8,
+      "compressed": 1280653,
+      "bytes": 1282057,
+      "offset": 204678064,
+      "sha256": "efef94ea34b0e0c2283095cb47a9e0389b55449c61a4f4972d0ad4d2bf06b4f0"
+    }
+  ]
+}

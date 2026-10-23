@@ -1,0 +1,91 @@
+{
+  "tool": "MakeHuman MPFB2",
+  "version": [
+    2,
+    0,
+    18
+  ],
+  "blender": "4.5.9 LTS",
+  "source": "https://github.com/makehumancommunity/mpfb2",
+  "profiles": {
+    "civilian": {
+      "gender": 1,
+      "age": 0.58,
+      "muscle": 0.43,
+      "weight": 0.48,
+      "height": 0.48,
+      "proportions": 0.55,
+      "race": {
+        "african": 0.94,
+        "caucasian": 0.04,
+        "asian": 0.02
+      },
+      "skin": "middleage_african_male/middleage_african_male.mhmat",
+      "targets": {
+        "head/head-oval": 0.2,
+        "chin/chin-prominent-incr": 0.12,
+        "nose/nose-scale-vert-incr": 0.1,
+        "neck/neck-scale-horiz-decr": 0.08,
+        "torso/torso-scale-horiz-decr": 0.1,
+        "head/head-age-incr": 0.13
+      }
+    },
+    "soldier": {
+      "gender": 1,
+      "age": 0.53,
+      "muscle": 0.7,
+      "weight": 0.55,
+      "height": 0.57,
+      "proportions": 0.58,
+      "race": {
+        "african": 0.13,
+        "caucasian": 0.83,
+        "asian": 0.04
+      },
+      "skin": "young_caucasian_male/young_caucasian_male.mhmat",
+      "targets": {
+        "head/head-square": 0.26,
+        "chin/chin-width-incr": 0.12,
+        "chin/chin-prominent-incr": 0.08,
+        "nose/nose-scale-depth-incr": 0.1,
+        "neck/neck-scale-horiz-incr": 0.12,
+        "torso/torso-vshape-incr": 0.12
+      }
+    },
+    "combatant": {
+      "gender": 1,
+      "age": 0.61,
+      "muscle": 0.53,
+      "weight": 0.42,
+      "height": 0.44,
+      "proportions": 0.49,
+      "race": {
+        "african": 0.9,
+        "caucasian": 0.06,
+        "asian": 0.04
+      },
+      "skin": "middleage_african_male/middleage_african_male.mhmat",
+      "targets": {
+        "head/head-square": 0.14,
+        "chin/chin-width-incr": 0.1,
+        "nose/nose-scale-depth-incr": 0.08,
+        "neck/neck-scale-horiz-decr": 0.06,
+        "torso/torso-scale-horiz-decr": 0.06,
+        "head/head-age-incr": 0.1
+      }
+    }
+  },
+  "sourceArchive": {
+    "url": "https://codeload.github.com/makehumancommunity/mpfb2/zip/refs/heads/master",
+    "bytes": 45829092,
+    "sha256": "3a1b3af55d63bdd81e6d61e0b43460f185df89ccd373e35897dec34fc621d5cf",
+    "gitCommit": "b1a2dc98776da9d1eea751b159d42cf61778fe2e"
+  },
+  "commonAdjustments": {
+    "eyelidTarget": "eyes/{l,r}-eye-height2-decr",
+    "eyelidWeight": 0.16,
+    "iris": "brown image red*0.42 green*0.65 blue*0.8 only red-dominant iris pixels",
+    "shoeCropZ": 0.15,
+    "maxTexturePixels": 2048
+  }
+}

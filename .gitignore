@@ -1,0 +1,89 @@
+# Dependencies, local tools, generated builds and QA evidence.
+node_modules/
+.pnpm-store/
+/tools/
+/dist/
+/release/
+/artifacts/
+coverage/
+.cache/
+.vite/
+*.log
+
+# Editable DCC projects remain on disk and in the downloadable source package.
+# Runtime assets in public/ must stay versioned.
+*.blend
+*.blend[0-9]*
+*.blend@
+*.blend.tmp
+*.fbx
+*.psd
+*.kra
+*.spp
+/character-sources/**/*.glb
+/character-sources/**/*.gltf
+/character-sources/**/*.bin
+/weapon-sources/**/*.glb
+/weapon-sources/**/*.gltf
+/weapon-sources/**/*.bin
+/environment-sources/**/*.glb
+/environment-sources/**/*.gltf
+/environment-sources/**/*.bin
+blendcache_*/
+*.bphys
+*.vdb
+*.abc
+__pycache__/
+*.py[cod]
+*.npy
+*.npz
+.venv/
+venv/
+
+# Local credentials, browser sessions and game/player data.
+.env
+.env.*
+!.env.example
+!.env.sample
+.npmrc
+.pypirc
+*.pem
+*.p12
+*.pfx
+*.key
+credentials.json
+credentials.local.*
+.auth/
+.playwright/
+playwright/.auth/
+browser-profile/
+browser-profiles/
+user-data/
+userdata/
+User Data/
+Local Storage/
+Session Storage/
+IndexedDB/
+Crashpad/
+*.dmp
+storage-state*.json
+storageState*.json
+cookies*.json
+cookies*.txt
+*.save
+savegame*.json
+.codex/
+.agents/
+.aws/
+.ssh/
+
+# Editor and OS metadata.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+*.bak
+*~

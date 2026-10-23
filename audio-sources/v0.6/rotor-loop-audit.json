@@ -1,0 +1,49 @@
+{
+  "preparedAt": "2026-10-23T09:54:16.028923+00:00",
+  "source": {
+    "file": "audio-sources/v0.6/ezwa-helicopter-source.ogg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Helicopter_over_quiet_n.ogg",
+    "author": "ezwa",
+    "title": "Helicopter over quiet neighbourhood - 2",
+    "license": "Public-domain dedication by author (PD-author)",
+    "licensePage": "https://commons.wikimedia.org/wiki/File:Helicopter_over_quiet_n.ogg",
+    "sourceSampleRate": 44100,
+    "sourceChannels": 1,
+    "sourceSeconds": 45.16571428571429,
+    "bytes": 617468,
+    "sha256": "54901df00d5f74d64e3b6e14aef64cdb17490dab6e315856055128206e3508d0"
+  },
+  "output": {
+    "file": "public/audio/rotor-loop.wav",
+    "format": "PCM signed 16-bit little endian WAV",
+    "sampleRate": 48000,
+    "channels": 1,
+    "frames": 288000,
+    "seconds": 6.0,
+    "bytes": 576044,
+    "sha256": "361f5fde9c3de6486867a2bc354580b2c202bb20f91bf96f591cf747741f8572",
+    "peakDbFS": -1.5002633770788845,
+    "rmsDbFS": -14.43822612465356,
+    "seamStepFullScale": 0.008636474609375,
+    "interiorStepP99": 0.012786865234375,
+    "dcFullScale": 2.013312445746528e-08,
+    "clippedSamples": 0
+  },
+  "processing": {
+    "sourceRangeSeconds": [
+      18.25,
+      24.85
+    ],
+    "highPassHz": 45,
+    "lowPassHz": 4400,
+    "resample": "linear interpolation from 44100 to 48000 Hz",
+    "wrapCrossfadeSeconds": 0.6,
+    "crossfade": "raised-cosine complementary overlap; no silent fade at loop boundary",
+    "peakTargetDbFS": -1.5
+  },
+  "review": {
+    "noPlayback": true,
+    "notCertifiedAircraftModel": "Original record does not identify the helicopter type; this is not a verified UH-60 recording.",
+    "listeningLimitation": "No speaker playback or human listening certification performed; source describes a single natural helicopter subject. Spectrum and waveform are retained for review."
+  }
+}

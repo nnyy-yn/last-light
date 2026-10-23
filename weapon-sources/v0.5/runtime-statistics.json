@@ -1,0 +1,19 @@
+{
+  "bytes": 3163024,
+  "sha256": "d789fb27d97f4d0f2bacecf6a69fd939a0999449245bba061a1d3025750c6f02",
+  "triangles": 24827,
+  "draws": 10,
+  "materials": [
+    "v05 M249 original steel atlas",
+    "Open steel rear aperture and front sight post",
+    "v05 M249 polymer grip and pad",
+    "v05 blackened steel links and bore",
+    "v05 soot-dark recessed bore",
+    "v05 weathered woven olive canvas",
+    "v05 dark olive reinforcement webbing",
+    "v05 subdued brass decorative belt",
+    "v05 oxidised copper decorative tips"
+  ],
+  "embeddedImages": 6,
+  "externalImages": 0
+}

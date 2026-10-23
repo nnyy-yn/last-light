@@ -1,0 +1,47 @@
+{
+  "source": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "sourcePage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "files": [
+    {
+      "name": "hair/short01/short01.thumb",
+      "method": 8,
+      "compressed": 34218,
+      "bytes": 35055,
+      "offset": 236093078,
+      "sha256": "7e942d29322841a07a8a3feaf438fb9efb6b54f5b733909cecc51e79dcaca995"
+    },
+    {
+      "name": "hair/short01/short01.mhclo",
+      "method": 8,
+      "compressed": 68368,
+      "bytes": 201588,
+      "offset": 236127380,
+      "sha256": "ae1ffaa98da5753b803b3a173bede4895d2215e6bb94763f3765a71f0e984f35"
+    },
+    {
+      "name": "hair/short01/short01.mhmat",
+      "method": 8,
+      "compressed": 642,
+      "bytes": 1314,
+      "offset": 236195832,
+      "sha256": "01e2e12ce3f3d3c859225456660acadcdd27d4f4b4d888bcbd6f11998cadd975"
+    },
+    {
+      "name": "hair/short01/short01.obj",
+      "method": 8,
+      "compressed": 67065,
+      "bytes": 194450,
+      "offset": 236196558,
+      "sha256": "d998d8416f9b5d5591f1d756f4d292288d000a6951bc0f4d2e8e72727bbc44fa"
+    },
+    {
+      "name": "hair/short01/short01_diffuse.png",
+      "method": 8,
+      "compressed": 2338834,
+      "bytes": 2354146,
+      "offset": 236263705,
+      "sha256": "f34a0957184e3d1e911ed59245f874f8d4843f61ee44ff49f43edb4be0196949"
+    }
+  ]
+}

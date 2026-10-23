@@ -1,0 +1,26 @@
+{
+  "capFacesExcluded": 0,
+  "polymerFaces": 328,
+  "vertices": 21239,
+  "polygons": 18531,
+  "assemblies": {
+    "Body": [
+      "v05 M249 original steel atlas",
+      "Open steel rear aperture and front sight post",
+      "v05 M249 polymer grip and pad",
+      "v05 REMOVE original flat bore cap",
+      "v05 blackened steel links and bore",
+      "v05 soot-dark recessed bore"
+    ],
+    "AmmoContainer": [
+      "v05 weathered woven olive canvas",
+      "v05 dark olive reinforcement webbing"
+    ],
+    "FeedBelt": [
+      "v05 subdued brass decorative belt",
+      "v05 oxidised copper decorative tips",
+      "v05 blackened steel links and bore"
+    ]
+  },
+  "source": "weapon-sources/v0.4/m249-real.glb"
+}

@@ -1,0 +1,69 @@
+{
+    "clothes": [],
+    "clothes_material_type": "GAMEENGINE",
+    "color_adjustments": {},
+    "expressions": [],
+    "eyebrows": "eyebrow001/eyebrow001.mhclo",
+    "eyelashes": "",
+    "eyes": "low-poly/low-poly.mhclo",
+    "eyes_material_settings": {},
+    "eyes_material_type": "GAMEENGINE",
+    "hair": "short01/short01.mhclo",
+    "makeup": [],
+    "phenotype": {
+        "age": 0.5299999713897705,
+        "cupsize": 0.5,
+        "firmness": 0.5,
+        "gender": 1.0,
+        "height": 0.5699999928474426,
+        "muscle": 0.699999988079071,
+        "proportions": 0.5799999833106995,
+        "race": {
+            "african": 0.12999999523162842,
+            "asian": 0.03999999910593033,
+            "caucasian": 0.8299999833106995
+        },
+        "weight": 0.550000011920929
+    },
+    "proxy": "",
+    "rig": "mixamo",
+    "skin_material_settings": {},
+    "skin_material_type": "GAMEENGINE",
+    "skin_mhmat": "young_caucasian_male/young_caucasian_male.mhmat",
+    "targets": [
+        {
+            "target": "l-eye-height2-decr",
+            "value": 0.1599999964237213
+        },
+        {
+            "target": "r-eye-height2-decr",
+            "value": 0.1599999964237213
+        },
+        {
+            "target": "head-square",
+            "value": 0.25999999046325684
+        },
+        {
+            "target": "chin-width-incr",
+            "value": 0.11999999731779099
+        },
+        {
+            "target": "chin-prominent-incr",
+            "value": 0.07999999821186066
+        },
+        {
+            "target": "nose-scale-depth-incr",
+            "value": 0.10000000149011612
+        },
+        {
+            "target": "neck-scale-horiz-incr",
+            "value": 0.11999999731779099
+        },
+        {
+            "target": "torso-vshape-incr",
+            "value": 0.11999999731779099
+        }
+    ],
+    "teeth": "",
+    "tongue": ""
+}

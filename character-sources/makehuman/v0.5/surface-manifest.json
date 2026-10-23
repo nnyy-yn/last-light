@@ -1,0 +1,67 @@
+[
+  {
+    "kind": "soldier",
+    "beforeBytes": 3107912,
+    "afterBytes": 4342692,
+    "sha256": "e9a812c5f596df65b21ce61145d92ea8e986139acd87ec0772e0f504086ca5ea",
+    "newTextures": [
+      {
+        "name": "soldier-skin-normal",
+        "bytes": 1045592
+      },
+      {
+        "name": "soldier-skin-roughness",
+        "bytes": 34346
+      }
+    ],
+    "geometry": [
+      {
+        "mesh": "base",
+        "changedVertices": 49,
+        "maxDisplacementM": 0.09910404682159424
+      },
+      {
+        "mesh": "Mil_Suit_R5_Mil_Suit_R5_0.001",
+        "changedVertices": 172,
+        "maxDisplacementM": 0.04564152657985687
+      }
+    ],
+    "jointsAndWeightsUnchanged": true
+  },
+  {
+    "kind": "civilian",
+    "beforeBytes": 3221636,
+    "afterBytes": 4275596,
+    "sha256": "e9c57c12f8e24b5eda08a87af5e12c450175bfa1238186b1393e2051362fa2f7",
+    "newTextures": [
+      {
+        "name": "civilian-skin-normal",
+        "bytes": 871698
+      },
+      {
+        "name": "civilian-skin-roughness",
+        "bytes": 27596
+      }
+    ],
+    "geometry": [],
+    "jointsAndWeightsUnchanged": true
+  },
+  {
+    "kind": "combatant",
+    "beforeBytes": 2955164,
+    "afterBytes": 4009124,
+    "sha256": "c3fe4a22eddfca7aedcc3c7d6ee137f3933ecdf301cfe8678c12c190c8a4c03d",
+    "newTextures": [
+      {
+        "name": "combatant-skin-normal",
+        "bytes": 871698
+      },
+      {
+        "name": "combatant-skin-roughness",
+        "bytes": 27596
+      }
+    ],
+    "geometry": [],
+    "jointsAndWeightsUnchanged": true
+  }
+]

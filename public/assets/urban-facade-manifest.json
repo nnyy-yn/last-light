@@ -1,0 +1,186 @@
+{
+  "source": "https://polyhaven.com/a/modular_urban_apartments_facade",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "units": "metres",
+  "up": "+Y",
+  "facadeFront": "+Z",
+  "notes": "Pure window/door inserts have objects and glass only; no surrounding plaster wall. Module nodes translate source X by +1.5 metres so their visible bounds are centred at X=0. Apply node.matrixWorld when merging. Y=0 is module base; window glass begins at y~.568.",
+  "modules": [
+    {
+      "name": "window_centered_small_01",
+      "bounds": {
+        "min": [
+          -0.5600094795227051,
+          -3.427267074584961e-7,
+          -0.24000000953674316
+        ],
+        "max": [
+          0.5600095987319946,
+          2.299999475479126,
+          0.1500074714422226
+        ],
+        "size": [
+          1.1200190782546997,
+          2.2999998182058334,
+          0.39000748097896576
+        ]
+      },
+      "triangles": 847,
+      "materials": [
+        "modular_urban_apartments_facade_objects",
+        "modular_urban_apartments_facade_glass"
+      ]
+    },
+    {
+      "name": "window_centered_large_01",
+      "bounds": {
+        "min": [
+          -1.060009479522705,
+          -3.427267074584961e-7,
+          -0.24000000953674316
+        ],
+        "max": [
+          1.060009479522705,
+          2.299999475479126,
+          0.1500074714422226
+        ],
+        "size": [
+          2.12001895904541,
+          2.2999998182058334,
+          0.39000748097896576
+        ]
+      },
+      "triangles": 1408,
+      "materials": [
+        "modular_urban_apartments_facade_objects",
+        "modular_urban_apartments_facade_glass"
+      ]
+    },
+    {
+      "name": "window_centered_double_01",
+      "bounds": {
+        "min": [
+          -1.310009479522705,
+          -3.427267074584961e-7,
+          -0.24000000953674316
+        ],
+        "max": [
+          1.3100095987319946,
+          2.299999475479126,
+          0.1500074714422226
+        ],
+        "size": [
+          2.6200190782546997,
+          2.2999998182058334,
+          0.39000748097896576
+        ]
+      },
+      "triangles": 1694,
+      "materials": [
+        "modular_urban_apartments_facade_objects",
+        "modular_urban_apartments_facade_glass"
+      ]
+    },
+    {
+      "name": "door_centered_small_01",
+      "bounds": {
+        "min": [
+          -0.7400028705596924,
+          0,
+          -0.24000000953674316
+        ],
+        "max": [
+          0.7400029301643372,
+          2.809999704360962,
+          0.20000004768371582
+        ],
+        "size": [
+          1.4800058007240295,
+          2.809999704360962,
+          0.440000057220459
+        ]
+      },
+      "triangles": 1360,
+      "materials": [
+        "modular_urban_apartments_facade_objects",
+        "modular_urban_apartments_facade_glass"
+      ]
+    },
+    {
+      "name": "door_centered_large_01",
+      "bounds": {
+        "min": [
+          -1.0400009155273438,
+          0,
+          -0.24000000953674316
+        ],
+        "max": [
+          1.040004849433899,
+          2.809999704360962,
+          0.20000004768371582
+        ],
+        "size": [
+          2.0800057649612427,
+          2.809999704360962,
+          0.440000057220459
+        ]
+      },
+      "triangles": 1711,
+      "materials": [
+        "modular_urban_apartments_facade_objects",
+        "modular_urban_apartments_facade_glass"
+      ]
+    },
+    {
+      "name": "cornice_standard_standard_01",
+      "bounds": {
+        "min": [
+          -1.5,
+          -4.76837158203125e-7,
+          0
+        ],
+        "max": [
+          1.5,
+          0.19999949634075165,
+          0.03999999910593033
+        ],
+        "size": [
+          3,
+          0.19999997317790985,
+          0.03999999910593033
+        ]
+      },
+      "triangles": 18,
+      "materials": [
+        "modular_urban_apartments_facade_trim_01"
+      ]
+    },
+    {
+      "name": "crown_standard_standard_01",
+      "bounds": {
+        "min": [
+          -1.5000019073486328,
+          0,
+          -0.09999996423721313
+        ],
+        "max": [
+          1.499999761581421,
+          0.75,
+          0.33000001311302185
+        ],
+        "size": [
+          3.0000016689300537,
+          0.75,
+          0.429999977350235
+        ]
+      },
+      "triangles": 684,
+      "materials": [
+        "modular_urban_apartments_facade_trim_02"
+      ]
+    }
+  ],
+  "bytes": 7784364,
+  "triangles": 7722,
+  "author": "James Ray Cock / Poly Haven"
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "kind": "soldier",
+    "editableSource": "character-sources\\makehuman\\v0.5\\soldier-refined-source.blend",
+    "vertices": 22496,
+    "bones": [
+      {
+        "name": "MakeHuman_soldier_rig",
+        "count": 52
+      }
+    ]
+  },
+  {
+    "kind": "civilian",
+    "editableSource": "character-sources\\makehuman\\v0.5\\civilian-refined-source.blend",
+    "vertices": 23058,
+    "bones": [
+      {
+        "name": "MakeHuman_civilian_rig_export",
+        "count": 52
+      }
+    ]
+  },
+  {
+    "kind": "combatant",
+    "editableSource": "character-sources\\makehuman\\v0.5\\combatant-refined-source.blend",
+    "vertices": 17917,
+    "bones": [
+      {
+        "name": "MakeHuman_combatant_rig_export",
+        "count": 52
+      }
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "editedMeshes": [
+    {
+      "node": "MakeHuman_soldier_military_Object_103",
+      "triangles": 2071
+    },
+    {
+      "node": "MakeHuman_soldier_military_Object_105",
+      "triangles": 4256
+    },
+    {
+      "node": "MakeHuman_soldier_military_Object_107",
+      "triangles": 2368
+    }
+  ],
+  "rigPreservation": "Original node graph, joints and inverse-bind buffer retained; only selected garment primitive accessors replaced.",
+  "soldier": {
+    "bytes": 4437544,
+    "sha256": "6b89ed3b23b96b366b3d90df829210b8261d5edc817e1862d3f220bf035ff35d"
+  },
+  "helmet": {
+    "bytes": 444484,
+    "sha256": "ea7244dd2478e05d68b7b8615ded352f7f17fe9282411e8241209ebd77f2b962",
+    "triangles": 15836,
+    "materials": 5,
+    "primitives": 6,
+    "images": 3
+  }
+}

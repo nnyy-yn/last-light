@@ -1,0 +1,200 @@
+[
+  {
+    "id": "m16a2",
+    "file": "m16a2-real.glb",
+    "source": "weapon-sources/v0.4/m16a2-real.glb",
+    "bytes": 3496268,
+    "sha256": "fc643842b579d6627f73f5046892ff8d6fcd7e853c72d00f33c68caa35b46b18",
+    "edits": [
+      {
+        "material": "m16a2",
+        "image": 1,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.48527223549664195,
+          "meanMetalness": 0.7346193949381365
+        },
+        "after": {
+          "meanRoughness": 0.5496392119155815
+        },
+        "restoredOriginalUnclampedRoughness": true
+      }
+    ]
+  },
+  {
+    "id": "m249",
+    "file": "m249-real.glb",
+    "source": "weapon-sources/v0.5/m249-detail-packed.glb",
+    "bytes": 3071532,
+    "sha256": "f551df3283a01296918da69612951e3a8b21038fcc265ac3fda039bf51ff4174",
+    "edits": [
+      {
+        "material": "v05 M249 original steel atlas",
+        "image": 2,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.40136624504948376,
+          "meanMetalness": 0.3069318846154778
+        },
+        "after": {
+          "meanRoughness": 0.6542780333818686
+        },
+        "restoredOriginalUnclampedRoughness": false
+      },
+      {
+        "material": "v05 M249 polymer grip and pad",
+        "image": 3,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.40136624504948376,
+          "meanMetalness": 1
+        },
+        "after": {
+          "meanRoughness": 0.540425887755671
+        },
+        "restoredOriginalUnclampedRoughness": false
+      }
+    ]
+  },
+  {
+    "id": "akm",
+    "file": "akm-real.glb",
+    "source": "weapon-sources/v0.4/akm-real.glb",
+    "bytes": 6657816,
+    "sha256": "defd44916ecc225c905df07253144b7c506fde75b49312a81e99a2dcdbfc1a98",
+    "edits": [
+      {
+        "material": "Material",
+        "image": 1,
+        "resolution": [
+          2048,
+          2048
+        ],
+        "before": {
+          "meanRoughness": 0.37378439434903077,
+          "meanMetalness": 0.6568907803180893
+        },
+        "after": {
+          "meanRoughness": 0.5318833332435033
+        },
+        "restoredOriginalUnclampedRoughness": false
+      }
+    ]
+  },
+  {
+    "id": "mp5",
+    "file": "mp5-real.glb",
+    "source": "weapon-sources/v0.4/mp5-real.glb",
+    "bytes": 4261564,
+    "sha256": "f977e6b53ca1f54f66866410ffbeb2bb2784b92869062cfdfd65cf778c1e7d4f",
+    "edits": [
+      {
+        "material": "material",
+        "image": 4,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.31343313852628885,
+          "meanMetalness": 0.27811897128233004
+        },
+        "after": {
+          "meanRoughness": 0.5815197177891235
+        },
+        "restoredOriginalUnclampedRoughness": false
+      },
+      {
+        "material": "Maglow",
+        "image": 7,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.3159158033444841,
+          "meanMetalness": 0.008915594512357662
+        },
+        "after": {
+          "meanRoughness": 0.6222616382564042
+        },
+        "restoredOriginalUnclampedRoughness": false
+      }
+    ]
+  },
+  {
+    "id": "m1911",
+    "file": "m1911-real.glb",
+    "source": "weapon-sources/v0.4/m1911-real.glb",
+    "bytes": 3781392,
+    "sha256": "e4a3c02fa44e91b74bc634d4530af80f2768e1f99f44f214fb62fa6840b14f4c",
+    "edits": [
+      {
+        "material": "set1",
+        "image": 4,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.37349886426771484,
+          "meanMetalness": 0.7183395198754347
+        },
+        "after": {
+          "meanRoughness": 0.477020185134268
+        },
+        "restoredOriginalUnclampedRoughness": false
+      },
+      {
+        "material": "set2",
+        "image": 7,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.4599979101456919,
+          "meanMetalness": 0.5245302499511304
+        },
+        "after": {
+          "meanRoughness": 0.5296349394521105
+        },
+        "restoredOriginalUnclampedRoughness": false
+      }
+    ]
+  },
+  {
+    "id": "m4a1",
+    "file": "m4a1-real.glb",
+    "source": "weapon-sources/v0.4/m4a1-real.glb",
+    "bytes": 2836660,
+    "sha256": "453c23bafcb2a0bc36495aa5e1ea8af7b984a24b4b598b6c8ee8df28cf7d1ffd",
+    "edits": [
+      {
+        "material": "M_M4A1",
+        "image": 4,
+        "resolution": [
+          1024,
+          1024
+        ],
+        "before": {
+          "meanRoughness": 0.3867829117119853,
+          "meanMetalness": 0.6809251897482689
+        },
+        "after": {
+          "meanRoughness": 0.5497214560378954
+        },
+        "restoredOriginalUnclampedRoughness": false
+      }
+    ]
+  }
+]

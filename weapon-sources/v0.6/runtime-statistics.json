@@ -1,0 +1,129 @@
+[
+  {
+    "id": "akm",
+    "bytes": 7101592,
+    "sha256": "69534dabde527022178529c868492fd636f69ffeb8a9328dd5f36eee5d9cc622",
+    "triangles": 23496,
+    "beforeTriangles": 5322,
+    "draws": 3,
+    "beforeDraws": 3,
+    "images": [
+      {
+        "name": "Material_Normal",
+        "width": 2048,
+        "height": 2048,
+        "lossless": true
+      },
+      {
+        "name": "Material_AmbientOcclusion-Material_Roughness-Material_Metallic",
+        "width": 2048,
+        "height": 2048,
+        "lossless": true
+      },
+      {
+        "name": "Material_BaseColor",
+        "width": 2048,
+        "height": 2048,
+        "lossless": false
+      }
+    ],
+    "externalURIs": 0,
+    "movingNodes": [
+      {
+        "extras": {
+          "v06_art_changes": "Original upper/lower wooden guard selective 4-segment bevel geometry; Stock rebuilt with 9 curved cross-sections and transferred original author UVs; Receiver 0.45 mm angle-limited bevels and corrected weighted normals; Original moving Magazine/ChargingHandle geometry and transforms retained"
+        },
+        "mesh": 1,
+        "name": "Magazine"
+      },
+      {
+        "extras": {
+          "v06_art_changes": "Original upper/lower wooden guard selective 4-segment bevel geometry; Stock rebuilt with 9 curved cross-sections and transferred original author UVs; Receiver 0.45 mm angle-limited bevels and corrected weighted normals; Original moving Magazine/ChargingHandle geometry and transforms retained"
+        },
+        "mesh": 2,
+        "name": "ChargingHandle"
+      }
+    ]
+  },
+  {
+    "id": "m249",
+    "bytes": 4371544,
+    "sha256": "0f29aa687a3e54607c9f3729f9bfa85cc2e1787fa61c9ba5fec4e4150d824add",
+    "triangles": 28431,
+    "beforeTriangles": 24827,
+    "draws": 13,
+    "beforeDraws": 10,
+    "images": [
+      {
+        "name": "Image_2",
+        "width": 1024,
+        "height": 1024,
+        "lossless": true
+      },
+      {
+        "name": "Image_0",
+        "width": 1024,
+        "height": 1024,
+        "lossless": false
+      },
+      {
+        "name": "Image_1",
+        "width": 1024,
+        "height": 1024,
+        "lossless": true
+      },
+      {
+        "name": "Image_1",
+        "width": 1024,
+        "height": 1024,
+        "lossless": true
+      },
+      {
+        "name": "stock-grain normal",
+        "width": 512,
+        "height": 512,
+        "lossless": true
+      },
+      {
+        "name": "stock-grain basecolor",
+        "width": 512,
+        "height": 512,
+        "lossless": false
+      },
+      {
+        "name": "bag-weave normal",
+        "width": 1024,
+        "height": 1024,
+        "lossless": true
+      },
+      {
+        "name": "bag-weave basecolor",
+        "width": 1024,
+        "height": 1024,
+        "lossless": false
+      }
+    ],
+    "externalURIs": 0,
+    "movingNodes": [
+      {
+        "extras": {
+          "v06_art_changes": "Buttstock replaced by continuous molded cheek support and physically recessed triangular webs; Curved rubber buttpad with modeled traction ridges and recessed fasteners; Ammo pouch rebuilt with tension folds, sagged bottom, shaped woven straps and piping; AmmoContainer transform and FeedBelt source geometry retained; all sights/grips/muzzle unchanged"
+        },
+        "mesh": 1,
+        "name": "AmmoContainer",
+        "translation": [
+          0,
+          -0.0820000022649765,
+          -0.14499999582767487
+        ]
+      },
+      {
+        "extras": {
+          "v06_art_changes": "Buttstock replaced by continuous molded cheek support and physically recessed triangular webs; Curved rubber buttpad with modeled traction ridges and recessed fasteners; Ammo pouch rebuilt with tension folds, sagged bottom, shaped woven straps and piping; AmmoContainer transform and FeedBelt source geometry retained; all sights/grips/muzzle unchanged"
+        },
+        "mesh": 2,
+        "name": "FeedBelt"
+      }
+    ]
+  }
+]

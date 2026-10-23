@@ -1,0 +1,26 @@
+{
+  "helmet": {
+    "objects": 5,
+    "triangles": 15836
+  },
+  "clothing": [
+    {
+      "mesh": "MakeHuman_soldier_military_Object_105",
+      "verticesBefore": 1097,
+      "verticesAfter": 2132,
+      "change": "Vest neckline / shoulder strap silhouette refinement only"
+    },
+    {
+      "mesh": "MakeHuman_soldier_military_Object_107",
+      "verticesBefore": 1170,
+      "verticesAfter": 1186,
+      "change": "Local collar / upper-shoulder midpoint refinement and restrained Laplacian relaxation"
+    },
+    {
+      "mesh": "MakeHuman_soldier_military_Object_103",
+      "verticesBefore": 1499,
+      "verticesAfter": 1056,
+      "change": "Upper pouch flap edge relaxation; pouch body / belt retained"
+    }
+  ]
+}

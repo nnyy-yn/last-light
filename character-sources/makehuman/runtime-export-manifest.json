@@ -1,0 +1,174 @@
+[
+  {
+    "kind": "civilian",
+    "input": "character-sources\\makehuman\\civilian-generated.glb",
+    "output": "public\\assets\\makehuman-civilian.glb",
+    "bytes": 3221636,
+    "sha256": "59c757cddcc9f4b392984d145a6d363024fbd1bbb5ec37d479b90e1f274d74ec",
+    "images": [
+      {
+        "name": "middleage_darkskinned_male_diffuse",
+        "originalBytes": 3046762,
+        "bytes": 217550
+      },
+      {
+        "name": "male_casualsuit01_normal",
+        "originalBytes": 1738660,
+        "bytes": 183154
+      },
+      {
+        "name": "male_casualsuit01_diffuse",
+        "originalBytes": 5531728,
+        "bytes": 431342
+      },
+      {
+        "name": "shoes03_diffuse",
+        "originalBytes": 309009,
+        "bytes": 42764
+      },
+      {
+        "name": "eyebrow001",
+        "originalBytes": 89619,
+        "bytes": 34764
+      },
+      {
+        "name": "brown_eye",
+        "originalBytes": 791744,
+        "bytes": 53948
+      },
+      {
+        "name": "short01_diffuse",
+        "originalBytes": 2354146,
+        "bytes": 789986
+      }
+    ]
+  },
+  {
+    "kind": "combatant",
+    "input": "character-sources\\makehuman\\combatant-generated.glb",
+    "output": "public\\assets\\makehuman-combatant.glb",
+    "bytes": 2955164,
+    "sha256": "d681c461a4ebf786e0a834c539d01786bbe3c88835db8981d26c85a230e3d378",
+    "images": [
+      {
+        "name": "middleage_darkskinned_male_diffuse",
+        "originalBytes": 3046762,
+        "bytes": 217550
+      },
+      {
+        "name": "male_casualsuit05_normal",
+        "originalBytes": 3058153,
+        "bytes": 282928
+      },
+      {
+        "name": "male_casualsuit05_diffuse",
+        "originalBytes": 3345738,
+        "bytes": 394384
+      },
+      {
+        "name": "shoes03_diffuse",
+        "originalBytes": 309009,
+        "bytes": 42764
+      },
+      {
+        "name": "eyebrow001",
+        "originalBytes": 89619,
+        "bytes": 34764
+      },
+      {
+        "name": "brown_eye",
+        "originalBytes": 791744,
+        "bytes": 53948
+      },
+      {
+        "name": "short01_diffuse",
+        "originalBytes": 2354146,
+        "bytes": 789986
+      }
+    ]
+  },
+  {
+    "kind": "soldier",
+    "input": "character-sources\\makehuman\\soldier-generated.glb",
+    "output": "public\\assets\\makehuman-soldier.glb",
+    "bytes": 3107912,
+    "sha256": "e8761babf02449a613c28a6ebd83db68620e688d853a89d0a849d92c3e6ba58c",
+    "images": [
+      {
+        "name": "young_lightskinned_male_diffuse",
+        "originalBytes": 3693828,
+        "bytes": 364470
+      },
+      {
+        "name": "eyebrow001",
+        "originalBytes": 89619,
+        "bytes": 34764
+      },
+      {
+        "name": "brown_eye",
+        "originalBytes": 791744,
+        "bytes": 53948
+      },
+      {
+        "name": "short01_diffuse",
+        "originalBytes": 2354146,
+        "bytes": 789986
+      },
+      {
+        "name": "Image_4",
+        "originalBytes": 44596,
+        "bytes": 51728
+      },
+      {
+        "name": "Image_3",
+        "originalBytes": 36782,
+        "bytes": 44020
+      },
+      {
+        "name": "Image_7",
+        "originalBytes": 56262,
+        "bytes": 63834
+      },
+      {
+        "name": "Image_6",
+        "originalBytes": 33588,
+        "bytes": 38490
+      },
+      {
+        "name": "Image_5",
+        "originalBytes": 35598,
+        "bytes": 41778
+      },
+      {
+        "name": "Image_10",
+        "originalBytes": 29336,
+        "bytes": 34212
+      },
+      {
+        "name": "Image_9",
+        "originalBytes": 17276,
+        "bytes": 20152
+      },
+      {
+        "name": "Image_8",
+        "originalBytes": 25648,
+        "bytes": 29822
+      },
+      {
+        "name": "Image_13",
+        "originalBytes": 41294,
+        "bytes": 47716
+      },
+      {
+        "name": "Image_12",
+        "originalBytes": 26342,
+        "bytes": 30878
+      },
+      {
+        "name": "Image_11",
+        "originalBytes": 47154,
+        "bytes": 55298
+      }
+    ]
+  }
+]

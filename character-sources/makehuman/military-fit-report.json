@@ -1,0 +1,57 @@
+{
+  "source": "D:\\\u5de5\u4f5c\u6587\u4ef6\\hsh\\last-light\\character-sources\\makehuman\\soldier-source.blend",
+  "clothing": "D:\\\u5de5\u4f5c\u6587\u4ef6\\hsh\\last-light\\public\\assets\\soldier-tactical.glb",
+  "output": "D:\\\u5de5\u4f5c\u6587\u4ef6\\hsh\\last-light\\character-sources\\makehuman\\soldier-generated.glb",
+  "kept": [
+    {
+      "name": "MakeHuman_soldier_military_Object_101",
+      "vertices": 2850,
+      "polygons": 3872
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_103",
+      "vertices": 1497,
+      "polygons": 2071
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_105",
+      "vertices": 1090,
+      "polygons": 1562
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_107",
+      "vertices": 1159,
+      "polygons": 1670
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_113",
+      "vertices": 940,
+      "polygons": 1506
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_117",
+      "vertices": 2846,
+      "polygons": 3872
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_119",
+      "vertices": 700,
+      "polygons": 630
+    },
+    {
+      "name": "MakeHuman_soldier_military_Object_123",
+      "vertices": 528,
+      "polygons": 604
+    }
+  ],
+  "removed": [
+    "Object_109",
+    "Object_111",
+    "Object_115",
+    "Object_121",
+    "Object_97",
+    "Object_99"
+  ],
+  "mapping": "weighted rest-pose affine transforms into the new MakeHuman Mixamo skeleton",
+  "fullHumanPreservedInSource": true
+}

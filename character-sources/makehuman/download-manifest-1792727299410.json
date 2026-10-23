@@ -1,0 +1,495 @@
+{
+  "source": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "sourcePage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "files": [
+    {
+      "name": "skins/young_caucasian_male/young_caucasian_male.mhmat",
+      "method": 8,
+      "compressed": 703,
+      "bytes": 1462,
+      "offset": 27163921,
+      "sha256": "6eda60b07ff2afbde078a2535ef3913593d84e9de92b2eb76c30f396a181fe2e"
+    },
+    {
+      "name": "skins/middleage_african_male/middleage_african_male.mhmat",
+      "method": 8,
+      "compressed": 704,
+      "bytes": 1465,
+      "offset": 55013178,
+      "sha256": "865b23cde5d2116107f9e8ce3a2ec2315440ed103c301ec8bc0e1d85e29830c9"
+    },
+    {
+      "name": "skins/middleage_african_male/middleage_african_male.thumb",
+      "method": 8,
+      "compressed": 79098,
+      "bytes": 79294,
+      "offset": 54933965,
+      "sha256": "f61667a5c6e8a72cb32f663685b4d0111624ee9d755f324a6be8f02cee059633"
+    },
+    {
+      "name": "clothes/male_casualsuit03/male_casualsuit03.thumb",
+      "method": 8,
+      "compressed": 40108,
+      "bytes": 40578,
+      "offset": 169766119,
+      "sha256": "ea180cea474eeba10ed73b13920adee4e87ea12c84f96a7d58b02caef90caf72"
+    },
+    {
+      "name": "skins/young_caucasian_male/young_caucasian_male.thumb",
+      "method": 8,
+      "compressed": 78826,
+      "bytes": 79031,
+      "offset": 27084984,
+      "sha256": "9ea46d1b5c4230bcff248b1262eaf4f5b4b14bbffd8fc09d2c20c6058f02e12d"
+    },
+    {
+      "name": "clothes/male_casualsuit02/male_casualsuit02.thumb",
+      "method": 8,
+      "compressed": 37451,
+      "bytes": 37906,
+      "offset": 113360585,
+      "sha256": "e994394780be666443e70349b7f9e55704895e699054a45b4113037fdbab8e68"
+    },
+    {
+      "name": "clothes/male_casualsuit05/male_casualsuit05.thumb",
+      "method": 8,
+      "compressed": 38934,
+      "bytes": 39378,
+      "offset": 127992682,
+      "sha256": "ad39df902cbf63ce390e00bf3ceec495a6f94c3827875f57f669746cccf51ffb"
+    },
+    {
+      "name": "clothes/male_casualsuit06/male_casualsuit06.thumb",
+      "method": 8,
+      "compressed": 31116,
+      "bytes": 31691,
+      "offset": 172154577,
+      "sha256": "df34cd082fd23e39f25f78d64fb49c27ad5ed054077b4ea3b101c7a59a93e459"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01.thumb",
+      "method": 8,
+      "compressed": 38960,
+      "bytes": 39401,
+      "offset": 213291715,
+      "sha256": "cd8a8c9461b164542d8660b9beaae17636040c9199020b65755a03559809cfc1"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01.mhmat",
+      "method": 8,
+      "compressed": 606,
+      "bytes": 1345,
+      "offset": 213330782,
+      "sha256": "043b25cefd398261b893d3dae58c81fc3e9633a25a01eafe66963591f5ad6eb6"
+    },
+    {
+      "name": "clothes/male_casualsuit04/male_casualsuit04.thumb",
+      "method": 8,
+      "compressed": 32258,
+      "bytes": 32838,
+      "offset": 104204991,
+      "sha256": "1424bac2dc95c2d6906bc0435b8de77ce71c25a35c97eece9c6c589944a2c683"
+    },
+    {
+      "name": "skins/young_caucasian_male/young_lightskinned_male_diffuse.png",
+      "method": 8,
+      "compressed": 3690012,
+      "bytes": 3693828,
+      "offset": 23394852,
+      "sha256": "862a26e335e958b70534cb5f0d7c47ef30ab148a56c42b3e9da969cf76f12963"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01.mhclo",
+      "method": 8,
+      "compressed": 199174,
+      "bytes": 570419,
+      "offset": 213331495,
+      "sha256": "78503ed7f56c149843d85e06e1164bc6871ce7319b2ef689237046352cc90de4"
+    },
+    {
+      "name": "skins/middleage_african_male/middleage_darkskinned_male_diffuse.png",
+      "method": 8,
+      "compressed": 3043083,
+      "bytes": 3046762,
+      "offset": 51890757,
+      "sha256": "ced478cfdd2b86391f0f92a4408b287ad70adb0dd0e9271ba606d0b028b47c6b"
+    },
+    {
+      "name": "hair/short03/short03.mhclo",
+      "method": 8,
+      "compressed": 25622,
+      "bytes": 69048,
+      "offset": 245989195,
+      "sha256": "d80bbb8fd9b06721c481756fb3e1d6dce04fcfc9ca8a379edd4ea3c0d81ed17f"
+    },
+    {
+      "name": "hair/short03/short03.thumb",
+      "method": 8,
+      "compressed": 38550,
+      "bytes": 39414,
+      "offset": 243543800,
+      "sha256": "aba276c3ddbcb6b2c5dc29eef595bd2e447bfd8ff530731454319ce301b1b782"
+    },
+    {
+      "name": "hair/short03/short03.mhmat",
+      "method": 8,
+      "compressed": 634,
+      "bytes": 1309,
+      "offset": 246014901,
+      "sha256": "8dcf42b677301ab6a66f96ff41751ecf88fba6c6cd7c564e6953f9c78e40a8fd"
+    },
+    {
+      "name": "eyebrows/eyebrow001/eyebrow001.obj",
+      "method": 8,
+      "compressed": 2873,
+      "bytes": 8227,
+      "offset": 271550171,
+      "sha256": "88b13146395133f3901715e11706cdfd293e5d6087ad7c5e01efe1485a26b513"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01_normal.png",
+      "method": 8,
+      "compressed": 1729674,
+      "bytes": 1738660,
+      "offset": 211561929,
+      "sha256": "ff029fc5a3350ebc72813cdf050afcffd23064c7701d99e664572713cfa98a5f"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01_ao.png",
+      "method": 8,
+      "compressed": 753676,
+      "bytes": 785596,
+      "offset": 213530776,
+      "sha256": "9402d75d71318ef3ad90ee59f8b8688effefd13b3ec56423330e005bed5cd6c0"
+    },
+    {
+      "name": "eyebrows/eyebrow001/eyebrow001.mhclo",
+      "method": 8,
+      "compressed": 3038,
+      "bytes": 9141,
+      "offset": 271641277,
+      "sha256": "54c8892c2ba577f4152d779ce1f20f7cd323beb8cbd9cb701796165c221b4f5b"
+    },
+    {
+      "name": "eyebrows/eyebrow001/eyebrow001.png",
+      "method": 8,
+      "compressed": 88049,
+      "bytes": 89619,
+      "offset": 271553136,
+      "sha256": "9940f7d0b1b223709a19b05156ba6f6e9e4dbdbced02d7574f4d51d72c58967b"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01.obj",
+      "method": 8,
+      "compressed": 232791,
+      "bytes": 699545,
+      "offset": 214284560,
+      "sha256": "001921d237e408c35103720d046aa37f9c5512db1a179a5ede6a065cd504ba89"
+    },
+    {
+      "name": "hair/short03/short03.obj",
+      "method": 8,
+      "compressed": 27104,
+      "bytes": 74766,
+      "offset": 245962009,
+      "sha256": "4a9fc385718f2c46fb328ab99d33e3a946cecdb717987c8b324cf2466b59bd9c"
+    },
+    {
+      "name": "eyebrows/eyebrow001/eyebrow001.thumb",
+      "method": 8,
+      "compressed": 137464,
+      "bytes": 137534,
+      "offset": 271644409,
+      "sha256": "98b68eccf50977ff00242a33eb1dc6e3eaf4cc262e1f6c4ceca5c1c564f6c745"
+    },
+    {
+      "name": "eyes/materials/brownlight.thumb",
+      "method": 8,
+      "compressed": 34957,
+      "bytes": 34947,
+      "offset": 274312462,
+      "sha256": "32722c2f00ea29b7cee7bc2b140db165ec724cd20d10d073e906b21b278bde26"
+    },
+    {
+      "name": "eyebrows/eyebrow001/eyebrow001.mhmat",
+      "method": 8,
+      "compressed": 555,
+      "bytes": 1098,
+      "offset": 271781967,
+      "sha256": "976e5f4f1d3922d7a11c6e2db233f8b4584b068d00619d5749687e81c92d61fc"
+    },
+    {
+      "name": "clothes/male_casualsuit01/male_casualsuit01_diffuse.png",
+      "method": 8,
+      "compressed": 5525333,
+      "bytes": 5531728,
+      "offset": 206036483,
+      "sha256": "3fd0bba5dcbdea0ac427f644a6c7c298938f7369b8f96626621ce1e88989394e"
+    },
+    {
+      "name": "eyes/materials/brown.thumb",
+      "method": 0,
+      "compressed": 29627,
+      "bytes": 29627,
+      "offset": 274282751,
+      "sha256": "5bd2de12f0c04d423ab00fa13f691a1879b944e63947e228117ddcce31f9cff9"
+    },
+    {
+      "name": "eyes/materials/brownlight.mhmat",
+      "method": 8,
+      "compressed": 598,
+      "bytes": 1256,
+      "offset": 274347508,
+      "sha256": "75ae6903fe51134ee6f10147dadad3cb1b355aecf8218213431fb6ddbb3ba71d"
+    },
+    {
+      "name": "eyes/materials/ice.mhmat",
+      "method": 8,
+      "compressed": 593,
+      "bytes": 1242,
+      "offset": 275043427,
+      "sha256": "4b2d2d10d9d887dc6f4dd2f66ff252a85b60ca2a30bc2b57672f83b758db776b"
+    },
+    {
+      "name": "eyes/materials/brown.mhmat",
+      "method": 8,
+      "compressed": 595,
+      "bytes": 1247,
+      "offset": 275044102,
+      "sha256": "4abad93ce50541c08127721e77bce035640c9f16bed16cd0f5524b1cd5908465"
+    },
+    {
+      "name": "eyes/materials/grey.thumb",
+      "method": 0,
+      "compressed": 32862,
+      "bytes": 32862,
+      "offset": 276367766,
+      "sha256": "add8c7bd15edeccaa7612cb33d8311ae849d884b6ea062e18fa78de54128805d"
+    },
+    {
+      "name": "eyes/materials/deepblue_eye.png",
+      "method": 8,
+      "compressed": 656033,
+      "bytes": 658984,
+      "offset": 275044781,
+      "sha256": "55ec9e3d06c8193e74fbbcea32ea474c100feaccef96556d9181e796fe2a7ea6"
+    },
+    {
+      "name": "eyes/materials/bluegreen.thumb",
+      "method": 8,
+      "compressed": 36559,
+      "bytes": 36549,
+      "offset": 276400711,
+      "sha256": "d6fcfe5b57d7b05f2f9453e11cefb7cb68352746a36613b030e069442e2eadcc"
+    },
+    {
+      "name": "eyes/materials/grey_eye.png",
+      "method": 8,
+      "compressed": 666778,
+      "bytes": 669883,
+      "offset": 275700903,
+      "sha256": "ecb05613126036a3d017880fabbd570501c5f14032c186462d8f6e2d719f6c4f"
+    },
+    {
+      "name": "eyes/materials/green.thumb",
+      "method": 0,
+      "compressed": 32775,
+      "bytes": 32775,
+      "offset": 276437358,
+      "sha256": "525ffdef4adb5a82ffe07814b1a46d017014fad571ae206bfeda970531560c10"
+    },
+    {
+      "name": "eyes/materials/green_eye.png",
+      "method": 8,
+      "compressed": 659403,
+      "bytes": 662241,
+      "offset": 276470217,
+      "sha256": "b9864ac4f4fa484b24e18f6aba030d70dbc8820cbbacfbe63a974c76772c2009"
+    },
+    {
+      "name": "eyes/materials/bluegreen.mhmat",
+      "method": 8,
+      "compressed": 595,
+      "bytes": 1250,
+      "offset": 277129706,
+      "sha256": "2dfb910b48da0e0739b44a8fa4728b3b351bf9b408034c6402a1b9c07915b884"
+    },
+    {
+      "name": "eyes/materials/brown_eye.png",
+      "method": 8,
+      "compressed": 607878,
+      "bytes": 610817,
+      "offset": 277130389,
+      "sha256": "4659691c7295ad6206c78b003e5fd0e5f91dcd53032fa914a229bb48cabe424b"
+    },
+    {
+      "name": "eyes/materials/deepblue.thumb",
+      "method": 0,
+      "compressed": 32356,
+      "bytes": 32356,
+      "offset": 277738353,
+      "sha256": "10b1fa542476d35dee4ac92b6f1a654ecf391d849231727a591820b895d8d815"
+    },
+    {
+      "name": "eyes/materials/green.mhmat",
+      "method": 8,
+      "compressed": 596,
+      "bytes": 1246,
+      "offset": 277770796,
+      "sha256": "b3b512120d9f87f91cd34879ac17ad9f26eb6a250d92be52df8b19df5cc90113"
+    },
+    {
+      "name": "eyes/materials/lightblue.thumb",
+      "method": 8,
+      "compressed": 36929,
+      "bytes": 36919,
+      "offset": 277771476,
+      "sha256": "4e70a6c6530469ead049980969944cf1c2860700907c9dfee0fbc87af7965c68"
+    },
+    {
+      "name": "eyes/materials/lightblue.mhmat",
+      "method": 8,
+      "compressed": 597,
+      "bytes": 1254,
+      "offset": 278507333,
+      "sha256": "3bb470d56dfdf40b16e499578bf6ea2c4e0e7e27db4c5bd2adb47f760f5c5f34"
+    },
+    {
+      "name": "eyes/materials/blue.thumb",
+      "method": 8,
+      "compressed": 33310,
+      "bytes": 33300,
+      "offset": 278542220,
+      "sha256": "5d7474af291a83b4b122ccd276b5ad10f9a4554efa940aad1d515363e22d7b6b"
+    },
+    {
+      "name": "eyes/materials/ice.thumb",
+      "method": 8,
+      "compressed": 34120,
+      "bytes": 34110,
+      "offset": 278508018,
+      "sha256": "a8e150fb9fb901051a0dd6e753ec68d501ad5dc20e01adcdf6ac1f81657c5df9"
+    },
+    {
+      "name": "eyes/materials/blue.mhmat",
+      "method": 8,
+      "compressed": 593,
+      "bytes": 1243,
+      "offset": 278575613,
+      "sha256": "bd9cab4d2f6ca54df6253c1adfbb1c82e0ee61057361d95449ade06a1b5669c4"
+    },
+    {
+      "name": "eyes/materials/deepblue.mhmat",
+      "method": 8,
+      "compressed": 596,
+      "bytes": 1252,
+      "offset": 278576289,
+      "sha256": "08f7a30d8cd8d264d21d755afcfdca3d28386e780b9e9fea11a662337e99d3a3"
+    },
+    {
+      "name": "eyes/high-poly/high-poly.obj",
+      "method": 8,
+      "compressed": 29513,
+      "bytes": 100882,
+      "offset": 280592672,
+      "sha256": "da2493215b708a344c33dc72f2a9a5b8fa985dcc5a70ad3b208995cf871da8e1"
+    },
+    {
+      "name": "hair/short03/short03_diffuse.png",
+      "method": 8,
+      "compressed": 2379485,
+      "bytes": 2392930,
+      "offset": 243582434,
+      "sha256": "fe6ed0bb14498a48a2e8fc07e80e2a6f62c8b67686fcd0a7a570d345faec97da"
+    },
+    {
+      "name": "eyes/materials/ice_eye.png",
+      "method": 8,
+      "compressed": 673628,
+      "bytes": 676501,
+      "offset": 279918211,
+      "sha256": "a5903596fe033371ba7130b5c8b2c09ce2f5d282d77557c21060ab8a778bf03d"
+    },
+    {
+      "name": "eyes/materials/grey.mhmat",
+      "method": 8,
+      "compressed": 593,
+      "bytes": 1244,
+      "offset": 280591923,
+      "sha256": "65c536157ef0550b2f8461a9526c726707533dc7cfe8a65abb9b9db0b4e6b25e"
+    },
+    {
+      "name": "eyes/high-poly/high-poly.thumb",
+      "method": 8,
+      "compressed": 20161,
+      "bytes": 21076,
+      "offset": 280622271,
+      "sha256": "97730eb579e1a81a63f38f53125ad8d375556f222882704fbec7dd83d4f24916"
+    },
+    {
+      "name": "eyes/materials/lightblue_eye.png",
+      "method": 8,
+      "compressed": 698750,
+      "bytes": 701486,
+      "offset": 277808493,
+      "sha256": "687c8f6d95a8550bcd4a34158f415d6bb376c0bb32e67d127bbb51e5fa469eef"
+    },
+    {
+      "name": "eyes/materials/blue_eye.png",
+      "method": 8,
+      "compressed": 663267,
+      "bytes": 666029,
+      "offset": 279254859,
+      "sha256": "572ddc93ab3e177100619ec7c00b2574540cfb382805afc2e450788117f6140c"
+    },
+    {
+      "name": "eyes/materials/brownlight_eye.png",
+      "method": 8,
+      "compressed": 677796,
+      "bytes": 680577,
+      "offset": 278576972,
+      "sha256": "3f43a4de70e446186dac1760cfa01dfe36d530ed7564208455395b0ebcdf788a"
+    },
+    {
+      "name": "eyes/low-poly/low-poly.thumb",
+      "method": 8,
+      "compressed": 15539,
+      "bytes": 15938,
+      "offset": 280664002,
+      "sha256": "27b09c5a2bd792671c99a00016ec836855278f199bc4753c3018f1ac73068c72"
+    },
+    {
+      "name": "eyes/high-poly/high-poly.mhclo",
+      "method": 8,
+      "compressed": 21322,
+      "bytes": 72490,
+      "offset": 280642520,
+      "sha256": "b183cfe37120ab726f9b3f2ea6cd3a64c44ce7b4bd91a77c841cf70c04f83a0d"
+    },
+    {
+      "name": "eyes/low-poly/low-poly.mhclo",
+      "method": 8,
+      "compressed": 673,
+      "bytes": 1344,
+      "offset": 280679627,
+      "sha256": "68582e28e9176cba7cfcf35208f671b6201b8d1bc95c32decff61a3160ec34d8"
+    },
+    {
+      "name": "eyes/low-poly/low-poly.obj",
+      "method": 8,
+      "compressed": 2161,
+      "bytes": 6604,
+      "offset": 280680386,
+      "sha256": "783fe1e6331162c876520b4c2bed7a8ca06354ca15497e8ebd68bb1b59f4d3de"
+    },
+    {
+      "name": "eyes/materials/bluegreen_eye.png",
+      "method": 8,
+      "compressed": 695142,
+      "bytes": 697879,
+      "offset": 274348195,
+      "sha256": "653b3154e67f67e118c22acd19c472aa7543e0c229209f687c3f7f669f191fd9"
+    }
+  ]
+}

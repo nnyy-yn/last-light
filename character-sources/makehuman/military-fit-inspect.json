@@ -1,0 +1,4507 @@
+{
+  "objects": [
+    {
+      "name": "0",
+      "old": true,
+      "vertices": 962,
+      "materials": [
+        "Mil_Suit_R5_Head"
+      ],
+      "bounds": [
+        [
+          0.006387743167579174,
+          -0.05695632845163345,
+          0.00462527247145772
+        ],
+        [
+          0.006387739907950163,
+          -0.05695633217692375,
+          0.004625239409506321
+        ],
+        [
+          0.006387741304934025,
+          -0.056956350803375244,
+          0.004625240806490183
+        ],
+        [
+          0.006387744564563036,
+          -0.056956350803375244,
+          0.004625273868441582
+        ],
+        [
+          0.006387839559465647,
+          -0.056956321001052856,
+          0.004625261761248112
+        ],
+        [
+          0.006387836299836636,
+          -0.056956324726343155,
+          0.004625228699296713
+        ],
+        [
+          0.0063878376968204975,
+          -0.056956347078084946,
+          0.004625230096280575
+        ],
+        [
+          0.006387840956449509,
+          -0.05695634335279465,
+          0.004625263158231974
+        ]
+      ],
+      "groups": []
+    },
+    {
+      "name": "Icosphere",
+      "old": true,
+      "vertices": 42,
+      "materials": [],
+      "bounds": [
+        [
+          -0.9510578513145447,
+          -0.9999999403953552,
+          -1.0
+        ],
+        [
+          -0.9510578513145447,
+          -0.9999999403953552,
+          1.0
+        ],
+        [
+          -0.9510578513145447,
+          0.9999999403953552,
+          1.0
+        ],
+        [
+          -0.9510578513145447,
+          0.9999999403953552,
+          -1.0
+        ],
+        [
+          0.9510578513145447,
+          -0.9999999403953552,
+          -1.0
+        ],
+        [
+          0.9510578513145447,
+          -0.9999999403953552,
+          1.0
+        ],
+        [
+          0.9510578513145447,
+          0.9999999403953552,
+          1.0
+        ],
+        [
+          0.9510578513145447,
+          0.9999999403953552,
+          -1.0
+        ]
+      ],
+      "groups": []
+    },
+    {
+      "name": "MakeHuman_soldier_body",
+      "old": false,
+      "vertices": 19158,
+      "materials": [
+        "MakeHuman_soldier_body.body"
+      ],
+      "bounds": [
+        [
+          -0.5956451892852783,
+          -0.39224573969841003,
+          -2.1900632418692112e-08
+        ],
+        [
+          -0.5956451892852783,
+          -0.39224573969841003,
+          1.8185560703277588
+        ],
+        [
+          -0.5956451892852783,
+          0.09686357527971268,
+          1.8185560703277588
+        ],
+        [
+          -0.5956451892852783,
+          0.09686357527971268,
+          -2.1900632418692112e-08
+        ],
+        [
+          0.5956451892852783,
+          -0.39224573969841003,
+          -2.1900632418692112e-08
+        ],
+        [
+          0.5956451892852783,
+          -0.39224573969841003,
+          1.8185560703277588
+        ],
+        [
+          0.5956451892852783,
+          0.09686357527971268,
+          1.8185560703277588
+        ],
+        [
+          0.5956451892852783,
+          0.09686357527971268,
+          -2.1900632418692112e-08
+        ]
+      ],
+      "groups": [
+        "HelperGeometry",
+        "JointCubes",
+        "Left",
+        "Mid",
+        "Right",
+        "body",
+        "helper-genital",
+        "helper-hair",
+        "helper-l-eye",
+        "helper-l-eyelashes-1",
+        "helper-l-eyelashes-2",
+        "helper-lower-teeth",
+        "helper-r-eye",
+        "helper-r-eyelashes-1",
+        "helper-r-eyelashes-2",
+        "helper-skirt",
+        "helper-tights",
+        "helper-tongue",
+        "helper-upper-teeth",
+        "joint-ground",
+        "joint-head",
+        "joint-head-2",
+        "joint-jaw",
+        "joint-l-ankle",
+        "joint-l-clavicle",
+        "joint-l-elbow",
+        "joint-l-eye",
+        "joint-l-eye-target",
+        "joint-l-finger-1-1",
+        "joint-l-finger-1-2",
+        "joint-l-finger-1-3",
+        "joint-l-finger-1-4",
+        "joint-l-finger-2-1",
+        "joint-l-finger-2-2",
+        "joint-l-finger-2-3",
+        "joint-l-finger-2-4",
+        "joint-l-finger-3-1",
+        "joint-l-finger-3-2",
+        "joint-l-finger-3-3",
+        "joint-l-finger-3-4",
+        "joint-l-finger-4-1",
+        "joint-l-finger-4-2",
+        "joint-l-finger-4-3",
+        "joint-l-finger-4-4",
+        "joint-l-finger-5-1",
+        "joint-l-finger-5-2",
+        "joint-l-finger-5-3",
+        "joint-l-finger-5-4",
+        "joint-l-foot-1",
+        "joint-l-foot-2",
+        "joint-l-hand",
+        "joint-l-hand-2",
+        "joint-l-hand-3",
+        "joint-l-knee",
+        "joint-l-lowerlid",
+        "joint-l-scapula",
+        "joint-l-shoulder",
+        "joint-l-toe-1-1",
+        "joint-l-toe-1-2",
+        "joint-l-toe-1-3",
+        "joint-l-toe-2-1",
+        "joint-l-toe-2-2",
+        "joint-l-toe-2-3",
+        "joint-l-toe-2-4",
+        "joint-l-toe-3-1",
+        "joint-l-toe-3-2",
+        "joint-l-toe-3-3",
+        "joint-l-toe-3-4",
+        "joint-l-toe-4-1",
+        "joint-l-toe-4-2",
+        "joint-l-toe-4-3",
+        "joint-l-toe-4-4",
+        "joint-l-toe-5-1",
+        "joint-l-toe-5-2",
+        "joint-l-toe-5-3",
+        "joint-l-toe-5-4",
+        "joint-l-upper-leg",
+        "joint-l-upperlid",
+        "joint-mouth",
+        "joint-neck",
+        "joint-pelvis",
+        "joint-r-ankle",
+        "joint-r-clavicle",
+        "joint-r-elbow",
+        "joint-r-eye",
+        "joint-r-eye-target",
+        "joint-r-finger-1-1",
+        "joint-r-finger-1-2",
+        "joint-r-finger-1-3",
+        "joint-r-finger-1-4",
+        "joint-r-finger-2-1",
+        "joint-r-finger-2-2",
+        "joint-r-finger-2-3",
+        "joint-r-finger-2-4",
+        "joint-r-finger-3-1",
+        "joint-r-finger-3-2",
+        "joint-r-finger-3-3",
+        "joint-r-finger-3-4",
+        "joint-r-finger-4-1",
+        "joint-r-finger-4-2",
+        "joint-r-finger-4-3",
+        "joint-r-finger-4-4",
+        "joint-r-finger-5-1",
+        "joint-r-finger-5-2",
+        "joint-r-finger-5-3",
+        "joint-r-finger-5-4",
+        "joint-r-foot-1",
+        "joint-r-foot-2",
+        "joint-r-hand",
+        "joint-r-hand-2",
+        "joint-r-hand-3",
+        "joint-r-knee",
+        "joint-r-lowerlid",
+        "joint-r-scapula",
+        "joint-r-shoulder",
+        "joint-r-toe-1-1",
+        "joint-r-toe-1-2",
+        "joint-r-toe-1-3",
+        "joint-r-toe-2-1",
+        "joint-r-toe-2-2",
+        "joint-r-toe-2-3",
+        "joint-r-toe-2-4",
+        "joint-r-toe-3-1",
+        "joint-r-toe-3-2",
+        "joint-r-toe-3-3",
+        "joint-r-toe-3-4",
+        "joint-r-toe-4-1",
+        "joint-r-toe-4-2",
+        "joint-r-toe-4-3",
+        "joint-r-toe-4-4",
+        "joint-r-toe-5-1",
+        "joint-r-toe-5-2",
+        "joint-r-toe-5-3",
+        "joint-r-toe-5-4",
+        "joint-r-upper-leg",
+        "joint-r-upperlid",
+        "joint-spine-1",
+        "joint-spine-2",
+        "joint-spine-3",
+        "joint-spine-4",
+        "joint-tongue-1",
+        "joint-tongue-2",
+        "joint-tongue-3",
+        "joint-tongue-4",
+        "nippleTip",
+        "nipple",
+        "lips",
+        "fingernails",
+        "toenails",
+        "ears",
+        "scalp",
+        "genitals",
+        "mixamorig:Hips",
+        "mixamorig:LeftUpLeg",
+        "mixamorig:LeftLeg",
+        "mixamorig:LeftFoot",
+        "mixamorig:LeftToeBase",
+        "mixamorig:RightUpLeg",
+        "mixamorig:RightLeg",
+        "mixamorig:RightFoot",
+        "mixamorig:RightToeBase",
+        "mixamorig:Spine",
+        "mixamorig:Spine1",
+        "mixamorig:Spine2",
+        "mixamorig:LeftShoulder",
+        "mixamorig:LeftArm",
+        "mixamorig:LeftForeArm",
+        "mixamorig:LeftHand",
+        "mixamorig:LeftHandIndex1",
+        "mixamorig:LeftHandIndex2",
+        "mixamorig:LeftHandIndex3",
+        "mixamorig:LeftHandMiddle1",
+        "mixamorig:LeftHandMiddle2",
+        "mixamorig:LeftHandMiddle3",
+        "mixamorig:LeftHandPinky1",
+        "mixamorig:LeftHandPinky2",
+        "mixamorig:LeftHandPinky3",
+        "mixamorig:LeftHandRing1",
+        "mixamorig:LeftHandRing2",
+        "mixamorig:LeftHandRing3",
+        "mixamorig:LeftHandThumb1",
+        "mixamorig:LeftHandThumb2",
+        "mixamorig:LeftHandThumb3",
+        "mixamorig:Neck",
+        "mixamorig:Head",
+        "mixamorig:RightShoulder",
+        "mixamorig:RightArm",
+        "mixamorig:RightForeArm",
+        "mixamorig:RightHand",
+        "mixamorig:RightHandIndex1",
+        "mixamorig:RightHandIndex2",
+        "mixamorig:RightHandIndex3",
+        "mixamorig:RightHandMiddle1",
+        "mixamorig:RightHandMiddle2",
+        "mixamorig:RightHandMiddle3",
+        "mixamorig:RightHandPinky1",
+        "mixamorig:RightHandPinky2",
+        "mixamorig:RightHandPinky3",
+        "mixamorig:RightHandRing1",
+        "mixamorig:RightHandRing2",
+        "mixamorig:RightHandRing3",
+        "mixamorig:RightHandThumb1",
+        "mixamorig:RightHandThumb2",
+        "mixamorig:RightHandThumb3"
+      ]
+    },
+    {
+      "name": "MakeHuman_soldier_Eyebrows_eyebrow001",
+      "old": false,
+      "vertices": 124,
+      "materials": [
+        "MakeHuman_soldier_body.eyebrow001"
+      ],
+      "bounds": [
+        [
+          -0.061670009046792984,
+          -0.15979069471359253,
+          1.712842583656311
+        ],
+        [
+          -0.061670009046792984,
+          -0.15979069471359253,
+          1.7223482131958008
+        ],
+        [
+          -0.061670009046792984,
+          -0.12689383327960968,
+          1.7223482131958008
+        ],
+        [
+          -0.061670009046792984,
+          -0.12689383327960968,
+          1.712842583656311
+        ],
+        [
+          0.061670009046792984,
+          -0.15979069471359253,
+          1.712842583656311
+        ],
+        [
+          0.061670009046792984,
+          -0.15979069471359253,
+          1.7223482131958008
+        ],
+        [
+          0.061670009046792984,
+          -0.12689383327960968,
+          1.7223482131958008
+        ],
+        [
+          0.061670009046792984,
+          -0.12689383327960968,
+          1.712842583656311
+        ]
+      ],
+      "groups": [
+        "mixamorig:Head"
+      ]
+    },
+    {
+      "name": "MakeHuman_soldier_Eyes_low-poly",
+      "old": false,
+      "vertices": 96,
+      "materials": [
+        "MakeHuman_soldier_body.low-poly"
+      ],
+      "bounds": [
+        [
+          -0.045461349189281464,
+          -0.1495642364025116,
+          1.6950457096099854
+        ],
+        [
+          -0.045461349189281464,
+          -0.1495642364025116,
+          1.723926067352295
+        ],
+        [
+          -0.045461349189281464,
+          -0.12448982894420624,
+          1.723926067352295
+        ],
+        [
+          -0.045461349189281464,
+          -0.12448982894420624,
+          1.6950457096099854
+        ],
+        [
+          0.045461349189281464,
+          -0.1495642364025116,
+          1.6950457096099854
+        ],
+        [
+          0.045461349189281464,
+          -0.1495642364025116,
+          1.723926067352295
+        ],
+        [
+          0.045461349189281464,
+          -0.12448982894420624,
+          1.723926067352295
+        ],
+        [
+          0.045461349189281464,
+          -0.12448982894420624,
+          1.6950457096099854
+        ]
+      ],
+      "groups": [
+        "mixamorig:Head"
+      ]
+    },
+    {
+      "name": "MakeHuman_soldier_Hair_short01",
+      "old": false,
+      "vertices": 2984,
+      "materials": [
+        "MakeHuman_soldier_body.short01"
+      ],
+      "bounds": [
+        [
+          -0.08035185933113098,
+          -0.15331102907657623,
+          1.6257917881011963
+        ],
+        [
+          -0.08035185933113098,
+          -0.15331102907657623,
+          1.8361765146255493
+        ],
+        [
+          -0.08035185933113098,
+          0.059020012617111206,
+          1.8361765146255493
+        ],
+        [
+          -0.08035185933113098,
+          0.059020012617111206,
+          1.6257917881011963
+        ],
+        [
+          0.07950459420681,
+          -0.15331102907657623,
+          1.6257917881011963
+        ],
+        [
+          0.07950459420681,
+          -0.15331102907657623,
+          1.8361765146255493
+        ],
+        [
+          0.07950459420681,
+          0.059020012617111206,
+          1.8361765146255493
+        ],
+        [
+          0.07950459420681,
+          0.059020012617111206,
+          1.6257917881011963
+        ]
+      ],
+      "groups": [
+        "mixamorig:Spine2",
+        "mixamorig:Neck",
+        "mixamorig:Head"
+      ]
+    },
+    {
+      "name": "Object_101",
+      "old": true,
+      "vertices": 2850,
+      "materials": [
+        "Mil_Suit_Pads__R5"
+      ],
+      "bounds": [
+        [
+          -0.04202442988753319,
+          -0.12022966146469116,
+          0.5768044590950012
+        ],
+        [
+          -0.04202442988753319,
+          0.13555824756622314,
+          0.5768044590950012
+        ],
+        [
+          -0.04202442988753319,
+          0.13555821776390076,
+          0.38157644867897034
+        ],
+        [
+          -0.04202442988753319,
+          -0.12022968381643295,
+          0.3815765082836151
+        ],
+        [
+          0.39224469661712646,
+          -0.12022966146469116,
+          0.5768044590950012
+        ],
+        [
+          0.39224469661712646,
+          0.13555824756622314,
+          0.5768044590950012
+        ],
+        [
+          0.39224469661712646,
+          0.13555821776390076,
+          0.38157644867897034
+        ],
+        [
+          0.39224469661712646,
+          -0.12022968381643295,
+          0.3815765082836151
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_103",
+      "old": true,
+      "vertices": 1497,
+      "materials": [
+        "Mil_Suit_R5_Puches"
+      ],
+      "bounds": [
+        [
+          -0.09715824574232101,
+          -0.14576415717601776,
+          1.3369898796081543
+        ],
+        [
+          -0.09715824574232101,
+          0.19947941601276398,
+          1.3369898796081543
+        ],
+        [
+          -0.09715824574232101,
+          0.19947932660579681,
+          0.6826252937316895
+        ],
+        [
+          -0.09715824574232101,
+          -0.14576424658298492,
+          0.6826252937316895
+        ],
+        [
+          0.42456507682800293,
+          -0.14576415717601776,
+          1.3369898796081543
+        ],
+        [
+          0.42456507682800293,
+          0.19947941601276398,
+          1.3369898796081543
+        ],
+        [
+          0.42456507682800293,
+          0.19947932660579681,
+          0.6826252937316895
+        ],
+        [
+          0.42456507682800293,
+          -0.14576424658298492,
+          0.6826252937316895
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_105",
+      "old": true,
+      "vertices": 1090,
+      "materials": [
+        "Mil_Suit_R5__Plate"
+      ],
+      "bounds": [
+        [
+          -0.03489712253212929,
+          -0.09781979024410248,
+          1.5827003717422485
+        ],
+        [
+          -0.03489712253212929,
+          0.27234357595443726,
+          1.5827003717422485
+        ],
+        [
+          -0.03489712253212929,
+          0.2723435163497925,
+          1.1479308605194092
+        ],
+        [
+          -0.03489712253212929,
+          -0.09781984984874725,
+          1.1479308605194092
+        ],
+        [
+          0.3879047632217407,
+          -0.09781979024410248,
+          1.5827003717422485
+        ],
+        [
+          0.3879047632217407,
+          0.27234357595443726,
+          1.5827003717422485
+        ],
+        [
+          0.3879047632217407,
+          0.2723435163497925,
+          1.1479308605194092
+        ],
+        [
+          0.3879047632217407,
+          -0.09781984984874725,
+          1.1479308605194092
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_107",
+      "old": true,
+      "vertices": 1159,
+      "materials": [
+        "Mil_Suit_R5"
+      ],
+      "bounds": [
+        [
+          -0.13912834227085114,
+          -0.1531943529844284,
+          1.6179527044296265
+        ],
+        [
+          -0.13912834227085114,
+          0.25659218430519104,
+          1.6179527044296265
+        ],
+        [
+          -0.13912834227085114,
+          0.2565920948982239,
+          0.9890998005867004
+        ],
+        [
+          -0.13912834227085114,
+          -0.15319444239139557,
+          0.9890998601913452
+        ],
+        [
+          0.5408667922019958,
+          -0.1531943529844284,
+          1.6179527044296265
+        ],
+        [
+          0.5408667922019958,
+          0.25659218430519104,
+          1.6179527044296265
+        ],
+        [
+          0.5408667922019958,
+          0.2565920948982239,
+          0.9890998005867004
+        ],
+        [
+          0.5408667922019958,
+          -0.15319444239139557,
+          0.9890998601913452
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_109",
+      "old": true,
+      "vertices": 722,
+      "materials": [
+        "GreenCap"
+      ],
+      "bounds": [
+        [
+          0.09488753229379654,
+          -0.12062960118055344,
+          1.844329833984375
+        ],
+        [
+          0.09488753229379654,
+          0.2020241767168045,
+          1.844329833984375
+        ],
+        [
+          0.09488753229379654,
+          0.20202414691448212,
+          1.6721442937850952
+        ],
+        [
+          0.09488753229379654,
+          -0.12062962353229523,
+          1.6721442937850952
+        ],
+        [
+          0.27604833245277405,
+          -0.12062960118055344,
+          1.844329833984375
+        ],
+        [
+          0.27604833245277405,
+          0.2020241767168045,
+          1.844329833984375
+        ],
+        [
+          0.27604833245277405,
+          0.20202414691448212,
+          1.6721442937850952
+        ],
+        [
+          0.27604833245277405,
+          -0.12062962353229523,
+          1.6721442937850952
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_111",
+      "old": true,
+      "vertices": 4083,
+      "materials": [
+        "HeadphonesT"
+      ],
+      "bounds": [
+        [
+          0.06576848030090332,
+          -0.0975010022521019,
+          2.073148488998413
+        ],
+        [
+          0.06576848030090332,
+          0.17192724347114563,
+          2.073148488998413
+        ],
+        [
+          0.06576848030090332,
+          0.17192719876766205,
+          1.8168022632598877
+        ],
+        [
+          0.06576848030090332,
+          -0.09750103205442429,
+          1.8168022632598877
+        ],
+        [
+          0.3429938852787018,
+          -0.0975010022521019,
+          2.073148488998413
+        ],
+        [
+          0.3429938852787018,
+          0.17192724347114563,
+          2.073148488998413
+        ],
+        [
+          0.3429938852787018,
+          0.17192719876766205,
+          1.8168022632598877
+        ],
+        [
+          0.3429938852787018,
+          -0.09750103205442429,
+          1.8168022632598877
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_113",
+      "old": true,
+      "vertices": 940,
+      "materials": [
+        "Mil_Suit_R5"
+      ],
+      "bounds": [
+        [
+          -0.07396294176578522,
+          -0.12022736668586731,
+          1.0761682987213135
+        ],
+        [
+          -0.07396294176578522,
+          0.22229860723018646,
+          1.0761682987213135
+        ],
+        [
+          -0.07396294176578522,
+          0.22229847311973572,
+          0.15917788445949554
+        ],
+        [
+          -0.07396294176578522,
+          -0.12022748589515686,
+          0.15917792916297913
+        ],
+        [
+          0.4400569200515747,
+          -0.12022736668586731,
+          1.0761682987213135
+        ],
+        [
+          0.4400569200515747,
+          0.22229860723018646,
+          1.0761682987213135
+        ],
+        [
+          0.4400569200515747,
+          0.22229847311973572,
+          0.15917788445949554
+        ],
+        [
+          0.4400569200515747,
+          -0.12022748589515686,
+          0.15917792916297913
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_115",
+      "old": true,
+      "vertices": 1350,
+      "materials": [
+        "Mil_Suit_R5"
+      ],
+      "bounds": [
+        [
+          -0.013116628862917423,
+          -0.14880605041980743,
+          1.4915410280227661
+        ],
+        [
+          -0.013116628862917423,
+          -0.02647886984050274,
+          1.4915410280227661
+        ],
+        [
+          -0.013116628862917423,
+          -0.02647889219224453,
+          1.3243340253829956
+        ],
+        [
+          -0.013116628862917423,
+          -0.14880606532096863,
+          1.3243340253829956
+        ],
+        [
+          0.34840330481529236,
+          -0.14880605041980743,
+          1.4915410280227661
+        ],
+        [
+          0.34840330481529236,
+          -0.02647886984050274,
+          1.4915410280227661
+        ],
+        [
+          0.34840330481529236,
+          -0.02647889219224453,
+          1.3243340253829956
+        ],
+        [
+          0.34840330481529236,
+          -0.14880606532096863,
+          1.3243340253829956
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_117",
+      "old": true,
+      "vertices": 2846,
+      "materials": [
+        "Mil_Suit_Pads__R5"
+      ],
+      "bounds": [
+        [
+          -0.15358036756515503,
+          -0.13013102114200592,
+          1.3221458196640015
+        ],
+        [
+          -0.15358036756515503,
+          0.09876231849193573,
+          1.3221458196640015
+        ],
+        [
+          -0.15358036756515503,
+          0.09876229614019394,
+          1.1443382501602173
+        ],
+        [
+          -0.15358036756515503,
+          -0.1301310509443283,
+          1.1443382501602173
+        ],
+        [
+          0.5752514600753784,
+          -0.13013102114200592,
+          1.3221458196640015
+        ],
+        [
+          0.5752514600753784,
+          0.09876231849193573,
+          1.3221458196640015
+        ],
+        [
+          0.5752514600753784,
+          0.09876229614019394,
+          1.1443382501602173
+        ],
+        [
+          0.5752514600753784,
+          -0.1301310509443283,
+          1.1443382501602173
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_119",
+      "old": true,
+      "vertices": 700,
+      "materials": [
+        "Mil_Suit_R5_Puches"
+      ],
+      "bounds": [
+        [
+          -0.012939236126840115,
+          -0.1049496978521347,
+          1.0677695274353027
+        ],
+        [
+          -0.012939236126840115,
+          0.19428914785385132,
+          1.0677695274353027
+        ],
+        [
+          -0.012939236126840115,
+          0.19428913295269012,
+          0.992041826248169
+        ],
+        [
+          -0.012939236126840115,
+          -0.1049497053027153,
+          0.992041826248169
+        ],
+        [
+          0.35808277130126953,
+          -0.1049496978521347,
+          1.0677695274353027
+        ],
+        [
+          0.35808277130126953,
+          0.19428914785385132,
+          1.0677695274353027
+        ],
+        [
+          0.35808277130126953,
+          0.19428913295269012,
+          0.992041826248169
+        ],
+        [
+          0.35808277130126953,
+          -0.1049497053027153,
+          0.992041826248169
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_121",
+      "old": true,
+      "vertices": 628,
+      "materials": [
+        "Mil_Suit_R5_Puches"
+      ],
+      "bounds": [
+        [
+          -0.08189886808395386,
+          -0.15370284020900726,
+          1.0656063556671143
+        ],
+        [
+          -0.08189886808395386,
+          0.267180472612381,
+          1.0656063556671143
+        ],
+        [
+          -0.08189886808395386,
+          0.2671804428100586,
+          0.8691731691360474
+        ],
+        [
+          -0.08189886808395386,
+          -0.15370287001132965,
+          0.8691732287406921
+        ],
+        [
+          0.436754435300827,
+          -0.15370284020900726,
+          1.0656063556671143
+        ],
+        [
+          0.436754435300827,
+          0.267180472612381,
+          1.0656063556671143
+        ],
+        [
+          0.436754435300827,
+          0.2671804428100586,
+          0.8691731691360474
+        ],
+        [
+          0.436754435300827,
+          -0.15370287001132965,
+          0.8691732287406921
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_123",
+      "old": true,
+      "vertices": 528,
+      "materials": [
+        "Mil_Suit_R5"
+      ],
+      "bounds": [
+        [
+          -0.15075023472309113,
+          -0.1798524260520935,
+          0.23255352675914764
+        ],
+        [
+          -0.15075023472309113,
+          0.23003430664539337,
+          0.23255346715450287
+        ],
+        [
+          -0.15075023472309113,
+          0.23003427684307098,
+          0.0028534673620015383
+        ],
+        [
+          -0.15075023472309113,
+          -0.1798524558544159,
+          0.0028535225428640842
+        ],
+        [
+          0.4654478430747986,
+          -0.1798524260520935,
+          0.23255352675914764
+        ],
+        [
+          0.4654478430747986,
+          0.23003430664539337,
+          0.23255346715450287
+        ],
+        [
+          0.4654478430747986,
+          0.23003427684307098,
+          0.0028534673620015383
+        ],
+        [
+          0.4654478430747986,
+          -0.1798524558544159,
+          0.0028535225428640842
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_97",
+      "old": true,
+      "vertices": 1371,
+      "materials": [
+        "Mil_Suit_R5_Head"
+      ],
+      "bounds": [
+        [
+          0.1160513386130333,
+          -0.06516346335411072,
+          1.7804040908813477
+        ],
+        [
+          0.1160513386130333,
+          0.011625675484538078,
+          1.7804040908813477
+        ],
+        [
+          0.1160513386130333,
+          0.011625661514699459,
+          1.680538296699524
+        ],
+        [
+          0.1160513386130333,
+          -0.06516347825527191,
+          1.680538296699524
+        ],
+        [
+          0.258194237947464,
+          -0.06516346335411072,
+          1.7804040908813477
+        ],
+        [
+          0.258194237947464,
+          0.011625675484538078,
+          1.7804040908813477
+        ],
+        [
+          0.258194237947464,
+          0.011625661514699459,
+          1.680538296699524
+        ],
+        [
+          0.258194237947464,
+          -0.06516347825527191,
+          1.680538296699524
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    },
+    {
+      "name": "Object_99",
+      "old": true,
+      "vertices": 945,
+      "materials": [
+        "Mil_Suit_R5_Head"
+      ],
+      "bounds": [
+        [
+          0.04991762712597847,
+          -0.08272097259759903,
+          1.8321635723114014
+        ],
+        [
+          0.04991762712597847,
+          0.19121693074703217,
+          1.8321635723114014
+        ],
+        [
+          0.04991762712597847,
+          0.1912168711423874,
+          1.3966301679611206
+        ],
+        [
+          0.04991762712597847,
+          -0.0827210322022438,
+          1.3966301679611206
+        ],
+        [
+          0.30685025453567505,
+          -0.08272097259759903,
+          1.8321635723114014
+        ],
+        [
+          0.30685025453567505,
+          0.19121693074703217,
+          1.8321635723114014
+        ],
+        [
+          0.30685025453567505,
+          0.1912168711423874,
+          1.3966301679611206
+        ],
+        [
+          0.30685025453567505,
+          -0.0827210322022438,
+          1.3966301679611206
+        ]
+      ],
+      "groups": [
+        "_rootJoint",
+        "mixamorig:Hips_01",
+        "mixamorig:Spine_02",
+        "mixamorig:Spine1_03",
+        "mixamorig:Spine2_04",
+        "mixamorig:Neck_05",
+        "mixamorig:Head_06",
+        "mixamorig:HeadTop_End_07",
+        "mixamorig:RightShoulder_08",
+        "mixamorig:RightArm_09",
+        "mixamorig:RightForeArm_010",
+        "mixamorig:RightHand_011",
+        "mixamorig:RightHandThumb1_012",
+        "mixamorig:RightHandThumb2_013",
+        "mixamorig:RightHandThumb3_014",
+        "mixamorig:RightHandThumb4_015",
+        "mixamorig:RightHandMiddle1_016",
+        "mixamorig:RightHandMiddle2_017",
+        "mixamorig:RightHandMiddle3_018",
+        "mixamorig:RightHandMiddle4_019",
+        "mixamorig:RightHandRing1_020",
+        "mixamorig:RightHandRing2_021",
+        "mixamorig:RightHandRing3_022",
+        "mixamorig:RightHandRing4_00",
+        "mixamorig:RightHandPinky1_023",
+        "mixamorig:RightHandPinky2_024",
+        "mixamorig:RightHandPinky3_025",
+        "mixamorig:RightHandPinky4_026",
+        "mixamorig:RightHandIndex1_027",
+        "mixamorig:RightHandIndex2_028",
+        "mixamorig:RightHandIndex3_029",
+        "mixamorig:RightHandIndex4_030",
+        "Right_Elbow_Pads_031",
+        "mixamorig:LeftShoulder_032",
+        "mixamorig:LeftArm_033",
+        "mixamorig:LeftForeArm_034",
+        "mixamorig:LeftHand_035",
+        "mixamorig:LeftHandThumb1_036",
+        "mixamorig:LeftHandThumb2_037",
+        "mixamorig:LeftHandThumb3_038",
+        "mixamorig:LeftHandThumb4_039",
+        "mixamorig:LeftHandIndex1_040",
+        "mixamorig:LeftHandIndex2_041",
+        "mixamorig:LeftHandIndex3_042",
+        "mixamorig:LeftHandIndex4_043",
+        "mixamorig:LeftHandMiddle1_044",
+        "mixamorig:LeftHandMiddle2_045",
+        "mixamorig:LeftHandMiddle3_046",
+        "mixamorig:LeftHandMiddle4_047",
+        "mixamorig:LeftHandRing1_048",
+        "mixamorig:LeftHandRing2_049",
+        "mixamorig:LeftHandRing3_050",
+        "mixamorig:LeftHandRing4_051",
+        "mixamorig:LeftHandPinky1_052",
+        "mixamorig:LeftHandPinky2_053",
+        "mixamorig:LeftHandPinky3_054",
+        "mixamorig:LeftHandPinky4_055",
+        "Left_Elbow_Pads_056",
+        "mixamorig:RightUpLeg_057",
+        "mixamorig:RightLeg_058",
+        "mixamorig:RightFoot_059",
+        "mixamorig:RightToeBase_060",
+        "mixamorig:RightToe_End_061",
+        "Right_Knee_Pads_062",
+        "mixamorig:LeftUpLeg_063",
+        "mixamorig:LeftLeg_064",
+        "mixamorig:LeftFoot_065",
+        "mixamorig:LeftToeBase_066",
+        "mixamorig:LeftToe_End_067",
+        "Left_Knee_Pads_068",
+        "Front_Big_Pouch.1_069",
+        "Front_Big_Pouch.2_070",
+        "Front_Big_Pouch.3_071",
+        "Left_Pouch.1_072",
+        "Left_Pouch.2_073",
+        "Left_Pouch.3_074",
+        "Back_Small_Pouch2.1_075",
+        "Back_Small_Pouch2.2_076",
+        "Back_Small_Pouch2.3_077",
+        "Back_Small_Pouch.1_078",
+        "Back_Small_Pouch.2_079",
+        "Back_Small_Pouch.3_080",
+        "Back_Big_Pouch.1_081",
+        "Back_Big_Pouch.2_082",
+        "Back_Big_Pouch.3_083",
+        "Right_Pouch.1_084",
+        "Right_Pouch.2_085",
+        "Right_Pouch.3_086"
+      ]
+    }
+  ],
+  "rigs": [
+    {
+      "name": "MakeHuman_soldier_rig",
+      "old": false,
+      "matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bones": [
+        {
+          "name": "mixamorig:Hips",
+          "head": [
+            -0.001625576987862587,
+            -0.012849083170294762,
+            1.0291625261306763
+          ],
+          "tail": [
+            0.0,
+            -0.02766815572977066,
+            1.127672553062439
+          ],
+          "parent": null
+        },
+        {
+          "name": "mixamorig:LeftUpLeg",
+          "head": [
+            0.11348305642604828,
+            0.0037865086924284697,
+            0.9793046712875366
+          ],
+          "tail": [
+            0.15627384185791016,
+            -0.031150490045547485,
+            0.5281915664672852
+          ],
+          "parent": "mixamorig:Hips"
+        },
+        {
+          "name": "mixamorig:LeftLeg",
+          "head": [
+            0.15627384185791016,
+            -0.031150490045547485,
+            0.5281915664672852
+          ],
+          "tail": [
+            0.203338623046875,
+            -0.015368838794529438,
+            0.07520819455385208
+          ],
+          "parent": "mixamorig:LeftUpLeg"
+        },
+        {
+          "name": "mixamorig:LeftFoot",
+          "head": [
+            0.203338623046875,
+            -0.015368838794529438,
+            0.07520819455385208
+          ],
+          "tail": [
+            0.19948846101760864,
+            -0.16763651371002197,
+            0.030403703451156616
+          ],
+          "parent": "mixamorig:LeftLeg"
+        },
+        {
+          "name": "mixamorig:LeftToeBase",
+          "head": [
+            0.19948846101760864,
+            -0.16763651371002197,
+            0.030403703451156616
+          ],
+          "tail": [
+            0.20218509435653687,
+            -0.22413688898086548,
+            0.014749071560800076
+          ],
+          "parent": "mixamorig:LeftFoot"
+        },
+        {
+          "name": "mixamorig:RightUpLeg",
+          "head": [
+            -0.11348305642604828,
+            0.0037865086924284697,
+            0.9793046712875366
+          ],
+          "tail": [
+            -0.15627384185791016,
+            -0.031150490045547485,
+            0.5281915664672852
+          ],
+          "parent": "mixamorig:Hips"
+        },
+        {
+          "name": "mixamorig:RightLeg",
+          "head": [
+            -0.15627384185791016,
+            -0.031150490045547485,
+            0.5281915664672852
+          ],
+          "tail": [
+            -0.203338623046875,
+            -0.015368838794529438,
+            0.07520819455385208
+          ],
+          "parent": "mixamorig:RightUpLeg"
+        },
+        {
+          "name": "mixamorig:RightFoot",
+          "head": [
+            -0.203338623046875,
+            -0.015368838794529438,
+            0.07520819455385208
+          ],
+          "tail": [
+            -0.19948846101760864,
+            -0.16763651371002197,
+            0.030403703451156616
+          ],
+          "parent": "mixamorig:RightLeg"
+        },
+        {
+          "name": "mixamorig:RightToeBase",
+          "head": [
+            -0.19948846101760864,
+            -0.16763651371002197,
+            0.030403703451156616
+          ],
+          "tail": [
+            -0.20218509435653687,
+            -0.22413688898086548,
+            0.014749071560800076
+          ],
+          "parent": "mixamorig:RightFoot"
+        },
+        {
+          "name": "mixamorig:Spine",
+          "head": [
+            0.0,
+            -0.02766815572977066,
+            1.127672553062439
+          ],
+          "tail": [
+            0.0,
+            -0.010201252065598965,
+            1.226691484451294
+          ],
+          "parent": "mixamorig:Hips"
+        },
+        {
+          "name": "mixamorig:Spine1",
+          "head": [
+            0.0,
+            -0.010201252065598965,
+            1.226691484451294
+          ],
+          "tail": [
+            0.0,
+            0.04767204821109772,
+            1.3561620712280273
+          ],
+          "parent": "mixamorig:Spine"
+        },
+        {
+          "name": "mixamorig:Spine2",
+          "head": [
+            0.0,
+            0.04767204821109772,
+            1.3561620712280273
+          ],
+          "tail": [
+            0.0,
+            -0.014562224969267845,
+            1.5695942640304565
+          ],
+          "parent": "mixamorig:Spine1"
+        },
+        {
+          "name": "mixamorig:LeftShoulder",
+          "head": [
+            0.06665051728487015,
+            -0.017798706889152527,
+            1.5334722995758057
+          ],
+          "tail": [
+            0.19988679885864258,
+            -0.020886903628706932,
+            1.4628932476043701
+          ],
+          "parent": "mixamorig:Spine2"
+        },
+        {
+          "name": "mixamorig:LeftArm",
+          "head": [
+            0.19988679885864258,
+            -0.020886903628706932,
+            1.4628932476043701
+          ],
+          "tail": [
+            0.3755747675895691,
+            -0.020843740552663803,
+            1.2618494033813477
+          ],
+          "parent": "mixamorig:LeftShoulder"
+        },
+        {
+          "name": "mixamorig:LeftForeArm",
+          "head": [
+            0.3755747675895691,
+            -0.020843740552663803,
+            1.2618494033813477
+          ],
+          "tail": [
+            0.5132931470870972,
+            -0.21646243333816528,
+            1.1303443908691406
+          ],
+          "parent": "mixamorig:LeftArm"
+        },
+        {
+          "name": "mixamorig:LeftHand",
+          "head": [
+            0.5132931470870972,
+            -0.21646243333816528,
+            1.1303443908691406
+          ],
+          "tail": [
+            0.5595303773880005,
+            -0.284766286611557,
+            1.0698351860046387
+          ],
+          "parent": "mixamorig:LeftForeArm"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex1",
+          "head": [
+            0.5446067452430725,
+            -0.32552579045295715,
+            1.0883512496948242
+          ],
+          "tail": [
+            0.548237144947052,
+            -0.3497593104839325,
+            1.0718326568603516
+          ],
+          "parent": "mixamorig:LeftHand"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex2",
+          "head": [
+            0.548237144947052,
+            -0.3497593104839325,
+            1.0718326568603516
+          ],
+          "tail": [
+            0.5476282238960266,
+            -0.36937642097473145,
+            1.053808569908142
+          ],
+          "parent": "mixamorig:LeftHandIndex1"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex3",
+          "head": [
+            0.5476282238960266,
+            -0.36937642097473145,
+            1.053808569908142
+          ],
+          "tail": [
+            0.5438874959945679,
+            -0.38984039425849915,
+            1.0323131084442139
+          ],
+          "parent": "mixamorig:LeftHandIndex2"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle1",
+          "head": [
+            0.5631383657455444,
+            -0.30609411001205444,
+            1.075026035308838
+          ],
+          "tail": [
+            0.5713348388671875,
+            -0.3305606245994568,
+            1.0461069345474243
+          ],
+          "parent": "mixamorig:LeftHand"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle2",
+          "head": [
+            0.5713348388671875,
+            -0.3305606245994568,
+            1.0461069345474243
+          ],
+          "tail": [
+            0.5742212533950806,
+            -0.35054242610931396,
+            1.0227575302124023
+          ],
+          "parent": "mixamorig:LeftHandMiddle1"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle3",
+          "head": [
+            0.5742212533950806,
+            -0.35054242610931396,
+            1.0227575302124023
+          ],
+          "tail": [
+            0.574313759803772,
+            -0.3683544993400574,
+            0.9981004595756531
+          ],
+          "parent": "mixamorig:LeftHandMiddle2"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky1",
+          "head": [
+            0.5732773542404175,
+            -0.2648771405220032,
+            1.0548418760299683
+          ],
+          "tail": [
+            0.580066442489624,
+            -0.274381160736084,
+            1.0336753129959106
+          ],
+          "parent": "mixamorig:LeftHand"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky2",
+          "head": [
+            0.580066442489624,
+            -0.274381160736084,
+            1.0336753129959106
+          ],
+          "tail": [
+            0.5823390483856201,
+            -0.2816087007522583,
+            1.017642617225647
+          ],
+          "parent": "mixamorig:LeftHandPinky1"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky3",
+          "head": [
+            0.5823390483856201,
+            -0.2816087007522583,
+            1.017642617225647
+          ],
+          "tail": [
+            0.5849559903144836,
+            -0.2901139557361603,
+            0.996974527835846
+          ],
+          "parent": "mixamorig:LeftHandPinky2"
+        },
+        {
+          "name": "mixamorig:LeftHandRing1",
+          "head": [
+            0.5717272758483887,
+            -0.28664153814315796,
+            1.0658830404281616
+          ],
+          "tail": [
+            0.5820053815841675,
+            -0.3036726117134094,
+            1.0382676124572754
+          ],
+          "parent": "mixamorig:LeftHand"
+        },
+        {
+          "name": "mixamorig:LeftHandRing2",
+          "head": [
+            0.5820053815841675,
+            -0.3036726117134094,
+            1.0382676124572754
+          ],
+          "tail": [
+            0.5871601104736328,
+            -0.3190697133541107,
+            1.0152133703231812
+          ],
+          "parent": "mixamorig:LeftHandRing1"
+        },
+        {
+          "name": "mixamorig:LeftHandRing3",
+          "head": [
+            0.5871601104736328,
+            -0.3190697133541107,
+            1.0152133703231812
+          ],
+          "tail": [
+            0.5900087952613831,
+            -0.3327246606349945,
+            0.9885375499725342
+          ],
+          "parent": "mixamorig:LeftHandRing2"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb1",
+          "head": [
+            0.514833390712738,
+            -0.2671269178390503,
+            1.1235698461532593
+          ],
+          "tail": [
+            0.49102336168289185,
+            -0.291202574968338,
+            1.1144167184829712
+          ],
+          "parent": "mixamorig:LeftHand"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb2",
+          "head": [
+            0.49102336168289185,
+            -0.291202574968338,
+            1.1144167184829712
+          ],
+          "tail": [
+            0.47656261920928955,
+            -0.3276316225528717,
+            1.1003133058547974
+          ],
+          "parent": "mixamorig:LeftHandThumb1"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb3",
+          "head": [
+            0.47656261920928955,
+            -0.3276316225528717,
+            1.1003133058547974
+          ],
+          "tail": [
+            0.47062599658966064,
+            -0.3517831563949585,
+            1.0814659595489502
+          ],
+          "parent": "mixamorig:LeftHandThumb2"
+        },
+        {
+          "name": "mixamorig:Neck",
+          "head": [
+            0.0,
+            -0.014562224969267845,
+            1.5695942640304565
+          ],
+          "tail": [
+            0.0,
+            0.0018625856610015035,
+            1.6215318441390991
+          ],
+          "parent": "mixamorig:Spine2"
+        },
+        {
+          "name": "mixamorig:Head",
+          "head": [
+            0.0024393778294324875,
+            -0.022282827645540237,
+            1.6128935813903809
+          ],
+          "tail": [
+            0.0,
+            -0.027582665905356407,
+            1.8233771324157715
+          ],
+          "parent": "mixamorig:Neck"
+        },
+        {
+          "name": "mixamorig:RightShoulder",
+          "head": [
+            -0.0651712715625763,
+            -0.018978949636220932,
+            1.5226750373840332
+          ],
+          "tail": [
+            -0.19988679885864258,
+            -0.020886903628706932,
+            1.4628932476043701
+          ],
+          "parent": "mixamorig:Spine2"
+        },
+        {
+          "name": "mixamorig:RightArm",
+          "head": [
+            -0.19988679885864258,
+            -0.020886903628706932,
+            1.4628932476043701
+          ],
+          "tail": [
+            -0.3755747675895691,
+            -0.020843740552663803,
+            1.2618494033813477
+          ],
+          "parent": "mixamorig:RightShoulder"
+        },
+        {
+          "name": "mixamorig:RightForeArm",
+          "head": [
+            -0.3755747675895691,
+            -0.020843740552663803,
+            1.2618494033813477
+          ],
+          "tail": [
+            -0.5132931470870972,
+            -0.21646243333816528,
+            1.1303443908691406
+          ],
+          "parent": "mixamorig:RightArm"
+        },
+        {
+          "name": "mixamorig:RightHand",
+          "head": [
+            -0.5132931470870972,
+            -0.21646243333816528,
+            1.1303443908691406
+          ],
+          "tail": [
+            -0.5503847599029541,
+            -0.2791094183921814,
+            1.0760432481765747
+          ],
+          "parent": "mixamorig:RightForeArm"
+        },
+        {
+          "name": "mixamorig:RightHandIndex1",
+          "head": [
+            -0.5446067452430725,
+            -0.32552579045295715,
+            1.0883512496948242
+          ],
+          "tail": [
+            -0.548237144947052,
+            -0.3497593104839325,
+            1.0718326568603516
+          ],
+          "parent": "mixamorig:RightHand"
+        },
+        {
+          "name": "mixamorig:RightHandIndex2",
+          "head": [
+            -0.548237144947052,
+            -0.3497593104839325,
+            1.0718326568603516
+          ],
+          "tail": [
+            -0.5476282238960266,
+            -0.36937642097473145,
+            1.053808569908142
+          ],
+          "parent": "mixamorig:RightHandIndex1"
+        },
+        {
+          "name": "mixamorig:RightHandIndex3",
+          "head": [
+            -0.5476282238960266,
+            -0.36937642097473145,
+            1.053808569908142
+          ],
+          "tail": [
+            -0.5438874959945679,
+            -0.38984039425849915,
+            1.0323131084442139
+          ],
+          "parent": "mixamorig:RightHandIndex2"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle1",
+          "head": [
+            -0.5631383657455444,
+            -0.30609411001205444,
+            1.075026035308838
+          ],
+          "tail": [
+            -0.5713348388671875,
+            -0.3305606245994568,
+            1.0461069345474243
+          ],
+          "parent": "mixamorig:RightHand"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle2",
+          "head": [
+            -0.5713348388671875,
+            -0.3305606245994568,
+            1.0461069345474243
+          ],
+          "tail": [
+            -0.5742212533950806,
+            -0.35054242610931396,
+            1.0227575302124023
+          ],
+          "parent": "mixamorig:RightHandMiddle1"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle3",
+          "head": [
+            -0.5742212533950806,
+            -0.35054242610931396,
+            1.0227575302124023
+          ],
+          "tail": [
+            -0.574313759803772,
+            -0.3683544993400574,
+            0.9981004595756531
+          ],
+          "parent": "mixamorig:RightHandMiddle2"
+        },
+        {
+          "name": "mixamorig:RightHandPinky1",
+          "head": [
+            -0.5732773542404175,
+            -0.2648771405220032,
+            1.0548418760299683
+          ],
+          "tail": [
+            -0.580066442489624,
+            -0.274381160736084,
+            1.0336753129959106
+          ],
+          "parent": "mixamorig:RightHand"
+        },
+        {
+          "name": "mixamorig:RightHandPinky2",
+          "head": [
+            -0.580066442489624,
+            -0.274381160736084,
+            1.0336753129959106
+          ],
+          "tail": [
+            -0.5823390483856201,
+            -0.2816087007522583,
+            1.017642617225647
+          ],
+          "parent": "mixamorig:RightHandPinky1"
+        },
+        {
+          "name": "mixamorig:RightHandPinky3",
+          "head": [
+            -0.5823390483856201,
+            -0.2816087007522583,
+            1.017642617225647
+          ],
+          "tail": [
+            -0.5849559903144836,
+            -0.2901139557361603,
+            0.996974527835846
+          ],
+          "parent": "mixamorig:RightHandPinky2"
+        },
+        {
+          "name": "mixamorig:RightHandRing1",
+          "head": [
+            -0.5717272758483887,
+            -0.28664153814315796,
+            1.0658830404281616
+          ],
+          "tail": [
+            -0.5820053815841675,
+            -0.3036726117134094,
+            1.0382676124572754
+          ],
+          "parent": "mixamorig:RightHand"
+        },
+        {
+          "name": "mixamorig:RightHandRing2",
+          "head": [
+            -0.5820053815841675,
+            -0.3036726117134094,
+            1.0382676124572754
+          ],
+          "tail": [
+            -0.5871601104736328,
+            -0.3190697133541107,
+            1.0152133703231812
+          ],
+          "parent": "mixamorig:RightHandRing1"
+        },
+        {
+          "name": "mixamorig:RightHandRing3",
+          "head": [
+            -0.5871601104736328,
+            -0.3190697133541107,
+            1.0152133703231812
+          ],
+          "tail": [
+            -0.5900087952613831,
+            -0.3327246606349945,
+            0.9885375499725342
+          ],
+          "parent": "mixamorig:RightHandRing2"
+        },
+        {
+          "name": "mixamorig:RightHandThumb1",
+          "head": [
+            -0.514833390712738,
+            -0.2671269178390503,
+            1.1235698461532593
+          ],
+          "tail": [
+            -0.49102336168289185,
+            -0.291202574968338,
+            1.1144167184829712
+          ],
+          "parent": "mixamorig:RightHand"
+        },
+        {
+          "name": "mixamorig:RightHandThumb2",
+          "head": [
+            -0.49102336168289185,
+            -0.291202574968338,
+            1.1144167184829712
+          ],
+          "tail": [
+            -0.47656261920928955,
+            -0.3276316225528717,
+            1.1003133058547974
+          ],
+          "parent": "mixamorig:RightHandThumb1"
+        },
+        {
+          "name": "mixamorig:RightHandThumb3",
+          "head": [
+            -0.47656261920928955,
+            -0.3276316225528717,
+            1.1003133058547974
+          ],
+          "tail": [
+            -0.47062599658966064,
+            -0.3517831563949585,
+            1.0814659595489502
+          ],
+          "parent": "mixamorig:RightHandThumb2"
+        }
+      ]
+    },
+    {
+      "name": "Object_5",
+      "old": true,
+      "matrix": [
+        [
+          0.9144042730331421,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.228583244028414e-07,
+          0.9144043922424316,
+          0.0
+        ],
+        [
+          0.0,
+          -0.9144043922424316,
+          -1.228583244028414e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bones": [
+        {
+          "name": "_rootJoint",
+          "head": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "tail": [
+            0.0,
+            1.0633466243743896,
+            -1.7926684847680008e-07
+          ],
+          "parent": null
+        },
+        {
+          "name": "mixamorig:Hips_01",
+          "head": [
+            2.7923970264964737e-05,
+            1.0632281303405762,
+            0.015859520062804222
+          ],
+          "tail": [
+            2.8283955543884076e-05,
+            1.167898178100586,
+            0.017211589962244034
+          ],
+          "parent": "_rootJoint"
+        },
+        {
+          "name": "mixamorig:Spine_02",
+          "head": [
+            2.8283948267926462e-05,
+            1.167898178100586,
+            0.017211580649018288
+          ],
+          "tail": [
+            2.8385758923832327e-05,
+            1.269611120223999,
+            0.002092235954478383
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "mixamorig:Spine1_03",
+          "head": [
+            2.838576983776875e-05,
+            1.269611120223999,
+            0.0020922275725752115
+          ],
+          "tail": [
+            2.848065378202591e-05,
+            1.3644031286239624,
+            -0.011998338624835014
+          ],
+          "parent": "mixamorig:Spine_02"
+        },
+        {
+          "name": "mixamorig:Spine2_04",
+          "head": [
+            2.848065378202591e-05,
+            1.3644031286239624,
+            -0.01199830137193203
+          ],
+          "tail": [
+            2.8637974537559785e-05,
+            1.5107907056808472,
+            -0.029916223138570786
+          ],
+          "parent": "mixamorig:Spine1_03"
+        },
+        {
+          "name": "mixamorig:Neck_05",
+          "head": [
+            2.8665604986599647e-05,
+            1.5364991426467896,
+            -0.03306297957897186
+          ],
+          "tail": [
+            2.877595034078695e-05,
+            1.6305335760116577,
+            -0.0038141715340316296
+          ],
+          "parent": "mixamorig:Spine2_04"
+        },
+        {
+          "name": "mixamorig:Head_06",
+          "head": [
+            2.8769463824573904e-05,
+            1.6308836936950684,
+            -0.0049645253457129
+          ],
+          "tail": [
+            2.9029904908384196e-05,
+            1.8709620237350464,
+            0.006981802172958851
+          ],
+          "parent": "mixamorig:Neck_05"
+        },
+        {
+          "name": "mixamorig:HeadTop_End_07",
+          "head": [
+            2.9018437999184243e-05,
+            1.861924171447754,
+            0.06137281656265259
+          ],
+          "tail": [
+            2.9274855478433892e-05,
+            2.1005191802978516,
+            0.032168783247470856
+          ],
+          "parent": "mixamorig:Head_06"
+        },
+        {
+          "name": "mixamorig:RightShoulder_08",
+          "head": [
+            -0.046951986849308014,
+            1.5024244785308838,
+            -0.0342128686606884
+          ],
+          "tail": [
+            -0.18172869086265564,
+            1.4808598756790161,
+            -0.0571594312787056
+          ],
+          "parent": "mixamorig:Spine2_04"
+        },
+        {
+          "name": "mixamorig:RightArm_09",
+          "head": [
+            -0.18172866106033325,
+            1.4808598756790161,
+            -0.05715944990515709
+          ],
+          "tail": [
+            -0.35749906301498413,
+            1.2179197072982788,
+            -0.010474508628249168
+          ],
+          "parent": "mixamorig:RightShoulder_08"
+        },
+        {
+          "name": "mixamorig:RightForeArm_010",
+          "head": [
+            -0.35749876499176025,
+            1.2179195880889893,
+            -0.010474594309926033
+          ],
+          "tail": [
+            -0.3651759624481201,
+            1.20588219165802,
+            -0.004016437102109194
+          ],
+          "parent": "mixamorig:RightArm_09"
+        },
+        {
+          "name": "mixamorig:RightHand_011",
+          "head": [
+            -0.4627598822116852,
+            1.0528759956359863,
+            0.07807226479053497
+          ],
+          "tail": [
+            -0.48478803038597107,
+            1.0102174282073975,
+            0.09461693465709686
+          ],
+          "parent": "mixamorig:RightForeArm_010"
+        },
+        {
+          "name": "mixamorig:RightHandThumb1_012",
+          "head": [
+            -0.4681096076965332,
+            1.0251165628433228,
+            0.12025655806064606
+          ],
+          "tail": [
+            -0.4672269821166992,
+            0.9937233328819275,
+            0.14969326555728912
+          ],
+          "parent": "mixamorig:RightHand_011"
+        },
+        {
+          "name": "mixamorig:RightHandThumb2_013",
+          "head": [
+            -0.46722689270973206,
+            0.9937233328819275,
+            0.14969319105148315
+          ],
+          "tail": [
+            -0.46693524718284607,
+            0.9678082466125488,
+            0.17342661321163177
+          ],
+          "parent": "mixamorig:RightHandThumb1_012"
+        },
+        {
+          "name": "mixamorig:RightHandThumb3_014",
+          "head": [
+            -0.46693533658981323,
+            0.9678083658218384,
+            0.17342670261859894
+          ],
+          "tail": [
+            -0.4677378833293915,
+            0.15876717865467072,
+            0.9015820622444153
+          ],
+          "parent": "mixamorig:RightHandThumb2_013"
+        },
+        {
+          "name": "mixamorig:RightHandThumb4_015",
+          "head": [
+            1.7665487916929123e-07,
+            3.8833209714539407e-07,
+            -1.703216057080681e-08
+          ],
+          "tail": [
+            6.565326771124091e-08,
+            1.0884665250778198,
+            -6.291958243309637e-08
+          ],
+          "parent": "mixamorig:RightHandThumb3_014"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle1_016",
+          "head": [
+            -0.5241594910621643,
+            0.9748539328575134,
+            0.11500141769647598
+          ],
+          "tail": [
+            -0.5333492755889893,
+            0.9387562274932861,
+            0.1216941699385643
+          ],
+          "parent": "mixamorig:RightHand_011"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle2_017",
+          "head": [
+            -0.5333491563796997,
+            0.9387561082839966,
+            0.12169414013624191
+          ],
+          "tail": [
+            -0.5352241396903992,
+            0.908717930316925,
+            0.1254223734140396
+          ],
+          "parent": "mixamorig:RightHandMiddle1_016"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle3_018",
+          "head": [
+            -0.535224199295044,
+            0.908717930316925,
+            0.1254224181175232
+          ],
+          "tail": [
+            -0.526713490486145,
+            0.8728397488594055,
+            0.1267319917678833
+          ],
+          "parent": "mixamorig:RightHandMiddle2_017"
+        },
+        {
+          "name": "mixamorig:RightHandMiddle4_019",
+          "head": [
+            -0.5267135500907898,
+            0.8728397488594055,
+            0.1267319619655609
+          ],
+          "tail": [
+            -0.5142464637756348,
+            0.8381561040878296,
+            0.12499800324440002
+          ],
+          "parent": "mixamorig:RightHandMiddle3_018"
+        },
+        {
+          "name": "mixamorig:RightHandRing1_020",
+          "head": [
+            -0.5211383700370789,
+            0.9664893746376038,
+            0.08872097730636597
+          ],
+          "tail": [
+            -0.5282368659973145,
+            0.9352225065231323,
+            0.09312237054109573
+          ],
+          "parent": "mixamorig:RightHand_011"
+        },
+        {
+          "name": "mixamorig:RightHandRing2_021",
+          "head": [
+            -0.5282366871833801,
+            0.9352225065231323,
+            0.09312239289283752
+          ],
+          "tail": [
+            -0.5292343497276306,
+            0.9045429825782776,
+            0.09456273168325424
+          ],
+          "parent": "mixamorig:RightHandRing1_020"
+        },
+        {
+          "name": "mixamorig:RightHandRing3_022",
+          "head": [
+            -0.5292343497276306,
+            0.9045429825782776,
+            0.09456268697977066
+          ],
+          "tail": [
+            -0.16653388738632202,
+            -0.08156061917543411,
+            0.15181663632392883
+          ],
+          "parent": "mixamorig:RightHandRing2_021"
+        },
+        {
+          "name": "mixamorig:RightHandRing4_00",
+          "head": [
+            2.3163664764069836e-07,
+            -1.3625688666252245e-07,
+            -9.537978939988534e-08
+          ],
+          "tail": [
+            1.5519789542395301e-07,
+            1.052249789237976,
+            -2.406788155440154e-07
+          ],
+          "parent": "mixamorig:RightHandRing3_022"
+        },
+        {
+          "name": "mixamorig:RightHandPinky1_023",
+          "head": [
+            -0.5185418128967285,
+            0.9735665917396545,
+            0.0666312575340271
+          ],
+          "tail": [
+            -0.5160368084907532,
+            0.9359968304634094,
+            0.060500334948301315
+          ],
+          "parent": "mixamorig:RightHand_011"
+        },
+        {
+          "name": "mixamorig:RightHandPinky2_024",
+          "head": [
+            -0.5160366892814636,
+            0.9359968304634094,
+            0.0605003647506237
+          ],
+          "tail": [
+            -0.5124955177307129,
+            0.90915846824646,
+            0.05885497108101845
+          ],
+          "parent": "mixamorig:RightHandPinky1_023"
+        },
+        {
+          "name": "mixamorig:RightHandPinky3_025",
+          "head": [
+            -0.5124955773353577,
+            0.90915846824646,
+            0.058854978531599045
+          ],
+          "tail": [
+            -0.506629228591919,
+            0.890215277671814,
+            0.06001051515340805
+          ],
+          "parent": "mixamorig:RightHandPinky2_024"
+        },
+        {
+          "name": "mixamorig:RightHandPinky4_026",
+          "head": [
+            -0.506629228591919,
+            0.890215277671814,
+            0.06001054868102074
+          ],
+          "tail": [
+            -0.501089334487915,
+            0.8711817860603333,
+            0.061286721378564835
+          ],
+          "parent": "mixamorig:RightHandPinky3_025"
+        },
+        {
+          "name": "mixamorig:RightHandIndex1_027",
+          "head": [
+            -0.5157355070114136,
+            0.9773292541503906,
+            0.13121220469474792
+          ],
+          "tail": [
+            -0.5210699439048767,
+            0.9421953558921814,
+            0.1490008383989334
+          ],
+          "parent": "mixamorig:RightHand_011"
+        },
+        {
+          "name": "mixamorig:RightHandIndex2_028",
+          "head": [
+            -0.5210700035095215,
+            0.942195475101471,
+            0.149000883102417
+          ],
+          "tail": [
+            -0.5165759325027466,
+            0.9149596691131592,
+            0.15783680975437164
+          ],
+          "parent": "mixamorig:RightHandIndex1_027"
+        },
+        {
+          "name": "mixamorig:RightHandIndex3_029",
+          "head": [
+            -0.5165759325027466,
+            0.9149596691131592,
+            0.15783680975437164
+          ],
+          "tail": [
+            -0.3048883378505707,
+            -0.08013010025024414,
+            0.46426597237586975
+          ],
+          "parent": "mixamorig:RightHandIndex2_028"
+        },
+        {
+          "name": "mixamorig:RightHandIndex4_030",
+          "head": [
+            0.0,
+            3.7811281572430744e-07,
+            5.7909119277610444e-08
+          ],
+          "tail": [
+            -8.312085242323519e-08,
+            1.0625040531158447,
+            -1.0859648114092124e-07
+          ],
+          "parent": "mixamorig:RightHandIndex3_029"
+        },
+        {
+          "name": "Right_Elbow_Pads_031",
+          "head": [
+            -0.36184215545654297,
+            1.2145047187805176,
+            -0.025138195604085922
+          ],
+          "tail": [
+            -0.3659272789955139,
+            1.210460901260376,
+            -0.03971582278609276
+          ],
+          "parent": "mixamorig:RightForeArm_010"
+        },
+        {
+          "name": "mixamorig:LeftShoulder_032",
+          "head": [
+            0.04701406881213188,
+            1.5024220943450928,
+            -0.03421254828572273
+          ],
+          "tail": [
+            0.18670906126499176,
+            1.4808590412139893,
+            -0.05715935677289963
+          ],
+          "parent": "mixamorig:Spine2_04"
+        },
+        {
+          "name": "mixamorig:LeftArm_033",
+          "head": [
+            0.18670906126499176,
+            1.4808589220046997,
+            -0.05715932697057724
+          ],
+          "tail": [
+            0.3522828221321106,
+            1.2172651290893555,
+            -0.018512427806854248
+          ],
+          "parent": "mixamorig:LeftShoulder_032"
+        },
+        {
+          "name": "mixamorig:LeftForeArm_034",
+          "head": [
+            0.3522830307483673,
+            1.2172653675079346,
+            -0.01851247437298298
+          ],
+          "tail": [
+            0.35627996921539307,
+            1.2118180990219116,
+            -0.0153387151658535
+          ],
+          "parent": "mixamorig:LeftArm_033"
+        },
+        {
+          "name": "mixamorig:LeftHand_035",
+          "head": [
+            0.4616622030735016,
+            1.0681953430175781,
+            0.06834010034799576
+          ],
+          "tail": [
+            0.48761406540870667,
+            1.0088677406311035,
+            0.09204252809286118
+          ],
+          "parent": "mixamorig:LeftForeArm_034"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb1_036",
+          "head": [
+            0.46372392773628235,
+            1.0235475301742554,
+            0.1208510622382164
+          ],
+          "tail": [
+            0.46376147866249084,
+            0.9909167885780334,
+            0.1489240825176239
+          ],
+          "parent": "mixamorig:LeftHand_035"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb2_037",
+          "head": [
+            0.46376147866249084,
+            0.9909166693687439,
+            0.14892394840717316
+          ],
+          "tail": [
+            0.46338558197021484,
+            0.9645641446113586,
+            0.17216965556144714
+          ],
+          "parent": "mixamorig:LeftHandThumb1_036"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb3_038",
+          "head": [
+            0.4633856415748596,
+            0.9645642638206482,
+            0.1721697598695755
+          ],
+          "tail": [
+            0.44271939992904663,
+            0.1586148887872696,
+            0.8965810537338257
+          ],
+          "parent": "mixamorig:LeftHandThumb2_037"
+        },
+        {
+          "name": "mixamorig:LeftHandThumb4_039",
+          "head": [
+            4.2239625486217847e-07,
+            -2.1801096750095894e-07,
+            2.3163670448411722e-07
+          ],
+          "tail": [
+            1.7004030894440803e-07,
+            1.083860158920288,
+            1.3446282309814706e-07
+          ],
+          "parent": "mixamorig:LeftHandThumb3_038"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex1_040",
+          "head": [
+            0.5138264298439026,
+            0.9851378202438354,
+            0.12807859480381012
+          ],
+          "tail": [
+            0.5165231227874756,
+            0.9506191611289978,
+            0.14332157373428345
+          ],
+          "parent": "mixamorig:LeftHand_035"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex2_041",
+          "head": [
+            0.516523003578186,
+            0.9506190419197083,
+            0.14332148432731628
+          ],
+          "tail": [
+            0.5160859823226929,
+            0.9157527089118958,
+            0.15653356909751892
+          ],
+          "parent": "mixamorig:LeftHandIndex1_040"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex3_042",
+          "head": [
+            0.5160859823226929,
+            0.9157527089118958,
+            0.15653358399868011
+          ],
+          "tail": [
+            0.5089210867881775,
+            0.8893576264381409,
+            0.164023756980896
+          ],
+          "parent": "mixamorig:LeftHandIndex2_041"
+        },
+        {
+          "name": "mixamorig:LeftHandIndex4_043",
+          "head": [
+            0.5089211463928223,
+            0.8893576264381409,
+            0.16402378678321838
+          ],
+          "tail": [
+            0.5017063617706299,
+            0.8631143569946289,
+            0.1719844788312912
+          ],
+          "parent": "mixamorig:LeftHandIndex3_042"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle1_044",
+          "head": [
+            0.5234143137931824,
+            0.9749024510383606,
+            0.1112876683473587
+          ],
+          "tail": [
+            0.5339183211326599,
+            0.9384472966194153,
+            0.1188003346323967
+          ],
+          "parent": "mixamorig:LeftHand_035"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle2_045",
+          "head": [
+            0.5339183807373047,
+            0.9384472966194153,
+            0.11880037188529968
+          ],
+          "tail": [
+            0.5357253551483154,
+            0.9078479409217834,
+            0.12377376854419708
+          ],
+          "parent": "mixamorig:LeftHandMiddle1_044"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle3_046",
+          "head": [
+            0.5357253551483154,
+            0.9078479409217834,
+            0.12377378344535828
+          ],
+          "tail": [
+            0.3319120705127716,
+            -0.12753814458847046,
+            0.23755277693271637
+          ],
+          "parent": "mixamorig:LeftHandMiddle2_045"
+        },
+        {
+          "name": "mixamorig:LeftHandMiddle4_047",
+          "head": [
+            4.7349257670248335e-07,
+            -1.907596072214801e-07,
+            1.4306974094324687e-07
+          ],
+          "tail": [
+            3.856162322790624e-08,
+            1.0613713264465332,
+            -5.8843689032528346e-08
+          ],
+          "parent": "mixamorig:LeftHandMiddle3_046"
+        },
+        {
+          "name": "mixamorig:LeftHandRing1_048",
+          "head": [
+            0.5254948735237122,
+            0.9667736887931824,
+            0.08697691559791565
+          ],
+          "tail": [
+            0.5289328098297119,
+            0.9348341822624207,
+            0.09111960977315903
+          ],
+          "parent": "mixamorig:LeftHand_035"
+        },
+        {
+          "name": "mixamorig:LeftHandRing2_049",
+          "head": [
+            0.5289327502250671,
+            0.9348341822624207,
+            0.09111959487199783
+          ],
+          "tail": [
+            0.5300472974777222,
+            0.901614248752594,
+            0.09451714158058167
+          ],
+          "parent": "mixamorig:LeftHandRing1_048"
+        },
+        {
+          "name": "mixamorig:LeftHandRing3_050",
+          "head": [
+            0.5300473570823669,
+            0.901614248752594,
+            0.09451713413000107
+          ],
+          "tail": [
+            0.13011017441749573,
+            -0.05949484556913376,
+            0.23276090621948242
+          ],
+          "parent": "mixamorig:LeftHandRing2_049"
+        },
+        {
+          "name": "mixamorig:LeftHandRing4_051",
+          "head": [
+            2.520751820611622e-07,
+            -4.768990180537003e-08,
+            3.7470648805992823e-08
+          ],
+          "tail": [
+            -1.7857878731319943e-08,
+            1.0501389503479004,
+            -1.4274556292548368e-07
+          ],
+          "parent": "mixamorig:LeftHandRing3_050"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky1_052",
+          "head": [
+            0.5144320726394653,
+            0.9738782048225403,
+            0.06435823440551758
+          ],
+          "tail": [
+            0.5161067247390747,
+            0.9363710880279541,
+            0.06006663665175438
+          ],
+          "parent": "mixamorig:LeftHand_035"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky2_053",
+          "head": [
+            0.5161067247390747,
+            0.9363710880279541,
+            0.06006661057472229
+          ],
+          "tail": [
+            0.5124611854553223,
+            0.9117133617401123,
+            0.05959462746977806
+          ],
+          "parent": "mixamorig:LeftHandPinky1_052"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky3_054",
+          "head": [
+            0.512461245059967,
+            0.9117133617401123,
+            0.05959466099739075
+          ],
+          "tail": [
+            0.5068232417106628,
+            0.8891063332557678,
+            0.05902154743671417
+          ],
+          "parent": "mixamorig:LeftHandPinky2_053"
+        },
+        {
+          "name": "mixamorig:LeftHandPinky4_055",
+          "head": [
+            0.5068234205245972,
+            0.889106273651123,
+            0.059021562337875366
+          ],
+          "tail": [
+            0.4994898736476898,
+            0.8670551776885986,
+            0.05724275857210159
+          ],
+          "parent": "mixamorig:LeftHandPinky3_054"
+        },
+        {
+          "name": "Left_Elbow_Pads_056",
+          "head": [
+            0.35259395837783813,
+            1.216498851776123,
+            -0.025931159034371376
+          ],
+          "tail": [
+            0.3553090989589691,
+            1.2149064540863037,
+            -0.03269973024725914
+          ],
+          "parent": "mixamorig:LeftForeArm_034"
+        },
+        {
+          "name": "mixamorig:RightUpLeg_057",
+          "head": [
+            -0.08435072004795074,
+            0.9457147121429443,
+            -0.0005843609687872231
+          ],
+          "tail": [
+            -0.1396733522415161,
+            0.5103161334991455,
+            -0.011979601345956326
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "mixamorig:RightLeg_058",
+          "head": [
+            -0.13967308402061462,
+            0.510316014289856,
+            -0.0119796022772789
+          ],
+          "tail": [
+            -0.1404617428779602,
+            0.5023632645606995,
+            -0.013333083130419254
+          ],
+          "parent": "mixamorig:RightUpLeg_057"
+        },
+        {
+          "name": "mixamorig:RightFoot_059",
+          "head": [
+            -0.1778317540884018,
+            0.12553076446056366,
+            -0.07746680825948715
+          ],
+          "tail": [
+            -0.18276114761829376,
+            0.03778573125600815,
+            0.028652342036366463
+          ],
+          "parent": "mixamorig:RightLeg_058"
+        },
+        {
+          "name": "mixamorig:RightToeBase_060",
+          "head": [
+            -0.1827610284090042,
+            0.03778582066297531,
+            0.028652392327785492
+          ],
+          "tail": [
+            -0.18673363327980042,
+            0.03778989985585213,
+            0.12395141273736954
+          ],
+          "parent": "mixamorig:RightFoot_059"
+        },
+        {
+          "name": "mixamorig:RightToe_End_061",
+          "head": [
+            -0.18673348426818848,
+            0.03778991103172302,
+            0.12395141273736954
+          ],
+          "tail": [
+            -0.1907060742378235,
+            0.037794049829244614,
+            0.21925044059753418
+          ],
+          "parent": "mixamorig:RightToeBase_060"
+        },
+        {
+          "name": "Right_Knee_Pads_062",
+          "head": [
+            -0.13844293355941772,
+            0.5087004899978638,
+            -0.004132560454308987
+          ],
+          "tail": [
+            -0.13844293355941772,
+            0.5058733820915222,
+            0.003463942790403962
+          ],
+          "parent": "mixamorig:RightLeg_058"
+        },
+        {
+          "name": "mixamorig:LeftUpLeg_063",
+          "head": [
+            0.08440615236759186,
+            0.9457136988639832,
+            -0.0005843403050675988
+          ],
+          "tail": [
+            0.13326168060302734,
+            0.5064363479614258,
+            -0.012008358724415302
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "mixamorig:LeftLeg_064",
+          "head": [
+            0.13326190412044525,
+            0.5064363479614258,
+            -0.012008359655737877
+          ],
+          "tail": [
+            0.134149432182312,
+            0.49840497970581055,
+            -0.013376864604651928
+          ],
+          "parent": "mixamorig:LeftUpLeg_063"
+        },
+        {
+          "name": "mixamorig:LeftFoot_065",
+          "head": [
+            0.17492090165615082,
+            0.12946218252182007,
+            -0.07624273002147675
+          ],
+          "tail": [
+            0.18036365509033203,
+            0.04068654403090477,
+            0.028708213940262794
+          ],
+          "parent": "mixamorig:LeftLeg_064"
+        },
+        {
+          "name": "mixamorig:LeftToeBase_066",
+          "head": [
+            0.18036381900310516,
+            0.04068661853671074,
+            0.028708243742585182
+          ],
+          "tail": [
+            0.18205776810646057,
+            0.04021523520350456,
+            0.12407397478818893
+          ],
+          "parent": "mixamorig:LeftFoot_065"
+        },
+        {
+          "name": "mixamorig:LeftToe_End_067",
+          "head": [
+            0.18205788731575012,
+            0.04021525755524635,
+            0.12407397478818893
+          ],
+          "tail": [
+            0.1837518811225891,
+            0.03974391147494316,
+            0.21943970024585724
+          ],
+          "parent": "mixamorig:LeftToeBase_066"
+        },
+        {
+          "name": "Left_Knee_Pads_068",
+          "head": [
+            0.13334989547729492,
+            0.5087007284164429,
+            -0.004132565576583147
+          ],
+          "tail": [
+            0.13334988057613373,
+            0.5058423280715942,
+            0.003548123175278306
+          ],
+          "parent": "mixamorig:LeftLeg_064"
+        },
+        {
+          "name": "Front_Big_Pouch.1_069",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.34101537838805e-12,
+            104.16386413574219,
+            -1.7548487448948435e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Front_Big_Pouch.2_070",
+          "head": [
+            11.385238647460938,
+            102.8956069946289,
+            11.53164005279541
+          ],
+          "tail": [
+            11.872184753417969,
+            102.30844116210938,
+            12.240954399108887
+          ],
+          "parent": "Front_Big_Pouch.1_069"
+        },
+        {
+          "name": "Front_Big_Pouch.3_071",
+          "head": [
+            11.271387100219727,
+            101.86665344238281,
+            11.4163236618042
+          ],
+          "tail": [
+            11.271387100219727,
+            102.90829467773438,
+            11.4163236618042
+          ],
+          "parent": "Front_Big_Pouch.2_070"
+        },
+        {
+          "name": "Left_Pouch.1_072",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.418098683404818e-12,
+            105.9958267211914,
+            -1.7857753846328706e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Left_Pouch.2_073",
+          "head": [
+            18.38798713684082,
+            104.3879623413086,
+            -0.3831343650817871
+          ],
+          "tail": [
+            19.096799850463867,
+            103.6050796508789,
+            -0.47367578744888306
+          ],
+          "parent": "Left_Pouch.1_072"
+        },
+        {
+          "name": "Left_Pouch.3_074",
+          "head": [
+            18.2041072845459,
+            103.34408569335938,
+            -0.3793030381202698
+          ],
+          "tail": [
+            18.2041072845459,
+            104.40404510498047,
+            -0.37930312752723694
+          ],
+          "parent": "Left_Pouch.2_073"
+        },
+        {
+          "name": "Back_Small_Pouch2.1_075",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.448709613861904e-12,
+            106.72330474853516,
+            -1.7980564734898508e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Back_Small_Pouch2.2_076",
+          "head": [
+            14.866471290588379,
+            105.35138702392578,
+            -8.362472534179688
+          ],
+          "tail": [
+            15.392498970031738,
+            104.65509033203125,
+            -8.976838111877441
+          ],
+          "parent": "Back_Small_Pouch2.1_075"
+        },
+        {
+          "name": "Back_Small_Pouch2.3_077",
+          "head": [
+            14.717806816101074,
+            104.2978744506836,
+            -8.278847694396973
+          ],
+          "tail": [
+            14.717806816101074,
+            105.3651123046875,
+            -8.278847694396973
+          ],
+          "parent": "Back_Small_Pouch2.2_076"
+        },
+        {
+          "name": "Back_Small_Pouch.1_078",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.437492891866238e-12,
+            106.45674896240234,
+            -1.7935564756044187e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Back_Small_Pouch.2_079",
+          "head": [
+            8.150174140930176,
+            105.48072814941406,
+            -11.850110054016113
+          ],
+          "tail": [
+            8.343931198120117,
+            104.74097442626953,
+            -12.590729713439941
+          ],
+          "parent": "Back_Small_Pouch.1_078"
+        },
+        {
+          "name": "Back_Small_Pouch.3_080",
+          "head": [
+            8.068672180175781,
+            104.42591857910156,
+            -11.731609344482422
+          ],
+          "tail": [
+            8.068672180175781,
+            105.49049377441406,
+            -11.731609344482422
+          ],
+          "parent": "Back_Small_Pouch.2_079"
+        },
+        {
+          "name": "Back_Big_Pouch.1_081",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.401077576658533e-12,
+            105.59129333496094,
+            -1.778946170816198e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Back_Big_Pouch.2_082",
+          "head": [
+            -6.247669696807861,
+            104.59333801269531,
+            -13.065893173217773
+          ],
+          "tail": [
+            -6.472109317779541,
+            104.07765197753906,
+            -13.959562301635742
+          ],
+          "parent": "Back_Big_Pouch.1_081"
+        },
+        {
+          "name": "Back_Big_Pouch.3_083",
+          "head": [
+            -6.185193061828613,
+            103.54740142822266,
+            -12.935234069824219
+          ],
+          "tail": [
+            -6.185193061828613,
+            104.60331726074219,
+            -12.935234069824219
+          ],
+          "parent": "Back_Big_Pouch.2_082"
+        },
+        {
+          "name": "Right_Pouch.1_084",
+          "head": [
+            3.9580647787085255e-12,
+            -2.0235335185248005e-08,
+            3.6195402230987384e-08
+          ],
+          "tail": [
+            8.430043989260394e-12,
+            106.27970886230469,
+            -1.7905678760143928e-05
+          ],
+          "parent": "mixamorig:Hips_01"
+        },
+        {
+          "name": "Right_Pouch.2_085",
+          "head": [
+            -17.08997917175293,
+            104.88773345947266,
+            -1.367026686668396
+          ],
+          "tail": [
+            -17.846843719482422,
+            104.15514373779297,
+            -1.5084409713745117
+          ],
+          "parent": "Right_Pouch.1_084"
+        },
+        {
+          "name": "Right_Pouch.3_086",
+          "head": [
+            -16.919078826904297,
+            103.83885192871094,
+            -1.3533564805984497
+          ],
+          "tail": [
+            -16.919078826904297,
+            104.90164947509766,
+            -1.3533565998077393
+          ],
+          "parent": "Right_Pouch.2_085"
+        }
+      ]
+    }
+  ]
+}

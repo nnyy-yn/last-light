@@ -1,0 +1,72 @@
+{
+    "clothes": [
+        "male_casualsuit05/male_casualsuit05.mhclo",
+        "shoes03/shoes03.mhclo"
+    ],
+    "clothes_material_type": "GAMEENGINE",
+    "color_adjustments": {},
+    "expressions": [],
+    "eyebrows": "eyebrow001/eyebrow001.mhclo",
+    "eyelashes": "",
+    "eyes": "low-poly/low-poly.mhclo",
+    "eyes_material_settings": {},
+    "eyes_material_type": "GAMEENGINE",
+    "hair": "short01/short01.mhclo",
+    "makeup": [],
+    "phenotype": {
+        "age": 0.6100000143051147,
+        "cupsize": 0.5,
+        "firmness": 0.5,
+        "gender": 1.0,
+        "height": 0.4399999976158142,
+        "muscle": 0.5299999713897705,
+        "proportions": 0.49000000953674316,
+        "race": {
+            "african": 0.8999999761581421,
+            "asian": 0.03999999910593033,
+            "caucasian": 0.05999999865889549
+        },
+        "weight": 0.41999998688697815
+    },
+    "proxy": "",
+    "rig": "mixamo",
+    "skin_material_settings": {},
+    "skin_material_type": "GAMEENGINE",
+    "skin_mhmat": "middleage_african_male/middleage_african_male.mhmat",
+    "targets": [
+        {
+            "target": "l-eye-height2-decr",
+            "value": 0.1599999964237213
+        },
+        {
+            "target": "r-eye-height2-decr",
+            "value": 0.1599999964237213
+        },
+        {
+            "target": "head-square",
+            "value": 0.14000000059604645
+        },
+        {
+            "target": "chin-width-incr",
+            "value": 0.10000000149011612
+        },
+        {
+            "target": "nose-scale-depth-incr",
+            "value": 0.07999999821186066
+        },
+        {
+            "target": "neck-scale-horiz-decr",
+            "value": 0.05999999865889549
+        },
+        {
+            "target": "torso-scale-horiz-decr",
+            "value": 0.05999999865889549
+        },
+        {
+            "target": "head-age-incr",
+            "value": 0.10000000149011612
+        }
+    ],
+    "teeth": "",
+    "tongue": ""
+}

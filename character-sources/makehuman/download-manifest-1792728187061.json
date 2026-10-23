@@ -1,0 +1,55 @@
+{
+  "source": "https://files.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip",
+  "sourcePage": "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "files": [
+    {
+      "name": "clothes/shoes03/shoes03.thumb",
+      "method": 8,
+      "compressed": 36927,
+      "bytes": 37720,
+      "offset": 178529774,
+      "sha256": "ac461bf40bb9e125526198c6c827c0f5cfa5538ac86f25dd3efbff7d5aaf5a3c"
+    },
+    {
+      "name": "clothes/shoes03/shoes03.mhmat",
+      "method": 8,
+      "compressed": 583,
+      "bytes": 1184,
+      "offset": 178566788,
+      "sha256": "0104a8ecf68aa81bca878c12f909aca45a59e265f8b49cf4e4d5e2667773776e"
+    },
+    {
+      "name": "clothes/shoes03/shoes03.mhw",
+      "method": 8,
+      "compressed": 31210,
+      "bytes": 410069,
+      "offset": 178616160,
+      "sha256": "5ea7e817c2db05da540a0d4a71c3fadb422b3560857b8b73873df39ad3e49b5f"
+    },
+    {
+      "name": "clothes/shoes03/shoes03.mhclo",
+      "method": 8,
+      "compressed": 48615,
+      "bytes": 152873,
+      "offset": 178567458,
+      "sha256": "5a388e18e6759db99bcc8c7d062a2b3bed02eecd32705731ba90063a6e35265b"
+    },
+    {
+      "name": "clothes/shoes03/shoes03.obj",
+      "method": 8,
+      "compressed": 49614,
+      "bytes": 177420,
+      "offset": 178480075,
+      "sha256": "b03f46c0b5cdc38e4472e4747ba267f101e1e8ae88656180b1334986646108b2"
+    },
+    {
+      "name": "clothes/shoes03/shoes03_diffuse.png",
+      "method": 8,
+      "compressed": 305551,
+      "bytes": 309009,
+      "offset": 178174431,
+      "sha256": "fe8216fbd0c34ecd3ac0e1a01970a4ccf844417be5fd1d72c527c9209256db93"
+    }
+  ]
+}
