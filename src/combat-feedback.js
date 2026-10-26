@@ -70,7 +70,7 @@ function decalBatch(count) {
   const mesh = new THREE.InstancedMesh(geometry, material, count); mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.name = 'surface-oriented impact chips'; return { mesh, geometry, material };
 }
 
-export function createCombatFeedback(scene) {
+export function createCombatFeedback(scene, {groundHeight=()=>0} = {}) {
   const group = new THREE.Group(); group.name = 'pooled combat feedback'; scene.add(group);
   const pools = Object.fromEntries(Object.entries(LIMITS).map(([key, value]) => [key, pool(value)]));
   const flashes = cardBatch(LIMITS.flashes, true), dust = cardBatch(LIMITS.dust, false), streaks = streakBatch(LIMITS.streaks), decals = decalBatch(LIMITS.decals);
@@ -172,8 +172,9 @@ export function createCombatFeedback(scene) {
       if (key === 'dust') { p.v.multiplyScalar(Math.exp(-2.5 * step)); p.v.y += .12 * step; p.rotation += .15 * step; }
       if (key === 'casings' || key === 'debris') {
         c.copy(p.spin).multiplyScalar(step); spinEuler.set(c.x, c.y, c.z); p.q.multiply(spinQuaternion.setFromEuler(spinEuler));
-        if (p.p.y < (key === 'casings' ? .006 : p.size * .5)) {
-          p.p.y = key === 'casings' ? .006 : p.size * .5;
+        const floor=groundHeight(p.p.x,p.p.z)+(key==='casings'?.006:p.size*.5);
+        if (p.p.y < floor) {
+          p.p.y = floor;
           if (p.v.y < -.15) { p.v.y *= -.32; p.v.x *= .62; p.v.z *= .62; p.spin.multiplyScalar(.55); p.bounces++; if (key === 'casings') casingBounces++; }
           else { p.v.set(0, 0, 0); p.spin.set(0, 0, 0); }
         }

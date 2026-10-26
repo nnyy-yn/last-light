@@ -154,6 +154,21 @@ Base city architecture, additional window and shutter details, utility poles, sa
 
 Ground vehicles use real-world-inspired proportions and are not manufacturer-certified technical replicas. The destroyed civilian car, helicopter and rifle use the separately credited assets above.
 
+### Original HMMWV and 6×6 cargo-truck reconstruction (v0.7)
+
+The intact convoy vehicles in `src/vehicle-models.js`, their paint/canvas surface maps, simple distant crews and moving-wheel rigs are original project work. They replace the earlier generic rescue SUV; no third-party vehicle GLB, manufacturer CAD, film still or photographic vehicle texture is embedded. The separately credited `burnt-car.glb` remains a destroyed civilian sedan.
+
+The first model follows the low, wide HMMWV gun-carrier silhouette: approximately 4.84 m long, 2.16 m body width and 1.85 m roof height, with a separate ring-mounted visual machine gun. The second is a separately constructed **M35A2 film-style 6×6 cargo truck**, approximately 7.10 m long with a separate cab, dual rear tyres, troop benches and a partial canvas canopy. Both have olive/sand variants, independent wheel rotation/steering, cabin seating and crew hand/foot anchors. These are artistic game models, not manufacturer-certified technical replicas, complete mechanical reproductions or scans.
+
+Historical distinction: Timothy M. Karcher's U.S. Army monograph records nine HMMWVs and three **five-ton trucks** in the original extraction convoy (printed p.39 / PDF p.43). The M35A2 family represented by this game's exterior is **2½-ton**, and must not be relabelled as a historically exact M939 five-ton vehicle. The film production notes describe twelve mixed Humvees/trucks and a three-vehicle casualty detachment. Gameplay relief-convoy counts are a bounded representation, not the full historical multinational relief force.
+
+- Historical account: https://www.govinfo.gov/content/pkg/GOVPUB-D110-PURL-LPS58359/pdf/GOVPUB-D110-PURL-LPS58359.pdf
+- Film production notes: https://www.cinema.com/articles/732/black-hawk-down-production-notes.phtml
+- HMMWV shape references: https://nara.getarchive.net/media/a-front-view-of-a-us-army-m998-high-mobility-multipurpose-wheeled-vehicle-equipped-4e5376 and https://warwheels.net/HummerM998Charvat.html
+- M35A2 exterior references: https://www.easternsurplus.net/GalleryDetails/427/Restored-M35A2-with-Winch and https://www.easternsurplus.net/PartDetails/127/M35-270-CargoCover-Green-12-feet-long-Vinyl-M35A2
+
+These links are reference material only; their photographs are not redistributed. Model changes, reference limitations, API and hidden-render validation are recorded in `artifacts/vehicle-rebuild/`.
+
 No film footage, film score, film stills or actor likeness assets are embedded.
 
 ## v0.5 model and articulated-hand derivatives

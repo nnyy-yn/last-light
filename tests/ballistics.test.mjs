@@ -21,3 +21,21 @@ test('near-miss distance uses the clipped segment rather than an infinite ray',(
   assert.equal(nearestOnSegment({x:1,y:1.5,z:-3},start,clipped).distance,1);
   assert.ok(nearestOnSegment({x:0,y:1.5,z:-10},start,clipped).distance>=5);
 });
+
+test('horizontal bullets meet a rising road and the impact normal follows its slope',()=>{
+  const hit=traceObstacles({x:0,y:.335,z:0},{x:8,y:.335,z:0},[],x=>x*.1);
+  assert.equal(hit.kind,'ground');assert.ok(Math.abs(hit.point.x-3)<.001);
+  assert.ok(Math.abs(hit.point.y-.335)<.001);assert.ok(hit.normal.x<-.09);
+  assert.ok(Math.abs(Math.hypot(hit.normal.x,hit.normal.y,hit.normal.z)-1)<1e-8);
+});
+
+test('depressed road impacts occur on the surface instead of floating at the old flat ground',()=>{
+  const hit=traceObstacles({x:0,y:1,z:0},{x:0,y:-1,z:0},[],()=>-.2);
+  assert.equal(hit.kind,'ground');assert.ok(Math.abs(hit.point.y+.165)<1e-8);
+  assert.ok(hit.fraction>.58);assert.deepEqual(hit.normal,{x:-0,y:1,z:-0});
+});
+
+test('a nearer wall still wins over the sampled road behind it',()=>{
+  const hit=traceObstacles({x:0,y:1,z:0},{x:10,y:-1,z:0},[{minX:1,maxX:1.2,minZ:-1,maxZ:1}],()=>-.1);
+  assert.equal(hit.kind,'cover');assert.equal(hit.point.x,1);
+});

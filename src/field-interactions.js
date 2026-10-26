@@ -17,7 +17,7 @@ function roundedBox(w,h,d,r=.01){
 
 // Two deliberately finite optional supplies. The owner applies the reward;
 // this module owns presentation, proximity and exactly-once chapter state.
-export function createFieldInteractions(scene,{colliders=[],onComplete=()=>{}}={}){
+export function createFieldInteractions(scene,{colliders=[],groundHeight=()=>0,onComplete=()=>{}}={}){
   const group=new THREE.Group();group.name='Finite field supply cases';scene.add(group);
   const materials=new Map(),textures=new Set();let items=[],active=null,disposed=false;
   const boxes=()=>typeof colliders==='function'?colliders():colliders;
@@ -109,7 +109,7 @@ export function createFieldInteractions(scene,{colliders=[],onComplete=()=>{}}={
         candidates.push({p,approach});
       }
       if(!candidates.length)continue; // Omit a blocked point instead of spawning inside masonry.
-      const{p,approach}=candidates[0],visual=createCase(kind);visual.root.position.set(p.x,.018,p.z);visual.root.rotation.y=horizontal?(p.z>spawn.z?Math.PI:0):(p.x>spawn.x?-Math.PI/2:Math.PI/2);group.add(visual.root);
+      const{p,approach}=candidates[0],visual=createCase(kind);visual.root.position.set(p.x,groundHeight(p.x,p.z)+.018,p.z);visual.root.rotation.y=horizontal?(p.z>spawn.z?Math.PI:0):(p.x>spawn.x?-Math.PI/2:Math.PI/2);group.add(visual.root);
       items.push({id:`field-${chapter.id}-${kind}`,kind,amount:kind==='ammo'?24:1,x:p.x,z:p.z,approach,used:false,progress:0,open:0,visual});
     }
     return inspect();
@@ -146,7 +146,7 @@ export function createFieldInteractions(scene,{colliders=[],onComplete=()=>{}}={
     const hx=.45*c+.30*s,hz=.45*s+.30*c;
     // Stable even after opening: the physical base and lid still occupy space.
     // Height lets the owner avoid treating a low case as a full-height wall.
-    return{minX:item.x-hx,maxX:item.x+hx,minZ:item.z-hz,maxZ:item.z+hz,minY:.02,maxY:.4,material:'metal',fieldId:item.id};
+    return{minX:item.x-hx,maxX:item.x+hx,minZ:item.z-hz,maxZ:item.z+hz,minY:groundHeight(item.x,item.z)+.02,maxY:groundHeight(item.x,item.z)+.4,material:'metal',fieldId:item.id};
   });}
   function dispose(){clear();for(const m of materials.values())m.dispose();for(const t of textures)t.dispose();group.removeFromParent();disposed=true;}
   return{reset,update,cancel,inspect,getColliders,clear,dispose};

@@ -216,6 +216,10 @@ try {
   await page.locator('.main-menu').waitFor();
   await page.locator('[data-action="new"]').evaluate(button => button.click());
   await page.locator('[data-action="play"]').evaluate(button => button.click());
+  await page.waitForFunction(()=>__game.getState().mode==='cinematic');
+  report.opening=await page.evaluate(()=>__game.inspect().cinematic);
+  assert.equal(report.opening.phase,'opening');
+  await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
   await page.locator('#hud').waitFor({ state: 'visible' });
   await page.waitForTimeout(700);
   await page.waitForFunction(()=>__game.inspect().audio?.aircraft.sampleState==='ready',undefined,{timeout:20000});
@@ -226,6 +230,8 @@ try {
   await screenshot('first-chapter');
   report.checks.push('first chapter rendered in hidden window with HUD; no desktop input or pointer capture');
   await page.evaluate(()=>{__game.loadChapter(11);__game.action('play');});
+  await page.waitForFunction(()=>__game.getState().mode==='cinematic');
+  await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
   await page.waitForTimeout(500);
   report.nightOff=await page.evaluate(()=>({game:__game.getState(),flashlight:__game.inspect().flashlight}));
   assert.equal(report.nightOff.game.chapter,12);assert.equal(report.nightOff.flashlight.enabled,false);
@@ -235,6 +241,30 @@ try {
   report.nightOn=await page.evaluate(()=>__game.inspect().flashlight);assert.equal(report.nightOn.enabled,true);assert.equal(report.nightOn.castShadow,true);
   await screenshot('night-light-on');
   report.checks.push('actual EXE night chapter starts dark with flashlight off; page-local T enables a shadowed local light');
+  report.chapterScenes=[];
+  for(const index of [0,2,8,10]){
+    await page.evaluate(index=>{__game.loadChapter(index);__game.action('play');},index);
+    await page.waitForFunction(()=>__game.getState().mode==='cinematic');
+    await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
+    report.chapterScenes.push(await page.evaluate(()=>__game.inspect().scene));
+  }
+  assert.equal(new Set(report.chapterScenes.map(s=>s.id)).size,4,'Clinic, hangar, cockpit and aid room must load different maps in the real EXE.');
+  report.checks.push('four different chapter maps and their real-time openings load inside the offline EXE');
+  await page.evaluate(()=>{__game.loadChapter(3);__game.action('play');});
+  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction?.active,undefined,{timeout:60000});
+  const waitingAction=await page.evaluate(()=>__game.inspect().cinematic);
+  await page.waitForTimeout(600);
+  const stillWaiting=await page.evaluate(()=>__game.inspect().cinematic);
+  assert.equal(stillWaiting.playerAction.progress,waitingAction.playerAction.progress,'Rope descent waits for the player');
+  assert.ok(stillWaiting.ambientTime>waitingAction.ambientTime,'Waiting for input must not freeze the surroundings');
+  await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',bubbles:true})));
+  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction.progress>.15,undefined,{timeout:20000});
+  await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',bubbles:true})));
+  report.playableScene=await page.evaluate(()=>__game.inspect().cinematic);
+  assert.equal(report.playableScene.playerAction.id,'fast-rope');
+  await screenshot('player-controlled-descent');
+  await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
+  report.checks.push('offline EXE waits for sustained E during the playable descent while ambient animation continues');
   assert.equal(await page.evaluate(() => document.pointerLockElement === null && document.fullscreenElement === null), true, 'Hidden QA must never capture the pointer or enter fullscreen.');
   // Reload reaches the saved campaign menu without synthesizing keyboard input.
   await page.reload({ waitUntil: 'domcontentloaded' });

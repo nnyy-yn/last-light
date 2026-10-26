@@ -7,6 +7,14 @@ import {traceObstacles} from '../src/ballistics.js';
 const actor=(x,z,kind='soldier')=>({position:{x,y:0,z},rotation:{y:0},userData:{kind}});
 const run=(director,seconds,context,onStep=()=>{})=>{for(let t=0;t<seconds;t+=.05){director.update(.05,context);onStep();}};
 
+test('street residents leave exposed roadside positions for shelter without firing',()=>{
+  const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),resident=actor(0,0,'civilian');
+  director.add(resident,{role:'resident',shelter:[0,8],tether:13,wait:.5});
+  run(director,7,{player:{x:5,z:4,health:100},combatAllowed:true});
+  const state=director.inspect()[0];assert.ok(resident.position.z>7);assert.equal(state.behavior,'shelter');assert.equal(state.stance,'crouch');assert.equal(shots.length,0);
+  const before={...resident.position};director.update(0,{player:{x:5,z:4},combatAllowed:true});assert.deepEqual(resident.position,before);
+});
+
 test('smoke interrupts acquired targets and bursts without becoming bullet cover',()=>{
   let smoke=false;const shots=[],director=createActorDirector({obscures:()=>smoke,onFire:e=>shots.push(e)});
   director.add(actor(0,0,'enemy'),{kind:'enemy'});const context={player:{x:0,z:18,health:100},combatAllowed:true};

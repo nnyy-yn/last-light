@@ -105,7 +105,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
       x: actor.position.x, z: actor.position.z, anchor: point(options.anchor || actor.position), tether: options.tether ?? 2,
       follow: Boolean(options.follow), behavior: kind === 'wounded' ? 'wounded' : 'alert', stance: 'stand', speed: 0,
       goal: null, path: [], pathVersion: -1, replanAt: 0, thinkAt: 0, actionUntil: 0, fireAt: Number.isFinite(encounter.fireDelay)?Math.max(2.1,encounter.fireDelay):2.1 + random(),
-      encounter,route:Array.isArray(encounter.patrol)?encounter.patrol.map(point):[],firstContactAt:null,openingUntil:0,
+      encounter,route:Array.isArray(encounter.patrol)?encounter.patrol.map(point):[],shelter:options.shelter?point(options.shelter):null,residentWait:options.wait??0,firstContactAt:null,openingUntil:0,
       lastSeen: -Infinity, lastKnown: null, heardUntil: 0, visible: false, suppression: 0, suppressedUntil: 0, threat: null,
       cover: null, peek: null, coverUntil: 0, target: null, aimTarget: null, recoil: 0, alert: 0,
       shotsFired: 0, shotsBlocked: 0, magSize:18+(actors.length%3)*3,mag:18+(actors.length%3)*3,burstRemaining:0,shotAt:0,reloadStart:0,reloadUntil:0,reloadProgress:0,reloads:0,
@@ -242,7 +242,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     r.visible=Boolean(target);
     if (target) {
       if(r.firstContactAt===null){r.firstContactAt=now;if(r.encounter.opening){r.openingUntil=now+6.6;r.coverUntil=r.openingUntil+.5;}}
-      r.lastKnown = copy(target); r.lastSeen = now; r.target = target; r.alert = 1; r.aimTarget = { ...point(target), y: target.player?target.y:target.stance==='crouch'?.94:1.3 };
+      r.lastKnown = copy(target); r.lastSeen = now; r.target = target; r.alert = 1; r.aimTarget = { ...point(target), y: target.player?target.y:(target.actor?.position?.y||0)+(target.stance==='crouch'?.94:1.3) };
     }
     else { r.target = null; r.aimTarget = r.lastKnown; }
     if (coverReaction(r)) return;
@@ -295,10 +295,20 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
   }
   function alliedThink(r, player) {
     if(context.interactionActor===r.actor&&distance(r,player)<4){r.target=null;r.aimTarget={...point(player),y:player.y||1.6};destination(r,null,'interact',r.kind==='civilian'?'stand':'crouch');return;}
+    if(r.role==='resident'&&r.shelter){
+      r.target=null;
+      const danger=context.combatAllowed||r.suppression>.05||now<r.heardUntil;
+      if(danger&&now>r.residentWait){
+        r.aimTarget=null;
+        if(distance(r,r.shelter)>.65)destination(r,r.shelter,'evacuate','stand');
+        else {destination(r,null,'shelter','crouch');if(distance(r,player)<9)callout(r,'街上有人！我们躲进院子，别朝这边开枪！');}
+      }else guard(r);
+      return;
+    }
     const visibleEnemies = context.combatAllowed === false ? [] : actors.filter(e => e.kind === 'enemy' && live(e) && distance(r, e) < Math.min(40,context.visibilityRange??40) && !lineBlocked(r, e, obstacles) && !smokeBlocked(r,e));
     visibleEnemies.sort((a, b) => distance(r, a) - distance(r, b));
     r.target = r.kind !== 'civilian' ? visibleEnemies[0] || null : null; r.visible = Boolean(r.target);
-    if (r.target) { r.alert = 1; r.aimTarget = { x: r.target.x, y: 1.3, z: r.target.z }; }
+    if (r.target) { r.alert = 1; r.aimTarget = { x: r.target.x, y:(r.target.actor?.position?.y||0)+1.3, z: r.target.z }; }
     else r.aimTarget = now < r.heardUntil ? r.threat : null;
     if (coverReaction(r)) return;
     if(r.commandHold){destination(r,r.cover?.position,'hold',r.target?'crouch':'stand');return;}
@@ -336,7 +346,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     while (r.path.length && distance(r, r.path[0]) < .20) r.path.shift();
     const next = r.path[0]; if (!next) return;
     if (!navigator.clear(r, next)) { r.path = []; r.replanAt = now + .15; return; }
-    const baseSpeed = r.kind === 'civilian' ? 1.55 : r.behavior === 'patrol' || r.behavior === 'watch' ? .8 : r.behavior === 'bound' ? 2.5 : 1.8;
+    const baseSpeed = r.kind === 'civilian' ? (r.behavior==='evacuate'?2.6:1.1) : r.behavior === 'patrol' || r.behavior === 'watch' ? .8 : r.behavior === 'bound' ? 2.5 : 1.8;
     const d = distance(r, next), step = Math.min(d, baseSpeed * (r.stance === 'crouch' ? .63 : 1) * dt);
     const candidate = { x: r.x, z: r.z };
     movePlayer(candidate, (next.x - r.x) / d * step, (next.z - r.z) / d * step, obstacles);
@@ -384,7 +394,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     r.mag--;r.burstRemaining--;r.shotsFired++;r.recoil=1;r.shotAt=now+.15+random()*.07;
     if(r.burstRemaining===0)r.fireAt=now+(r.kind==='enemy'?3.5+random()*2:5.0+random()*2);
     onFire({ id: r.id, actor: r.actor, faction: r.kind === 'enemy' ? 'enemy' : 'ally', targetActor: target.actor || null,
-      origin: { x: r.x, y: r.stance === 'crouch' ? .94 : 1.35, z: r.z }, aim: { x: target.x, y: r.target.player ? (context.player.y || 1.5) : 1.2, z: target.z },time:now,mag:r.mag });
+      origin: { x: r.x, y: (r.actor?.position?.y||0)+(r.stance === 'crouch' ? .94 : 1.35), z: r.z }, aim: { x: target.x, y: r.target.player ? (context.player.y || 1.5) : (target.actor?.position?.y||0)+1.2, z: target.z },time:now,mag:r.mag });
     if(r.mag===0)beginReload(r);
   }
   function publish(r, dt) {

@@ -1,5 +1,5 @@
 // Narrative locations, not surveyed coordinates. See WORLD-REFERENCE.md for
-// historical sources and the limits of this compressed, shared street layout.
+// historical sources and the limits of these compressed, separately authored maps.
 const CHAPTER_LOCATIONS = Object.freeze({
   1: '摩加迪沙 · Bakara 市场周边居民区',
   2: '摩加迪沙机场西端 · 特遣队基地',

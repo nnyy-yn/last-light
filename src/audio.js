@@ -10,7 +10,7 @@ function normalize(channels,peak=.88){let max=0;for(const ch of channels)for(con
 
 /** Original deterministic PCM; live playback and offline exports use the same synthesis. */
 export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',distant=false,material='masonry'}={}){
-  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire'].includes(kind)?4:kind==='shot'?1.1:kind==='debris'?.75:.5;
+  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?1.1:kind==='debris'?.75:.5;
   const n=Math.ceil(duration*sampleRate),raw=new Float32Array(n),p=GUNS[weaponId]||GUNS.m4a1;let low=0,mid=0,phase=0;
   for(let i=0;i<n;i++){
     const t=i/sampleRate,w=rng()*2-1;low+=.008*(w-low);mid+=.18*(w-mid);
@@ -27,6 +27,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',dis
     }else if(kind==='turbine')raw[i]=(.45*Math.sin(TAU*730*t+.8*Math.sin(TAU*3*t))+.20*Math.sin(TAU*1460*t+.3*Math.sin(TAU*7*t)))*.06+(w-mid)*.10*(.8+.2*Math.sin(TAU*7*t));
     else if(kind==='air')raw[i]=(mid-low)*(.45+.20*Math.sin(TAU*.75*t)+.16*Math.sin(TAU*1.5*t+1));
     else if(kind==='fire')raw[i]=mid*.28+low*.9;
+    else if(kind==='engine'){const rev=TAU*32*t;raw[i]=Math.sin(rev)*.22+Math.sin(rev*2+.5)*.14+Math.sin(rev*4+.25)*.07+mid*(.17+.12*Math.pow(Math.sin(rev*.5),6))+low*.7;}
     else if(kind==='debris'){
       const metal=material==='metal';raw[i]=(w-mid)*Math.exp(-t/.22)*Math.min(1,t*65)*.12;
       for(const [at,f]of[[.018,metal?2800:1100],[.071,metal?4100:1700],[.19,metal?1950:790],[.31,metal?3300:1300]])if(t>=at)raw[i]+=Math.sin(TAU*f*(t-at))*Math.exp(-(t-at)/(metal?.06:.014))*.11;
@@ -34,7 +35,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',dis
   }
   let signal=['shot','explosion'].includes(kind)?highpass(raw,kind==='explosion'?27:45,sampleRate):raw;
   if(kind==='shot'&&distant)signal=lowpass(signal,1300,sampleRate);
-  if(['rotor','air','fire','turbine'].includes(kind)){
+  if(['rotor','air','fire','turbine','engine'].includes(kind)){
     signal=highpass(signal,kind==='turbine'?400:35,sampleRate);
     const overlap=Math.round(sampleRate*.06),loop=new Float32Array(n-overlap);loop.set(signal.subarray(overlap));
     for(let i=0;i<overlap;i++){const w=.5-.5*Math.cos(Math.PI*i/(overlap-1)),at=loop.length-overlap+i;loop[at]=signal[n-overlap+i]*(1-w)+signal[i]*w;}
@@ -55,7 +56,7 @@ export class Soundscape{
     this.volume=.48;this.mix={aircraft:1,battle:1};this.enabled=true;this.paused=true;this.nodes=[];this.voices=new Set();this.events={};this.buffers=new Map();this.stepClock=0;
     this.maxVoices=AUDIO_VOICE_LIMIT;this.droppedVoices=0;this.resetCount=0;this.disposed=false;
     this.aircraftState={distance:500,gain:0,pan:0,rate:1,radialVelocity:0,active:false,sampleLoaded:false,sampleState:'not-requested',sampleURL:null,sampleError:null};
-    this.fireState={distance:500,gain:0,pan:0};this.aircraftHistory=null;
+    this.fireState={distance:500,gain:0,pan:0};this.vehicleState={count:0,distance:500,gain:0,pan:0,speed:0};this.aircraftHistory=null;
   }
   start(){
     if(this.disposed)return;
@@ -73,7 +74,7 @@ export class Soundscape{
     this.ceiling.curve=curve;this.ceiling.oversample='2x';this.master.connect(this.dcFilter).connect(this.limiter).connect(this.ceiling).connect(c.destination);
     this.transient=this._buffer('noise',{seed:602});this.noise=this._buffer('air',{seed:44});
     for(const id of Object.keys(GUNS))for(let v=0;v<3;v++)this._buffer('shot',{weaponId:id,seed:107+v*71});
-    this._buffer('explosion',{seed:412});this._createAircraft();this._createFire();
+    this._buffer('explosion',{seed:412});this._createAircraft();this._createFire();this._createVehicles();
     if(this.autoLoadSamples)this.loadAircraftSample((import.meta.env?.BASE_URL||'./')+AIRCRAFT_SAMPLE);
   }
   _buffer(kind,options={}){
@@ -101,6 +102,16 @@ export class Soundscape{
     this.aircraft={gain,panner:pan,low,rotor:this._loop(this._buffer('rotor',{seed:7}),low,.55,1100),turbine:this._loop(this._buffer('turbine',{seed:9}),low,.22,3700),air:this._loop(this.noise,low,.18,2100),sample:null};
   }
   _createFire(){const gain=this.ctx.createGain(),pan=this.ctx.createStereoPanner();gain.gain.value=0;gain.connect(pan).connect(this.battleBus);this.fireBed={gain,pan,loop:this._loop(this._buffer('fire',{seed:15}),gain,.45,1350)};this.crackleAt=.1;}
+  _createVehicles(){const gain=this.ctx.createGain(),pan=this.ctx.createStereoPanner();gain.gain.value=0;gain.connect(pan).connect(this.battleBus);this.vehicleBed={gain,pan,loop:this._loop(this._buffer('engine',{seed:37}),gain,.48,1100),rattle:this._loop(this._buffer('air',{seed:94}),gain,.075,2100)};}
+  updateVehicles(sources=[],active=false){
+    if(!this._canPlay())return;let weight=0,stereo=0,speed=0,distance=500,count=0;
+    if(active)for(const source of sources){const d=clamp(source.distance,0,500),presence=Math.pow(Math.max(0,1-d/90),2)/(1+d/15);if(presence<=0||!Number.isFinite(source.distance))continue;weight+=presence;stereo+=presence*clamp(source.pan,-1,1);speed+=presence*clamp(Math.abs(source.speed||0),0,40);distance=Math.min(distance,d);count++;}
+    const gain=Math.min(.42,weight*.16),pan=weight?stereo/weight:0,velocity=weight?speed/weight:0,now=this.ctx.currentTime;
+    this.vehicleBed.gain.gain.setTargetAtTime(gain,now,.15);this.vehicleBed.pan.pan.setTargetAtTime(pan*.85,now,.12);
+    this.vehicleBed.loop.source.playbackRate.setTargetAtTime(.75+Math.min(velocity/9,1)*.6,now,.2);
+    this.vehicleBed.loop.filter.frequency.setTargetAtTime(350+Math.min(1,weight)*1000,now,.2);
+    this.vehicleState={count,distance,gain,pan,speed:velocity};
+  }
   async loadAircraftSample(urlOrData){
     if(!this.ctx||!this.aircraft||this.disposed)return false;
     const state=this.aircraftState;state.sampleState='loading';state.sampleError=null;state.sampleURL=typeof urlOrData==='string'?urlOrData:'provided-arraybuffer';
@@ -170,17 +181,17 @@ export class Soundscape{
   step(sprint=false){if(!this._canPlay())return;this._event('steps');this.burst(sprint?.12:.095,sprint?.20:.13,110);this.spatialBurst(.045,.045,1800,this.events.steps%2?-.12:.12,.016);}
   complete(){this.tone(280,.5,.055);this.tone(420,.7,.045,'sine',420,.18);}
   _quietContinuous(){
-    if(!this.ctx||!this.aircraft)return;const now=this.ctx.currentTime;for(const n of[this.aircraft.gain,this.fireBed.gain]){n.gain.cancelScheduledValues(now);n.gain.setValueAtTime(0,now);}
+    if(!this.ctx||!this.aircraft)return;const now=this.ctx.currentTime;for(const n of[this.aircraft.gain,this.fireBed.gain,this.vehicleBed?.gain].filter(Boolean)){n.gain.cancelScheduledValues(now);n.gain.setValueAtTime(0,now);}
     for(const layer of[this.aircraft.rotor,this.aircraft.turbine,this.aircraft.air,this.aircraft.sample])if(layer){layer.source.playbackRate.cancelScheduledValues(now);layer.source.playbackRate.setValueAtTime(1,now);}
-    Object.assign(this.aircraftState,{gain:0,pan:0,rate:1,radialVelocity:0,active:false});this.fireState.gain=0;this.aircraftHistory=null;
+    Object.assign(this.aircraftState,{gain:0,pan:0,rate:1,radialVelocity:0,active:false});this.fireState.gain=0;if(this.vehicleState){this.vehicleState.gain=0;this.vehicleState.count=0;}this.aircraftHistory=null;
   }
   reset(){for(const v of[...this.voices])this._retire(v);this._quietContinuous();this.reloadProgress=0;this.crackleAt=.1;this.resetCount++;}
   pause(value){this.paused=Boolean(value);if(!this.ctx)return;if(this.paused){this.reset();this.ctx.suspend()?.catch?.(()=>{});}else if(!this.disposed)this.ctx.resume()?.catch?.(()=>{});}
-  inspect(){const time=this.ctx?.currentTime||0,queued=[...this.voices].filter(v=>v.start>time).length;return{contextState:this.ctx?.state||'not-started',currentTime:time,volume:this.volume,mix:{...this.mix},paused:this.paused,activeVoices:this.voices.size-queued,queuedVoices:queued,maxVoices:this.maxVoices,persistentSources:this.nodes.length,droppedVoices:this.droppedVoices,events:{...this.events},aircraft:{...this.aircraftState,rawGain:this.aircraftState.gain,gain:this.aircraftState.gain*this.mix.aircraft},fire:{...this.fireState,rawGain:this.fireState.gain,gain:this.fireState.gain*this.mix.battle},resetCount:this.resetCount,disposed:this.disposed};}
+  inspect(){const time=this.ctx?.currentTime||0,queued=[...this.voices].filter(v=>v.start>time).length;return{contextState:this.ctx?.state||'not-started',currentTime:time,volume:this.volume,mix:{...this.mix},paused:this.paused,activeVoices:this.voices.size-queued,queuedVoices:queued,maxVoices:this.maxVoices,persistentSources:this.nodes.length,droppedVoices:this.droppedVoices,events:{...this.events},aircraft:{...this.aircraftState,rawGain:this.aircraftState.gain,gain:this.aircraftState.gain*this.mix.aircraft},vehicles:{...this.vehicleState},fire:{...this.fireState,rawGain:this.fireState.gain,gain:this.fireState.gain*this.mix.battle},resetCount:this.resetCount,disposed:this.disposed};}
   dispose(){
     if(this.disposed)return;this.reset();this.disposed=true;this.paused=true;for(const n of this.nodes)try{n.stop();n.disconnect();}catch{}this.nodes.length=0;
-    for(const layer of[this.aircraft?.rotor,this.aircraft?.turbine,this.aircraft?.air,this.aircraft?.sample,this.fireBed?.loop])if(layer){layer.filter.disconnect();layer.gain.disconnect();}
-    for(const n of[this.aircraft?.low,this.aircraft?.gain,this.aircraft?.panner,this.fireBed?.gain,this.fireBed?.pan,this.master,this.aircraftBus,this.battleBus,this.dcFilter,this.limiter,this.ceiling])n?.disconnect();
+    for(const layer of[this.aircraft?.rotor,this.aircraft?.turbine,this.aircraft?.air,this.aircraft?.sample,this.fireBed?.loop,this.vehicleBed?.loop,this.vehicleBed?.rattle])if(layer){layer.filter.disconnect();layer.gain.disconnect();}
+    for(const n of[this.aircraft?.low,this.aircraft?.gain,this.aircraft?.panner,this.fireBed?.gain,this.fireBed?.pan,this.vehicleBed?.gain,this.vehicleBed?.pan,this.master,this.aircraftBus,this.battleBus,this.dcFilter,this.limiter,this.ceiling])n?.disconnect();
     this.buffers.clear();if(this.ownsContext)this.ctx?.close()?.catch?.(()=>{});
   }
 }

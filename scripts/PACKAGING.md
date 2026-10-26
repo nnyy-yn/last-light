@@ -1,6 +1,6 @@
 # Windows 打包
 
-版本 0.6.0 是原创交互战役演示。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
+版本 0.7.0 是原创交互战役演示。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
 
 ## 一键构建
 
@@ -19,7 +19,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build.ps1
 ## 产物
 
 - `release/归途-LastLight/归途.exe`：直接启动版，需要保留同级运行库和 resources 目录。
-- `release/归途-LastLight-v0.6.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
+- `release/归途-LastLight-v0.7.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
 - `release/归途-LastLight/manifest.sha256.json`：目录内文件大小及 SHA-256 校验值（不含 manifest 自身）。
 - `release/release-manifest.json`：版本、runtime 版本、目录体积、便携 EXE 体积及 SHA-256。
 - 发布目录内的 `source` 保留可编辑工程和项目文档，排除 node_modules、测试截图和缓存。Electron、Chromium、Three.js 许可随包分发。

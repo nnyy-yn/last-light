@@ -51,7 +51,7 @@ export function createTacticalSmoke(scene){
   function deploy(position){
     if(disposed||clouds.length>=CAPACITY)return false;
     const p=point(position);if(Array.isArray(position)&&position.length===2||!Array.isArray(position)&&position?.y===undefined)p.y=0;if(![p.x,p.y,p.z].every(Number.isFinite))return false;
-    const c={id:nextId++,position:{x:p.x,y:Math.max(0,p.y),z:p.z},age:0,radius:0,height:0,density:0};parameters(c);clouds.push(c);return{id:c.id,position:{...c.position}};
+    const c={id:nextId++,position:{x:p.x,y:p.y,z:p.z},age:0,radius:0,height:0,density:0};parameters(c);clouds.push(c);return{id:c.id,position:{...c.position}};
   }
   function update(dt,camera){
     if(disposed)return;const delta=Number.isFinite(dt)?Math.max(0,dt):0;time+=delta;

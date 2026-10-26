@@ -5,8 +5,9 @@ import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createRifle, PLAYER_WEAPON_IDS } from './weapon.js';
-import { createUrbanWar } from './urban-war.js';
-import { prepareVehicles, createVehicle, disposeVehicles } from './vehicles.js';
+import { getChapterLayout } from './chapter-layouts.js';
+import { buildChapterScene } from './chapter-world.js';
+import { prepareVehicles, createVehicle as makeVehicleAsset, disposeVehicles } from './vehicles.js';
 import { createFire } from './fire.js';
 import { tuneCharacterMaterial } from './character-surface.js';
 
@@ -25,7 +26,7 @@ function canvasTexture(w, h, draw) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; textures.add(t); return t;
 }
 function wornTexture(color, type = 'metal') {
-  return canvasTexture(256, 256, (ctx, w, h) => {
+  const texture=canvasTexture(256, 256, (ctx, w, h) => {
     ctx.fillStyle = color; ctx.fillRect(0, 0, w, h);
     for (let i = 0; i < 3800; i++) {
       ctx.fillStyle = random() > .5 ? `rgba(245,223,180,${rand(.02,.16)})` : `rgba(16,12,8,${rand(.02,.19)})`;
@@ -37,6 +38,7 @@ function wornTexture(color, type = 'metal') {
     }
     if(type==='metal') for(let y=0;y<h;y+=25){ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(0,y,w,1);}
   });
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;return texture;
 }
 function mesh(geo, mat, pos=[0,0,0], scale=null) {
   const m = new THREE.Mesh(geo, mat); m.position.set(...pos); if(scale)m.scale.set(...scale);
@@ -237,7 +239,8 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
     if(collapse>0)aimQ.slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.32,Math.PI+.15,-.12,'YXZ')),collapse);
     let gripError=0;
     if(rifle){
-      rifle.visible=treat<.55;
+      const carryWeight=clamp(Number(pose.carry??(['carry','handover'].includes(pose.gesture)?1:0)),0,1)*aliveWeight,ropeGrip=pose.gesture==='fast-rope'?aliveWeight:0;
+      rifle.visible=treat<.55&&carryWeight<.4&&ropeGrip<.4;
       const right=chest.clone().add(new THREE.Vector3(-.10,.025+alert*.025,.20-recoil*.04-hit*.035).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
       right.lerp(chest.clone().add(new THREE.Vector3(deadSide===1?-.10:-.05,deadSide===1?.06:-.23,deadSide===1?.20:.25)),collapse);
       const left=new THREE.Vector3(...grips.left).sub(new THREE.Vector3(...grips.right)).applyQuaternion(aimQ).add(right);
@@ -267,6 +270,8 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
       for(let i=0;i<limbs.length;i++){
         const l=limbs[i],palm=palms[i];
         if(treat>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.15,-.33,.37+Math.sin(time*3+i)*.025)),treat);
+        if(carryWeight>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.21,-.42,.34)),carryWeight);
+        if(ropeGrip>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.055,i?.13:-.06,.30)),ropeGrip);
         const handQ=aimQ.clone().multiply(handAim[i]);
         if(i&&reloadWeight>0){
           const magazineTurn=new THREE.Quaternion().setFromEuler(new THREE.Euler(.22,0,-.48));
@@ -318,7 +323,7 @@ export async function createWorld(renderer) {
   const scene=new THREE.Scene(); scene.background=new THREE.Color('#b4b4a6');
   scene.fog=new THREE.FogExp2('#b4b4a6',.008);
   const staticGroup=new THREE.Group(),dynamic=new THREE.Group(); scene.add(staticGroup,dynamic);
-  const colliders=[],dynamicActors=[],smokeSystems=[],rotors=[],nightLights=[],fireSystems=[];
+  const colliders=[],dynamicActors=[],smokeSystems=[],rotors=[],nightLights=[],fireSystems=[],dynamicVehicles=new Set();
   const loader=new THREE.TextureLoader();
   const maxAnisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   async function texture(name, color=true) {
@@ -378,10 +383,9 @@ export async function createWorld(renderer) {
   });
   const grime=material({map:grimeMap,transparent:true,roughness:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
 
-  function obstacle(x,z,w,d){colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2});}
   facadeAsset.scene.traverse(object=>{if(!object.isMesh)return;for(const m of Array.isArray(object.material)?object.material:[object.material]){materials.add(m);for(const key of ['map','normalMap','roughnessMap','metalnessMap','aoMap'])if(m[key]){m[key].anisotropy=maxAnisotropy;textures.add(m[key]);}}});
-  const urbanState=createUrbanWar({group:staticGroup,scene,colliders,nightLights,material,canvasTexture,rubbleMaps,facadeAsset,
-    palette:{walls,brick,sand,road,concrete,dark,rusty,trim,blue,green,wood,metal,cloth,rubber,wallMaps,brokenMaps,brickMaps,roadMaps,dirtMaps}});
+  let chapterScene=null,activeLayout=null,ambientAircraftEnabled=false;
+  const chapterPalette={walls,brick,sand,road,concrete,dark,rusty,trim,blue,green,wood,metal,cloth,rubber,white,wallMaps,brokenMaps,brickMaps,roadMaps,dirtMaps};
 
   // Lighting and a sky dome provide a consistent atmospheric scale.
   const hemi=new THREE.HemisphereLight('#c8d8e3','#736452',2.3);scene.add(hemi);
@@ -441,10 +445,6 @@ export async function createWorld(renderer) {
     if(!system.dustOnly)system.batches.push(cloudBatch(parent,Math.max(40,count*4),'smoke'));
     system.batches.push(cloudBatch(parent,system.dustOnly?44:28,'dust'));smokeSystems.push(system);return system;
   }
-  const distantSmoke=new THREE.Group();scene.add(distantSmoke);
-  addSmoke(distantSmoke,-53,-110,18,{height:64,spread:1.4,persistent:true});
-  addSmoke(distantSmoke,63,-88,14,{height:53,spread:1.2,persistent:true});
-  addSmoke(distantSmoke,-84,17,12,{height:47,spread:1.1,persistent:true});
   const rotorWash=new THREE.Group();rotorWash.name='rotor-wash';scene.add(rotorWash);
   const rotorDust=addSmoke(rotorWash,0,0,12,{height:5,spread:1.2,dustOnly:true,persistent:true,intensity:0});
   const cloudCameraPosition=new THREE.Vector3();
@@ -470,7 +470,7 @@ export async function createWorld(renderer) {
     const sorted=[...smokeSystems].sort((a,b)=>b.distance-a.distance);sorted.forEach((s,i)=>s.batches.forEach((batch,j)=>batch.object.renderOrder=10+i*2+j));
   }
 
-  function humvee(){return createVehicle({burned:false,medical:true});}
+  function humvee(options={}){return makeVehicleAsset({burned:false,medical:false,...options});}
   function attachFire(parent,options,persistent=false){const fire=createFire(parent,options);fire.persistent=persistent;fireSystems.push(fire);return fire;}
 
   // Authored UH-60 by helijah, CC BY 4.0; source and licence ship in ASSET-SOURCES.
@@ -514,7 +514,7 @@ export async function createWorld(renderer) {
   for(const [mat,parts]of airframeBatches){const geometry=mergeGeometries(parts,false);if(!geometry)continue;const object=mesh(geometry,mat);object.userData.sharedGeometry=true;helicopterTemplate.add(object);parts.forEach(g=>g.dispose());}
   airframeBatches.clear();
   const rotorBlurMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{opacity:{value:.13}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform float opacity;void main(){vec2 p=vUv*2.-1.;float r=length(p);float edge=smoothstep(.15,.55,r)*(1.-smoothstep(.92,1.,r));float streak=.35+.65*pow(abs(sin(atan(p.y,p.x)*4.)),5.);gl_FragColor=vec4(.09,.11,.10,edge*streak*opacity);}`});
-  function helicopter(crashed=false){
+  function helicopter(crashed=false,{managed=true}={}){
     const group=new THREE.Group();group.name=crashed?'UH-60 crash site':'UH-60 Black Hawk';
     group.userData.instanceMaterials=new Set();
     const body=helicopterTemplate.clone(true);group.add(body);
@@ -529,7 +529,7 @@ export async function createWorld(renderer) {
     if(!crashed){
       const blur=new THREE.Mesh(new THREE.PlaneGeometry(16.36,16.36),rotorBlurMaterial);blur.rotation.x=-PI/2;blur.position.y=.04;rotor.add(blur);
       const tailBlur=new THREE.Mesh(new THREE.PlaneGeometry(3.35,3.35),rotorBlurMaterial);tailBlur.rotation.y=PI/2;tailRotor.add(tailBlur);
-      rotors.push(group);
+      if(managed)rotors.push(group);
     } else {group.rotation.set(.045,.18,-.23);group.position.y=-.17;rotor.rotation.y=.4;}
     group.userData.dimensions={length:15.28,width:2.96,height:5.25,rotorDiameter:16.36};
     group.userData.collisionBoxes=[{minX:-1.7,maxX:1.7,minZ:-3.2,maxZ:4.7},{minX:-.55,maxX:.55,minZ:-10.7,maxZ:-3.2}];
@@ -540,14 +540,6 @@ export async function createWorld(renderer) {
   let aircraftPreview=null;
   function setAircraftPreview(position=null,rotation=[0,0,0]){aircraftPreview=position?{position,rotation}:null;}
   function getAircraftState(){return{position:flying.position.toArray(),rotorDiameter:16.36,visible:flying.visible,altitude:flying.position.y};}
-  const parked=humvee();parked.position.set(-6.2,0,73);parked.rotation.y=.12;staticGroup.add(parked);obstacle(-6.2,73,2.7,5);
-  const parked2=humvee();parked2.position.set(6.3,0,-76);parked2.rotation.y=PI+.1;staticGroup.add(parked2);obstacle(6.3,-76,2.7,5);
-  for(const [x,z,angle,fireScale] of [[6.25,58.4,-.34,1.1],[-6.0,-57.8,.31,.75],[-7.1,16,.6,.65]]){
-    const wreck=createVehicle({burned:true});wreck.position.set(x,.06,z);wreck.rotation.set(.025,angle,x>0?.07:-.035);staticGroup.add(wreck);
-    const bounds=new THREE.Box3().setFromObject(wreck);colliders.push({minX:bounds.min.x,maxX:bounds.max.x,minZ:bounds.min.z,maxZ:bounds.max.z});
-    attachFire(wreck,{position:wreck.userData.fireAnchor,scale:fireScale,intensity:.8},true);
-    addSmoke(wreck,0,1.1,13,{height:13,spread:.52,persistent:true,intensity:.7});
-  }
 
 
   function proceduralPerson(kind){
@@ -624,8 +616,8 @@ export async function createWorld(renderer) {
       // The regenerated MPFB rigs share one articulated stance and locomotion solver.
       for(const side of ['Left','Right']){
         const sign=side==='Left'?1:-1;
-        pointLimb(bones['mixamorig'+side+'Arm'],bones['mixamorig'+side+'ForeArm'],kind==='civilian'?[sign*.16,-1,.06]:[sign*.12,-1,.25]);
-        pointLimb(bones['mixamorig'+side+'ForeArm'],bones['mixamorig'+side+'Hand'],kind==='civilian'?[sign*.035,-1,.14]:[-sign*.3,.1,1]);
+        pointLimb(bones['mixamorig'+side+'Arm'],bones['mixamorig'+side+'ForeArm'],kind==='civilian'||kind==='wounded'?[sign*.16,-1,.06]:[sign*.12,-1,.25]);
+        pointLimb(bones['mixamorig'+side+'ForeArm'],bones['mixamorig'+side+'Hand'],kind==='civilian'||kind==='wounded'?[sign*.035,-1,.14]:[-sign*.3,.1,1]);
       }
       model.updateMatrixWorld(true);
       const bounds=new THREE.Box3().setFromObject(model);const height=bounds.max.y-bounds.min.y,factor=1.78/height;
@@ -657,15 +649,15 @@ export async function createWorld(renderer) {
       if(kind!=='wounded'){root.add(helmet);root.updateMatrixWorld(true);actorBones?.mixamorigHead?.attach(helmet);}
     }
     if(kind==='wounded'){
-      model.rotation.x=-PI/2;model.position.set(0,.25,-.7);
+      model.rotation.x=-PI/2;model.position.set(0,.31,.89);
       root.add(box(.9,.045,2.0,cloth,0,.12,0));
     }
     if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,kind,root.userData.animate);
     root.userData.kind=kind;root.userData.model=model;dynamic.add(root);dynamicActors.push(root);return root;
   }
-  function createProp(kind,position){
+  function createProp(kind,position,options={}){
     let g;
-    if(kind==='vehicle')g=humvee();
+    if(kind==='vehicle')g=humvee(options);
     else if(kind==='wreck'){
       g=new THREE.Group();g.add(helicopter(true));
       const scorch=mesh(new THREE.CircleGeometry(8.2,48),new THREE.MeshBasicMaterial({color:'#1a1b17',transparent:true,opacity:.65,depthWrite:false}),[0,.018,-1]);scorch.rotation.x=-PI/2;scorch.scale.set(.85,1.2,1);g.add(scorch);g.userData.instanceMaterials=new Set([scorch.material]);
@@ -693,33 +685,50 @@ export async function createWorld(renderer) {
       g=new THREE.Group();g.add(cylinder(.04,.07,2.5,metal,0,1.25,0),box(.65,.3,.17,metal,0,2.5,0),box(.5,.2,.03,glow,0,2.5,.1));
       const l=new THREE.PointLight('#ffd7a4',12,18,2);l.position.set(0,2.4,.3);g.add(l);
     }
-    g.position.x=position[0];g.position.z=position[1];g.userData.kind=kind;
-    if(kind==='vehicle')g.userData.collisionBoxes=[{minX:-1.18,maxX:1.18,minZ:-2.45,maxZ:2.45}];
+    g.position.x=position[0];g.position.z=position[1];g.position.y=sampleHeight(position[0],position[1]);g.userData.kind=kind;
+    if(kind==='vehicle'&&!g.userData.collisionBoxes)g.userData.collisionBoxes=[{minX:-1.18,maxX:1.18,minZ:-2.45,maxZ:2.45}];
     if(g.userData.collisionBoxes)g.userData.collisionBounds=g.userData.collisionBoxes.map(b=>({minX:b.minX+position[0],maxX:b.maxX+position[0],minZ:b.minZ+position[1],maxZ:b.maxZ+position[1],material:kind==='vehicle'||kind==='wreck'?'metal':'masonry'}));
-    dynamic.add(g);return g;
+    dynamic.add(g);if(kind==='vehicle')dynamicVehicles.add(g);return g;
+  }
+  function createVehicle(position,rotation=0,burned=false){
+    const vehicle=makeVehicleAsset({burned,medical:false});
+    vehicle.position.set(position[0],position.length>2?position[1]:sampleHeight(position[0],position[1]),position.length>2?position[2]:position[1]);
+    vehicle.rotation.y=typeof rotation==='number'?rotation:rotation[1]||0;
+    vehicle.userData.kind='vehicle';dynamic.add(vehicle);dynamicVehicles.add(vehicle);return vehicle;
   }
   let currentMood='day';
   function setMood(mood){
     currentMood=mood;
     const settings={
-      day:{fog:'#c4b69b',top:'#6d9cae',bottom:'#d4c4a3',hemi:1.35,sun:3.65,sunColor:'#fff0ce',position:[-36,54,32],density:.0048,exposure:1.06},
-      dusk:{fog:'#b6a58b',top:'#718c98',bottom:'#cbb28e',hemi:1.2,sun:3.1,sunColor:'#ffdda9',position:[-65,21,-35],density:.0063,exposure:1.02},
+      day:{fog:'#c4b69b',top:'#6d9cae',bottom:'#d4c4a3',hemi:.78,sun:4.0,sunColor:'#fff0ce',position:[-36,54,32],density:.0048,exposure:1.06},
+      dusk:{fog:'#b6a58b',top:'#718c98',bottom:'#cbb28e',hemi:.72,sun:3.6,sunColor:'#ffdda9',position:[-65,21,-35],density:.0063,exposure:1.02},
       night:{fog:'#070d12',top:'#010306',bottom:'#06101a',hemi:.12,sun:.16,sunColor:'#8ba5c2',position:[-34,57,26],density:.016,exposure:.82},
-      dawn:{fog:'#c3b8a1',top:'#7da1b2',bottom:'#d4c2a3',hemi:1.5,sun:2.8,sunColor:'#ffe3b6',position:[48,20,-65],density:.006,exposure:1.04}
+      dawn:{fog:'#c3b8a1',top:'#7da1b2',bottom:'#d4c2a3',hemi:.9,sun:3.2,sunColor:'#ffe3b6',position:[48,20,-65],density:.006,exposure:1.04}
     }[mood]||null;
     if(!settings)return;
     scene.fog.color.set(settings.fog);scene.fog.density=settings.density;scene.background.set(settings.fog);
     hemi.intensity=settings.hemi;hemi.color.set(mood==='night'?'#99b3cf':'#c8d8df');hemi.groundColor.set(mood==='night'?'#252c30':'#786d57');
     sun.intensity=settings.sun;sun.color.set(settings.sunColor);sun.position.set(...settings.position);sunShadows.setDirection(settings.position);
     skyMaterial.uniforms.top.value.set(settings.top);skyMaterial.uniforms.bottom.value.set(settings.bottom);skyMaterial.uniforms.sunColor.value.set(settings.sunColor);skyMaterial.uniforms.sunPos.value.copy(sun.position).normalize();skyMaterial.uniforms.sunPower.value=mood==='night'?.006:.8;
-    scene.environmentIntensity=mood==='night'?.025:.35;renderer.toneMappingExposure=settings.exposure;
-    for(let i=0;i<nightLights.length;i++)nightLights[i].intensity=mood==='night'?(i%3===0?18:0):mood==='dusk'?8:0;
-    flying.visible=mood==='day'||mood==='dusk'||mood==='dawn';wingman.visible=flying.visible;
+    scene.environmentIntensity=mood==='night'?.025:.2;renderer.toneMappingExposure=settings.exposure;
+    for(let i=0;i<nightLights.length;i++)nightLights[i].intensity=nightLights[i].userData.interior?(nightLights[i].userData.fixtureIntensity??23)*(mood==='night'?1:.52):mood==='night'?(i%2===0?18:10):mood==='dusk'?8:0;
+    flying.visible=ambientAircraftEnabled&&(mood==='day'||mood==='dusk'||mood==='dawn');wingman.visible=flying.visible;
   }
   setMood('day');
+  function setAmbientAircraftEnabled(enabled){
+    const previous=ambientAircraftEnabled;ambientAircraftEnabled=!!enabled;
+    flying.visible=ambientAircraftEnabled&&currentMood!=='night';wingman.visible=flying.visible&&!aircraftPreview;
+    rotorWash.visible=ambientAircraftEnabled;rotorDust.intensity=0;return previous;
+  }
+  function belongsTo(object,root){for(let p=object;p;p=p.parent)if(p===root)return true;return false;}
+  function removeSmokeAt(index){const system=smokeSystems[index];for(const batch of system.batches){batch.object.removeFromParent();batch.material.dispose();batch.geometry.dispose();}smokeSystems.splice(index,1);}
   function destroyActor(actor){
     if(!actor||actor.userData.disposed)return;
+    dynamicVehicles.delete(actor);
     actor.userData.disposed=true;
+    for(let i=fireSystems.length-1;i>=0;i--)if(belongsTo(fireSystems[i].root,actor)){fireSystems[i].dispose();fireSystems.splice(i,1);}
+    for(let i=smokeSystems.length-1;i>=0;i--)if(belongsTo(smokeSystems[i].parent,actor))removeSmokeAt(i);
+    for(let i=rotors.length-1;i>=0;i--)if(belongsTo(rotors[i],actor))rotors.splice(i,1);
     actor.userData.mixer?.stopAllAction();actor.userData.mixer?.uncacheRoot(actor.userData.model);
     const skeletons=new Set(),geometries=new Set(),ownedMaterials=new Set();
     actor.traverse(object=>{
@@ -737,9 +746,28 @@ export async function createWorld(renderer) {
   function clearDynamic(){
     for(let i=fireSystems.length-1;i>=0;i--)if(!fireSystems[i].persistent){fireSystems[i].dispose();fireSystems.splice(i,1);}
     for(const actor of [...dynamicActors])destroyActor(actor);
-    for(let i=smokeSystems.length-1;i>=0;i--)if(!smokeSystems[i].persistent){for(const batch of smokeSystems[i].batches){batch.material.dispose();batch.object.removeFromParent();batch.geometry.dispose();}smokeSystems.splice(i,1);}
+    for(let i=smokeSystems.length-1;i>=0;i--)if(!smokeSystems[i].persistent)removeSmokeAt(i);
     for(const object of [...dynamic.children])destroyActor(object);dynamic.clear();
   }
+  function loadChapterScene(id){
+    const layout=getChapterLayout(id);clearDynamic();setAmbientAircraftEnabled(false);aircraftPreview=null;
+    chapterScene?.dispose();chapterScene=null;
+    // Persistent describes lifetime within one chapter, never across chapters.
+    for(let i=fireSystems.length-1;i>=0;i--){fireSystems[i].dispose();fireSystems.splice(i,1);}
+    for(let i=smokeSystems.length-1;i>=0;i--)if(smokeSystems[i]!==rotorDust)removeSmokeAt(i);
+    staticGroup.clear();colliders.splice(0,colliders.length);activeLayout=layout;
+    chapterScene=buildChapterScene(layout,{group:staticGroup,colliders,palette:chapterPalette,rubbleMaps,facadeAsset,
+      makeVehicle:makeVehicleAsset,makeAircraft:helicopter,addFire:(parent,options)=>attachFire(parent,options,true),addSmoke,nightLights,destroyObject:destroyActor});
+    setAmbientAircraftEnabled(layout.ambientAircraft);setMood(currentMood);return getSceneState();
+  }
+  function sampleHeight(x,z){const y=chapterScene?.surface?.sampleHeight(x,z);return Number.isFinite(y)?y:0;}
+  function getVehicleSources(){return [...dynamicVehicles,...(chapterScene?.objects||[])].filter(object=>{
+    if(!object.userData.vehicleType||object.userData.burned||object.userData.vehicleType==='burned-sedan')return false;
+    for(let p=object;p;p=p.parent)if(!p.visible)return false;return true;
+  });}
+  function getSceneState(){return chapterScene?structuredClone(chapterScene.state):null;}
+  function getCinematicOcclusions(){return(chapterScene?.objects||[]).filter(o=>o.userData.chapterPropKind);}
+  function setCinematicPropsVisible(visible,kinds=['wreck']){const changed=[];for(const object of getCinematicOcclusions())if(kinds.includes(object.userData.chapterPropKind)){changed.push({object,visible:object.visible});object.visible=!!visible;}return changed;}
   function update(dt,time,camera=null){
     sunShadows.update(camera);
     for(const h of rotors){h.userData.rotor.rotation.y+=dt*27;h.userData.tailRotor.rotation.x+=dt*81;}
@@ -747,10 +775,12 @@ export async function createWorld(renderer) {
     if(aircraftPreview){flying.position.set(...aircraftPreview.position);flying.rotation.set(...aircraftPreview.rotation);wingman.visible=false;}
     else {flying.position.set(Math.sin(t)*39,17+Math.cos(t)*2.5,Math.cos(t)*87);flying.rotation.set(.035,Math.atan2(Math.cos(t)*39,-Math.sin(t)*87),-.08*Math.sin(t));
       const w=t-.34;wingman.position.set(Math.sin(w)*59,28+Math.cos(w)*3,Math.cos(w)*104-14);wingman.rotation.set(.025,Math.atan2(Math.cos(w)*59,-Math.sin(w)*104),-.05*Math.sin(w));}
-    rotorWash.position.set(flying.position.x,0,flying.position.z);rotorDust.intensity=flying.visible?Math.max(0,(23-flying.position.y)/9)*.9:0;
+    if(!ambientAircraftEnabled){flying.visible=false;wingman.visible=false;}
+    rotorWash.visible=ambientAircraftEnabled;rotorWash.position.set(flying.position.x,0,flying.position.z);rotorDust.intensity=flying.visible?Math.max(0,(23-flying.position.y)/9)*.9:0;
     updateClouds(time,camera);
     for(const fire of fireSystems)fire.update(dt,time,camera);
   }
-  function dispose(){clearDynamic();for(const fire of fireSystems)fire.dispose();disposeVehicles();for(const system of smokeSystems)for(const batch of system.batches)batch.material.dispose();scene.traverse(o=>{if(o.isInstancedMesh&&!o.userData.instanceBuffersDisposed){o.dispose();o.userData.instanceBuffersDisposed=true;}o.geometry?.dispose();});for(const m of materials)m.dispose();for(const t of textures)t.dispose();environment.dispose();skyMaterial.dispose();rotorBlurMaterial.dispose();}
-  return{scene,colliders,update,updateShadows:camera=>sunShadows.update(camera),getLightingState:()=>sunShadows.inspect(),setMood,createActor,destroyActor,createProp,clearDynamic,dispose,aircraft:flying,getUrbanState:()=>urbanState,getResourceState:()=>({materials:materials.size,actors:dynamicActors.length,fires:fireSystems.length}),getFireSources:()=>fireSystems.map(system=>system.root.getWorldPosition(new THREE.Vector3()).toArray()),getAircraftState,setAircraftPreview,createAircraft:helicopter};
+  function dispose(){clearDynamic();chapterScene?.dispose();chapterScene=null;for(const fire of fireSystems)fire.dispose();fireSystems.length=0;disposeVehicles();for(const system of smokeSystems)for(const batch of system.batches){batch.material.dispose();batch.geometry.dispose();}smokeSystems.length=0;scene.traverse(o=>{if(o.isInstancedMesh&&!o.userData.instanceBuffersDisposed){o.dispose();o.userData.instanceBuffersDisposed=true;}o.geometry?.dispose();});helicopterTemplate.traverse(o=>o.geometry?.dispose());mainBladeGeometry?.dispose();tailBladeGeometry?.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();materials.clear();textures.clear();environment.dispose();skyMaterial.dispose();rotorBlurMaterial.dispose();}
+  loadChapterScene(1);
+  return{scene,colliders,update,sampleHeight,getVehicleSources,updateShadows:camera=>sunShadows.update(camera),getLightingState:()=>sunShadows.inspect(),setMood,createActor,destroyActor,createProp,createVehicle,clearDynamic,dispose,loadChapterScene,getSceneState,setAmbientAircraftEnabled,getCinematicOcclusions,setCinematicPropsVisible,aircraft:flying,getUrbanState:getSceneState,getResourceState:()=>({materials:materials.size,actors:dynamicActors.length,fires:fireSystems.length,smokeSystems:smokeSystems.length,staticObjects:staticGroup.children.length,chapter:activeLayout?.id}),getFireSources:()=>fireSystems.map(system=>system.root.getWorldPosition(new THREE.Vector3()).toArray()),getAircraftState,setAircraftPreview,createAircraft:helicopter};
 }

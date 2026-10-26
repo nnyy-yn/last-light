@@ -6,6 +6,7 @@ import {
   blocked, movePlayer, lineBlocked, canFire, canChoose,
 } from '../src/simulation.js';
 import { CHAPTERS, INITIAL_RESOURCES, getEpilogue } from '../src/story.js';
+import { getChapterLayout } from '../src/chapter-layouts.js';
 
 function memoryStorage() {
   const values = new Map();
@@ -75,30 +76,26 @@ test('all 32 choices have distinct consequences and keep every resource within b
   assert.equal(allFlags.size, 32);
 });
 
-test('story tasks form reachable routes and unarmed perspectives contain no hostile actors', () => {
-  const street = ([x, z]) => Math.abs(x) <= 8 && Math.abs(z) <= 85
-    || Math.abs(x) <= 85 && [-50, 0, 50].some(center => Math.abs(z - center) <= 8);
-  const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-  for (const chapter of CHAPTERS) {
-    assert.ok(chapter.tasks.length >= 2 && chapter.tasks.length <= 3);
-    assert.ok(street(chapter.spawn));
-    let previous = chapter.spawn;
-    let total = 0;
-    for (const task of chapter.tasks) {
-      assert.ok(street(task.pos), `chapter ${chapter.id}: task outside street`);
-      const length = distance(previous, task.pos);
-      assert.ok(length >= 15 && length <= 30, `chapter ${chapter.id}: unreachable pacing`);
-      assert.ok(task.seconds > 0 && Number.isFinite(task.seconds));
-      total += length;
-      previous = task.pos;
-    }
-    assert.ok(total >= 40 && total <= 90);
-    if (!chapter.armed) assert.equal(chapter.hostiles.length, 0);
-    for (const hostile of chapter.hostiles) {
-      assert.ok(street(hostile.pos));
-      assert.ok(distance(chapter.spawn, hostile.pos) > 22);
-    }
+test('every chapter loads its own bounded scene and noncombat perspectives stay safe', () => {
+  const ids=new Set(), footprints=new Set();
+  for(const chapter of CHAPTERS){
+    const layout=getChapterLayout(chapter.id);ids.add(layout.id);
+    footprints.add(JSON.stringify({roads:layout.roads,buildings:layout.buildings,bounds:layout.bounds}));
+    assert.equal(layout.taskPositions.length,chapter.tasks.length);
+    const inBounds=([x,z])=>x>=layout.bounds.minX&&x<=layout.bounds.maxX&&z>=layout.bounds.minZ&&z<=layout.bounds.maxZ;
+    assert.ok(inBounds(layout.spawn),'player spawn stays inside the playable bounds');
+    layout.taskPositions.forEach((position,index)=>{
+      if(inBounds(position))return;
+      const zone=layout.interactionZones?.find(z=>z.taskIndex===index&&z.outsidePlayerBounds);
+      assert.ok(zone,'an actor outside player bounds needs an explicit interaction zone');
+      assert.ok(Math.hypot(position[0]-layout.spawn[0],position[1]-layout.spawn[1])<=zone.radius,'the immobile player can reach the doorway actor');
+      assert.equal(chapter.movementLocked,true,'outside-bound interaction is reserved for the seated cockpit');
+    });
+    if(!chapter.armed)assert.equal(layout.enemySpawns.length,0);
+    if(layout.enemySpawns.length)assert.ok(layout.enemySpawns.length>=8);
+    if(chapter.id===9)assert.equal(chapter.movementLocked,true);
   }
+  assert.equal(ids.size,16);assert.equal(footprints.size,16);
 });
 
 test('new campaigns and snapshots do not share mutable resources or nested histories', () => {

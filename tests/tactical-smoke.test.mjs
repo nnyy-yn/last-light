@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTacticalSmoke} from '../src/tactical-smoke.js';
 
+test('a smoke canister accepts a depressed road surface and emits above that actual floor',()=>{
+  const scene=new THREE.Scene(),smoke=createTacticalSmoke(scene);
+  smoke.deploy({x:1,y:-.18,z:2});smoke.update(1,new THREE.PerspectiveCamera());
+  assert.equal(smoke.inspect().clouds[0].position.y,-.18);
+  const transform=new THREE.Matrix4();scene.getObjectByName('deployed smoke canisters').getMatrixAt(0,transform);
+  assert.ok(Math.abs(transform.elements[13]+.07)<1e-7);smoke.dispose();
+});
+
 test('smoke matures into local visibility obstruction, not an infinite ray wall',()=>{
   const smoke=createTacticalSmoke(new THREE.Scene());
   smoke.deploy([0,0]);

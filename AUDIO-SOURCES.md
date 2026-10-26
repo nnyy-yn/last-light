@@ -1,4 +1,4 @@
-# Audio sources — Last Light 0.6
+# Audio sources — Last Light 0.7
 
 ## Recorded helicopter loop
 
@@ -31,3 +31,7 @@ Original recording, saved license page, deterministic processing script and nume
 - **Helicopter Sounds**, aquinn, CC0 1.0: https://opengameart.org/content/helicopter-sounds ; https://creativecommons.org/publicdomain/zero/1.0/ ; direct source https://opengameart.org/sites/default/files/helicopter_0.mp3 . Saved as `aquinn-helicopter-source.mp3` alongside the author's licensing page. This is a collection with several cuts rather than the chosen continuous field recording.
 
 No recorded explosion or gunshot from these searches is included. Existing synthesized effects are separate original project work. Author credit here does not imply endorsement of this game.
+
+## Original convoy engine layer (0.7)
+
+`src/audio.js` synthesizes a deterministic diesel pulse, harmonic body and filtered mechanical noise loop. Nearby moving and parked occupied vehicles feed a bounded shared engine mix; distance attenuates it, camera direction changes its stereo position, and vehicle speed changes playback rate. It is an original synthetic effect, not a recording of an HMMWV or M35A2. Pause suspends playback and leaving gameplay resets its gain. Loop continuity, finite samples, level, distance attenuation, stereo response and inactive muting are tested without speaker output.

@@ -1,6 +1,6 @@
 {
   "name": "last-light-mogadishu",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "归途 · LAST LIGHT — 多视角战争叙事游戏",
@@ -11,6 +11,10 @@
     "test": "node --test tests/*.test.mjs",
     "package": "node scripts/package.mjs"
   },
-  "dependencies": {"three": "0.180.0"},
-  "devDependencies": {"vite": "6.3.6"}
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "6.3.6"
+  }
 }
