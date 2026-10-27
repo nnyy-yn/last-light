@@ -17,6 +17,38 @@ function confirmDialogue(machine, context = target) {
   return events;
 }
 
+test('a local decision blocks progression until a valid option and emits its effects token once',()=>{
+  const task=makeTask('talk',{decision:{prompt:'交出敷料？',options:[{id:'share',label:'交出',effects:{medicine:-1}},{id:'keep',label:'保留',effects:{cohesion:-1}}]}});
+  const machine=createNarrative(makeChapter(task,makeTask('reach',{id:'next'})));
+  assert.equal(confirmDialogue(machine).at(-1).type,'decision');
+  assert.equal(machine.inspect().phase,'decision');
+  assert.deepEqual(machine.update(500,{...target,held:true}).events,[]);
+  assert.deepEqual(machine.press(target).events,[]);
+  assert.deepEqual(machine.chooseOption('unknown').events,[]);
+  const result=machine.chooseOption('share');
+  assert.deepEqual(result.events.map(e=>e.type),['decision-made','task-complete']);
+  assert.equal(result.events[0].optionId,'share');assert.equal(result.taskId,'next');
+  assert.deepEqual(machine.chooseOption('share').events,[]);
+});
+
+test('decision before a physical action never skips the action; prefix resume never emits rewards',()=>{
+  const task=makeTask('hold',{decision:{prompt:'谁来接手？',options:[{id:'help',label:'协助'},{id:'direct',label:'引导'}]}});
+  const machine=createNarrative(makeChapter(task,makeTask('reach',{id:'next'})));
+  confirmDialogue(machine);const selected=machine.chooseOption('help');
+  assert.equal(selected.phase,'action');assert.deepEqual(selected.events.map(e=>e.type),['decision-made','action-start']);
+  assert.equal(machine.update(1,{...target,held:true}).complete,false);
+  assert.equal(machine.update(1,{...target,held:true}).events[0].type,'task-complete');
+  assert.equal(machine.restoreCompleted(['next']),false);
+  assert.equal(machine.restoreCompleted(['first']),true);assert.equal(machine.inspect().phase,'idle');
+  assert.equal(machine.inspect().taskId,'next');assert.equal(machine.update(10,target).events.length,0);
+});
+
+test('optional detour can be declined once but required operations cannot be skipped',()=>{
+  const machine=createNarrative(makeChapter(makeTask('defend',{optional:true,defendSeconds:18}),makeTask('talk',{id:'required'})));
+  const skipped=machine.skipOptional();assert.equal(skipped.events[0].skipped,true);assert.equal(skipped.taskId,'required');
+  assert.deepEqual(machine.skipOptional().events,[]);assert.equal(machine.inspect().taskId,'required');
+});
+
 test('all 16 chapters have three attributed two-way tasks and unique staging hooks', () => {
   assert.equal(CHAPTERS.length, 16);
   const staging = new Set(), events = new Set();

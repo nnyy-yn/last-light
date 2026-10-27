@@ -89,16 +89,47 @@ function distantCrew(root,resources,p,anchors){
   }b.finish();root.add(crew);
 }
 
-function gunMount(b,p,z=-.5,y=1.86){
-  // Ring stays open; the gunner occupies its interior. Original visual M2-like mesh.
-  b.add(new THREE.TorusGeometry(.405,.036,8,40),p.edge,[0,y,z],[Math.PI/2,0,0]);
-  b.add(new THREE.TorusGeometry(.45,.018,6,40),p.paint,[0,y-.035,z],[Math.PI/2,0,0]);
-  b.beam([.25,y,z+.24],[.25,y+.32,z+.24],.034,p.steel);b.beam([-.25,y,z+.24],[.25,y+.32,z+.24],.027,p.steel);
-  b.box([.15,.17,.46],[0,y+.35,z+.26],p.steel,[0,0,0],.012);b.box([.16,.035,.29],[0,y+.45,z+.28],p.edge);
-  b.cyl(.027,.69,[0,y+.36,z+.80],p.steel,[Math.PI/2,0,0],16);b.cyl(.042,.27,[0,y+.36,z+.49],p.steel,[Math.PI/2,0,0],16);
-  for(let i=0;i<6;i++)b.cyl(.044,.018,[0,y+.36,z+.39+i*.04],p.edge,[Math.PI/2,0,0],12);
-  b.box([.24,.20,.27],[-.21,y+.33,z+.28],p.paint,[0,0,0],.015);for(const x of[-.12,.12]){b.beam([x,y+.35,z+.02],[x,y+.35,z-.1],.019,p.steel);b.cyl(.024,.11,[x,y+.34,z-.11],p.seat,[0,0,0],8);}
-  b.box([.055,.075,.035],[0,y+.42,z+1.05],p.steel);b.box([.035,.06,.04],[0,y+.46,z+.16],p.steel);
+function gunMount(root,resources,p,z=-.5,y=1.86){
+  const ring=builder(root,resources);
+  ring.add(new THREE.TorusGeometry(.405,.036,8,40),p.edge,[0,y,z],[Math.PI/2,0,0]);
+  ring.add(new THREE.TorusGeometry(.45,.018,6,40),p.paint,[0,y-.035,z],[Math.PI/2,0,0]);ring.finish();
+  const yaw=new THREE.Group();yaw.name='MountedTurret';yaw.position.set(0,y+.32,z+.24);root.add(yaw);
+  const support=builder(yaw,resources);support.beam([.25,-.32,0],[.25,0,0],.034,p.steel);support.beam([-.25,-.32,0],[.25,0,0],.027,p.steel);support.finish();
+  const gun=new THREE.Group();gun.name='MountedGun';yaw.add(gun);const b=builder(gun,resources);
+  const receiver=new THREE.Group();receiver.name='MountedReceiver';gun.add(receiver);
+  const receiverParts=builder(receiver,resources);receiverParts.box([.15,.17,.46],[0,.03,.02],p.steel,[0,0,0],.012);receiverParts.finish();
+  const cover=new THREE.Group();cover.name='MountedFeedCover';cover.position.set(0,.13,.185);gun.add(cover);
+  const coverParts=builder(cover,resources);coverParts.box([.16,.035,.29],[0,0,-.145],p.edge);
+  coverParts.cyl(.019,.18,[0,0,0],p.fastener,[0,0,Math.PI/2],12);coverParts.finish();
+  // The latch, charging knob and belt are separate moving pieces. Their local
+  // origins are the physical grip centres used by the player's existing hands.
+  const latch=new THREE.Group();latch.name='MountedCoverLatch';latch.position.set(0,.032,-.257);cover.add(latch);
+  const latchParts=builder(latch,resources);latchParts.cyl(.014,.108,[0,0,0],p.steel,[0,0,Math.PI/2],12);
+  for(const x of[-.045,.045])latchParts.box([.012,.025,.028],[x,-.016,.007],p.edge);latchParts.finish();
+  const charging=new THREE.Group();charging.name='MountedChargingHandle';charging.position.set(.115,.04,-.01);gun.add(charging);
+  const chargingParts=builder(charging,resources);chargingParts.beam([0,0,0],[.065,0,0],.014,p.steel);chargingParts.finish();
+  const chargingGrip=new THREE.Group();chargingGrip.name='MountedChargingGrip';chargingGrip.position.x=.065;charging.add(chargingGrip);
+  const chargingGripParts=builder(chargingGrip,resources);chargingGripParts.cyl(.018,.075,[0,0,0],p.seat,[Math.PI/2,0,0],12);chargingGripParts.finish();
+  b.cyl(.027,.69,[0,.04,.56],p.steel,[Math.PI/2,0,0],16);b.cyl(.042,.27,[0,.04,.25],p.steel,[Math.PI/2,0,0],16);
+  for(let i=0;i<6;i++)b.cyl(.044,.018,[0,.04,.15+i*.04],p.edge,[Math.PI/2,0,0],12);
+  const ammoBox=new THREE.Group();ammoBox.name='MountedAmmoBox';gun.add(ammoBox);
+  const boxParts=builder(ammoBox,resources);boxParts.box([.24,.20,.27],[-.21,.01,.04],p.paint,[0,0,0],.015);
+  boxParts.box([.20,.016,.21],[-.21,.118,.04],p.edge,[0,0,0],.006);boxParts.finish();
+  const belt=new THREE.Group();belt.name='MountedBeltSegment';belt.position.set(-.075,.135,.015);gun.add(belt);
+  const beltParts=builder(belt,resources);
+  for(let i=0;i<6;i++){
+    const x=(i-2.5)*.019;
+    beltParts.cyl(.010,.102,[x,0,0],p.fastener,[Math.PI/2,0,0],10);
+    beltParts.add(new THREE.ConeGeometry(.009,.025,10),p.fastener,[x,0,.0635],[Math.PI/2,0,0]);
+    beltParts.box([.018,.024,.010],[x,0,-.024],p.steel,[0,0,0],.002);
+  }
+  beltParts.finish();
+  for(const x of[-.12,.12]){
+    b.beam([x,.03,-.22],[x,.03,-.34],.019,p.steel);
+    const grip=new THREE.Group();grip.name=x<0?'MountedSpadeGripRight':'MountedSpadeGripLeft';grip.position.set(x,.02,-.35);gun.add(grip);
+    const gripParts=builder(grip,resources);gripParts.cyl(.024,.11,[0,0,0],p.seat,[0,0,0],12);gripParts.finish();
+  }
+  b.box([.055,.075,.035],[0,.10,.81],p.steel);b.box([.035,.06,.04],[0,.14,-.08],p.steel);b.finish();return yaw;
 }
 
 function humvee(resources,p){
@@ -147,9 +178,10 @@ function humvee(resources,p){
   b.add(new THREE.TorusGeometry(.165,.015,6,24),p.steel,[-.48,1.28,.44],[.47,0,0]);b.beam([-.48,1.28,.44],[-.48,1.13,.64],.021,p.steel);
   for(let i=0;i<5;i++)b.cyl(i? .025:.048,.012,[-.55+i*.095,1.28,.32],p.lens,[Math.PI/2,0,0],12);
   b.beam([.05,.94,.20],[.05,1.17,.08],.014,p.steel);b.add(new THREE.SphereGeometry(.029,8,6),p.steel,[.05,1.17,.08]);
-  gunMount(b,p);b.finish();attachWheels(root,resources,p,[1.57,-1.61]);
+  b.finish();const turret=gunMount(root,resources,p);attachWheels(root,resources,p,[1.57,-1.61]);
   root.userData={vehicleType:'humvee',modelName:'HMMWV M1025-style gun carrier',dimensions:{width:2.16,height:1.85,length:4.84,overallHeight:2.90},collisionBoxes:[{minX:-1.08,maxX:1.08,minZ:-2.42,maxZ:2.42}],fireAnchor:[0,1.18,1.38],anchorSpace:'hips',steeringWheel:[-.48,1.28,.44],crewAnchors:[{role:'driver',position:[-.48,.95,.05],rotation:[0,0,0]},{role:'gunner',position:[0,1.58,-.55],rotation:[0,0,0]},{role:'passenger',index:0,position:[.48,.95,.05],rotation:[0,0,0]},{role:'passenger',index:1,position:[-.48,.95,-.84],rotation:[0,0,0]},{role:'passenger',index:2,position:[.48,.95,-.84],rotation:[0,0,0]}]};
-  distantCrew(root,resources,p,root.userData.crewAnchors);return root;
+  distantCrew(root,resources,p,root.userData.crewAnchors.filter(a=>a.role!=='gunner'));
+  const gunnerAnchor=root.userData.crewAnchors.find(a=>a.role==='gunner');distantCrew(turret,resources,p,[{...gunnerAnchor,position:[0,gunnerAnchor.position[1]-turret.position.y,gunnerAnchor.position[2]-turret.position.z]}]);turret.children.find(o=>o.name==='FarCrew').name='GunnerCrew';return root;
 }
 
 function cargoTruck(resources,p){
@@ -208,7 +240,13 @@ export function buildMilitaryVehicle(type,variant,resources,palette,{burned=fals
 }
 
 export function bindVehicleMotion(root,{occupied=true}={}){
-  const wheels=[];root.traverse(node=>{if(node.userData.wheel)wheels.push(node);if(node.name==='FarCrew')node.visible=occupied;});
+  const wheels=[];root.traverse(node=>{if(node.userData.wheel)wheels.push(node);if(node.name==='FarCrew'||node.name==='GunnerCrew')node.visible=occupied;});
+  const turret=root.getObjectByName('MountedTurret'),gun=root.getObjectByName('MountedGun');
+  if(turret&&gun){
+    root.userData.turret={yaw:turret,pitch:gun,crew:root.getObjectByName('GunnerCrew')};
+    root.userData.aimTurret=(worldYaw,elevation=0)=>{turret.rotation.y=worldYaw-root.rotation.y;gun.rotation.x=-THREE.MathUtils.clamp(elevation,-.32,.68);root.updateMatrixWorld(true);};
+    root.userData.turretPoint=(kind='muzzle')=>gun.localToWorld(new THREE.Vector3(...(kind==='camera'?[0,.19,-.53]:[0,.04,.92])));
+  }
   root.userData.wheels=wheels;root.userData.occupied=occupied;root.userData.vehicleMotion={speed:0,steer:0,time:0};let lastTime=null,angle=0;
   root.userData.updateVehicleMotion=(speed=0,steer=0,time=0)=>{
     Object.assign(root.userData.vehicleMotion,{speed,steer,time});

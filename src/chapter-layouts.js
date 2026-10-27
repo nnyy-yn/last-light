@@ -1,9 +1,10 @@
 // Metres, +Y up. facing uses the player camera convention: 0 looks toward -Z.
 // These are sixteen authored footprints, not variants of one city or seeded tiles.
+import {expandChapterLayout} from './chapter-expansion.js';
 const B=(x,z,w,d,h=6,extra={})=>({x,z,w,d,h,...extra});
 const P=(kind,x,z,rotation=0,extra={})=>({kind,pos:[x,z],rotation,...extra});
 const R=(points,width=10,surface='road')=>({points,width,surface});
-const E=(points,lookAt)=>points.map((pos,i)=>({pos,lookAt,patrol:[[pos[0]+(i%2?-1.1:1.1),pos[1]],[pos[0],pos[1]+(i%2?1.4:-1.4)]],fireDelay:3.2+i*.6,opening:i<3}));
+const E=(points,lookAt)=>points.map((pos,i)=>({pos,lookAt,patrol:[[pos[0]+(i%2?-1.1:1.1),pos[1]],[pos[0],pos[1]+(i%2?1.4:-1.4)]],fireDelay:3.2+i*.6,opening:false}));
 const layouts=[
   {
     id:'clinic-courtyard',chapter:1,name:'诊所与居民院落',type:'civilian-courtyard',bound:37,bounds:{minX:-34,maxX:34,minZ:-32,maxZ:32},
@@ -148,7 +149,11 @@ const layouts=[
 ];
 
 for(const layout of layouts){
+  // More distant groups reinforce an established fight through the streets;
+  // noncombat chapters receive none. Actual placement happens after collision.
+  layout.encounter={reserveCount:layout.enemySpawns.length?({4:2,5:3,6:4,7:2,8:3,10:2,12:3,13:4,14:3,15:4}[layout.chapter]??2):0,reserveDelay:layout.chapter===4?14:10};
   layout.cinematic??={anchor:[layout.spawn[0],0,layout.spawn[1]],crashPoint:[layout.taskPositions[1][0],0,layout.taskPositions[1][1]],vehicleRoute:layout.route.map(([x,z])=>[x,0,z]),cameraSafe:[layout.spawn[0],1.65,layout.spawn[1]]};
+  expandChapterLayout(layout);
 }
 export const CHAPTER_LAYOUTS=layouts;
 export function getChapterLayout(id=1){

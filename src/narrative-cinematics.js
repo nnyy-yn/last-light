@@ -101,7 +101,7 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
   const shot = (at, from, to, extra = {}) => plan.cameras.push(key(at, from, { lookAt: to, fov: 54, ...extra }));
   const walk = (name, kind, from, to, at = 0, until = 5, extra = {}) => actor(name, kind, [key(at, from, { linear: true, yaw: towards(from, to), stance: 'stand' }), key(until, to, { stance: 'stand' })], extra);
   const guard = (name, pos, target, at = 0) => actor(name, 'soldier', [key(at, pos, { stance: 'crouch', aimTarget: aim(target), yaw: towards(pos, target), alert: 1 })]);
-  const medic = (name, patient, start = local(-3, 0, -3), at = 0, until = 3) => actor(name, 'soldier', [
+  const medic = (name, patient, start = local(-3, 0, -3), at = 0, until = 3) => actor(name, id===1?'civilian':'soldier', [
     key(at, start, { linear: true, yaw: towards(start, patient) }), key(until, [patient[0] - .85, patient[1], patient[2]], { stance: 'treat', aimTarget: aim(patient, .4), yaw: Math.PI / 2 }),
   ]);
   const baseCamera = () => {
@@ -338,7 +338,7 @@ function buildActionPlan(chapter, layout, event) {
   const task = typeof event === 'object' && event ? event : chapter.tasks?.find(t => t.sceneEvent === event || t.id === event);
   if (!task) throw new RangeError('A task cinematic needs a task object or known sceneEvent.');
   const index = chapter.tasks?.findIndex(t => t.id === task.id) ?? -1;
-  const anchor = point(index >= 0 && layout.taskPositions?.[index] || task.pos || layout.cinematic?.anchor || chapter.spawn);
+  const anchor = point(task.pos || (index >= 0 && layout.taskPositions?.[index]) || layout.cinematic?.anchor || chapter.spawn);
   const heading = layout.facing ?? chapter.facing ?? 0;
   const p = (x, y, z) => [anchor[0] + x * Math.cos(heading) - z * Math.sin(heading), anchor[1] + y, anchor[2] - x * Math.sin(heading) - z * Math.cos(heading)];
   const type = task.animation || task.interaction || 'observe', sceneEvent = task.sceneEvent || task.id;
@@ -370,7 +370,7 @@ function buildActionPlan(chapter, layout, event) {
   } else if (type === 'treat') {
     const lifts = /harris-lifted/.test(sceneEvent);
     a('patient', lifts ? 'soldier' : 'wounded', [key(0, p(0, 0, .5), { stance: 'low', alert: .1 }), key(4, p(0, 0, .5), { stance: lifts ? 'stand' : 'low', alert: .1 })]);
-    a('helper', 'soldier', [key(0, p(-1.6, 0, -1.2), { linear: true, yaw: Math.PI / 2 }), key(1.4, p(-.85, 0, .5), { stance: 'treat', yaw: Math.PI / 2, aimTarget: p(0, .4, .5) }), key(5, p(-.85, 0, .5), { stance: lifts ? 'stand' : 'treat', carry: lifts ? 1 : 0 })]);
+    a('helper', performer, [key(0, p(-1.6, 0, -1.2), { linear: true, yaw: Math.PI / 2 }), key(1.4, p(-.85, 0, .5), { stance: 'treat', yaw: Math.PI / 2, aimTarget: p(0, .4, .5) }), key(5, p(-.85, 0, .5), { stance: lifts ? 'stand' : 'treat', carry: lifts ? 1 : 0 })]);
     item('medical-kit', 'parcel', [key(0, p(-.5, .18, -.5))]); plan.stages.push({ at: 1.4, name: 'hands-on-assistance' });
   } else if (type === 'handover') {
     a('giver', performer, [key(0, p(-1.2, 0, 0), { stance: 'stand', yaw: Math.PI / 2, carry: 1 }), key(4.2, p(-1.2, 0, 0), { stance: 'stand', talk: .5 })]);
@@ -378,7 +378,7 @@ function buildActionPlan(chapter, layout, event) {
     item('handed-parcel', 'parcel', [key(0, p(-.8, .95, 0)), key(1.5, p(-.8, .95, 0)), key(3.3, p(.6, .95, 0)), key(5.5, p(.6, .95, 0))]); plan.stages.push({ at: 3.3, name: 'parcel-handed-over' });
   } else if (type === 'escort') {
     for (let i = 0; i < 2; i++) a(`escort-${i}`, i ? performer : task.kind === 'civilian' ? 'civilian' : 'soldier', [key(0, p(i * 1.2 - .6, 0, -1.8), { linear: true, yaw: heading + Math.PI, carry: .6 }), key(4.7, p(i * 1.2 - .6, 0, 2.7), { carry: .6, stance: 'stand' })]);
-    a('receiving-helper', 'soldier', [key(0, p(1, 0, 3.6), { talk: .4, carry: 1 })]); plan.stages.push({ at: 4.7, name: 'escort-handover' });
+    a('receiving-helper', performer, [key(0, p(1, 0, 3.6), { talk: .4, carry: 1 })]); plan.stages.push({ at: 4.7, name: 'escort-handover' });
   } else if (type === 'defend') {
     a('incoming-watch', 'soldier', [key(0, p(-1.5, 0, -2), { linear: true }), key(2.6, p(-.7, 0, .6), { stance: 'crouch', aimTarget: p(-1, 1.3, 15), alert: 1 })]);
     a('relieved-watch', 'soldier', [key(0, p(.9, 0, .6), { stance: 'crouch', alert: 1 }), key(2.6, p(.9, 0, .6), { stance: 'stand' }), key(5.5, p(2, 0, -3), { linear: true, stance: 'kneel' })]); plan.stages.push({ at: 2.6, name: 'cover-handover' });
@@ -716,7 +716,7 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
         const moon = new THREE.DirectionalLight('#8aa6c5', .62);
         moon.position.set(-26, 34, 18); root.add(sky, moon);
       }
-      for (const spec of plan.actors) { register(world.createActor(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.id), spec, 'actor'); prepareShoulderRadio(objects.get(spec.id)); }
+      for (const spec of plan.actors) { register(world.createActor(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.id, {civilian:plan.chapterId===1}), spec, 'actor'); prepareShoulderRadio(objects.get(spec.id)); }
       for (const spec of plan.props) {
         const localProp = ['rope', 'projectile', 'map', 'parcel', 'stretcher', 'covered-stretcher'].includes(spec.kind);
         const object = register(localProp ? primitive(spec) : world.createProp(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.kind === 'vehicle' ? { type: spec.vehicleType || 'humvee', variant: spec.variant || 'olive', occupied: spec.convoy ? spec.convoy.index > 2 : true } : undefined), spec, 'prop', !localProp);

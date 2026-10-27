@@ -13,6 +13,13 @@ function fixture(){
   return{scene,boxes,rewards,field,camera,player,first,tick};
 }
 
+test('restoring opened cases never awards supplies and rejects unknown identities atomically',()=>{
+  const f=fixture();assert.equal(f.field.restoreUsed([f.first.id]),true);
+  f.tick(true,20);assert.equal(f.rewards.length,0);assert.equal(f.field.inspect()[0].used,true);assert.equal(f.field.inspect()[0].opened,1);
+  const before=f.field.inspect();assert.equal(f.field.restoreUsed(['another-chapter']),false);assert.deepEqual(f.field.inspect(),before);
+  assert.equal(f.field.restoreUsed([]),true);f.tick(true,16);assert.equal(f.rewards.length,1);f.field.dispose();
+});
+
 test('only hostile armed chapters receive deterministic finite roadside cases',()=>{
   const{field}=fixture();
   for(const chapter of CHAPTERS){const a=field.reset({chapter}),b=field.reset({chapter});assert.deepEqual(a,b);assert.equal(a.length,chapter.armed&&chapter.hostiles.length?2:0);

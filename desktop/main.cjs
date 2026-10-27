@@ -40,6 +40,7 @@ function createWindow() {
     show: false, autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true, nodeIntegration: false, sandbox: true,
+      backgroundThrottling: !process.env.LAST_LIGHT_QA_HIDDEN,
       webSecurity: true, devTools: !app.isPackaged || qaDebugPort !== null,
     },
   });

@@ -582,21 +582,22 @@ export async function createWorld(renderer) {
     helmet.traverse(part=>{if(part.isMesh){part.castShadow=true;part.receiveShadow=true;part.frustumCulled=false;part.userData.sharedGeometry=true;part.userData.sharedMaterial=true;}});
     return helmet;
   }
-  function createActor(kind,position,name=''){
+  function createActor(kind,position,name='',options={}){
     const root=new THREE.Group();root.name=name||kind;root.position.set(position[0],0,position[1]);
     root.userData.instanceMaterials=new Set();
     let model,civilianMixer,civilianActions,actorBones,actorRifle;
-    const humanAsset=kind==='civilian'?civilianAsset:kind==='enemy'?combatantAsset:soldierAsset;
+    const civilian=kind==='civilian'||options.civilian===true;
+    const humanAsset=civilian?civilianAsset:kind==='enemy'?combatantAsset:soldierAsset;
     if(humanAsset){
       model=cloneSkeleton(humanAsset.scene);
-      if(kind==='soldier'||kind==='wounded'){
+      if(!civilian&&(kind==='soldier'||kind==='wounded')){
         // The soldier's generated scalp is under the close-fitting helmet;
         // remove the uncovered civilian hair cards instead of letting them
         // intersect the front rim.
         const hair=[];model.traverse(o=>{if(o.isMesh&&/short01/i.test(o.material?.name||''))hair.push(o);});hair.forEach(o=>o.removeFromParent());
       }
       model.traverse(o=>{if(o.isMesh){const m=o.material.clone();materials.add(m);root.userData.instanceMaterials.add(m);o.material=m;
-        tuneCharacterMaterial(m,kind);
+        tuneCharacterMaterial(m,civilian?'civilian':kind);
       }});
       if(kind==='civilian'&&humanAsset.animations.length){
         civilianMixer=new THREE.AnimationMixer(model);civilianActions={};
@@ -638,13 +639,13 @@ export async function createWorld(renderer) {
           civilianMixer.update(dt);
         };
       }
-    }else model=proceduralPerson(kind);
+    }else model=proceduralPerson(civilian?'civilian':kind);
     root.add(model);
-    if(kind==='soldier'||kind==='enemy'){
+    if(!civilian&&(kind==='soldier'||kind==='enemy')){
       const weaponId=kind==='enemy'?'ak':name==='掩护队员'?'m249':PLAYER_WEAPON_IDS[0];
       const rifle=carriedRifle(weaponId);root.userData.weaponId=weaponId;actorRifle=rifle;rifle.scale.setScalar(1);root.add(rifle);
     }
-    if(kind==='soldier'||kind==='wounded'){
+    if(!civilian&&(kind==='soldier'||kind==='wounded')){
       const helmet=fittedHelmet();
       if(kind!=='wounded'){root.add(helmet);root.updateMatrixWorld(true);actorBones?.mixamorigHead?.attach(helmet);}
     }
@@ -652,8 +653,8 @@ export async function createWorld(renderer) {
       model.rotation.x=-PI/2;model.position.set(0,.31,.89);
       root.add(box(.9,.045,2.0,cloth,0,.12,0));
     }
-    if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,kind,root.userData.animate);
-    root.userData.kind=kind;root.userData.model=model;dynamic.add(root);dynamicActors.push(root);return root;
+    if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,civilian?'civilian':kind,root.userData.animate);
+    root.userData.kind=kind;root.userData.civilianAppearance=civilian;root.userData.model=model;dynamic.add(root);dynamicActors.push(root);return root;
   }
   function createProp(kind,position,options={}){
     let g;
@@ -687,7 +688,7 @@ export async function createWorld(renderer) {
     }
     g.position.x=position[0];g.position.z=position[1];g.position.y=sampleHeight(position[0],position[1]);g.userData.kind=kind;
     if(kind==='vehicle'&&!g.userData.collisionBoxes)g.userData.collisionBoxes=[{minX:-1.18,maxX:1.18,minZ:-2.45,maxZ:2.45}];
-    if(g.userData.collisionBoxes)g.userData.collisionBounds=g.userData.collisionBoxes.map(b=>({minX:b.minX+position[0],maxX:b.maxX+position[0],minZ:b.minZ+position[1],maxZ:b.maxZ+position[1],material:kind==='vehicle'||kind==='wreck'?'metal':'masonry'}));
+    if(g.userData.collisionBoxes)g.userData.collisionBounds=g.userData.collisionBoxes.map(b=>({minX:b.minX+position[0],maxX:b.maxX+position[0],minZ:b.minZ+position[1],maxZ:b.maxZ+position[1],...(kind==='vehicle'?{minY:g.position.y,maxY:g.position.y+1.86}:{}),material:kind==='vehicle'||kind==='wreck'?'metal':'masonry'}));
     dynamic.add(g);if(kind==='vehicle')dynamicVehicles.add(g);return g;
   }
   function createVehicle(position,rotation=0,burned=false){
@@ -700,10 +701,10 @@ export async function createWorld(renderer) {
   function setMood(mood){
     currentMood=mood;
     const settings={
-      day:{fog:'#c4b69b',top:'#6d9cae',bottom:'#d4c4a3',hemi:.78,sun:4.0,sunColor:'#fff0ce',position:[-36,54,32],density:.0048,exposure:1.06},
-      dusk:{fog:'#b6a58b',top:'#718c98',bottom:'#cbb28e',hemi:.72,sun:3.6,sunColor:'#ffdda9',position:[-65,21,-35],density:.0063,exposure:1.02},
+      day:{fog:'#c4b69b',top:'#6d9cae',bottom:'#d4c4a3',hemi:.78,sun:4.0,sunColor:'#fff0ce',position:[-36,54,32],density:.0038,exposure:1.04},
+      dusk:{fog:'#b6a58b',top:'#718c98',bottom:'#cbb28e',hemi:.72,sun:3.6,sunColor:'#ffdda9',position:[-65,21,-35],density:.005,exposure:1.02},
       night:{fog:'#070d12',top:'#010306',bottom:'#06101a',hemi:.12,sun:.16,sunColor:'#8ba5c2',position:[-34,57,26],density:.016,exposure:.82},
-      dawn:{fog:'#c3b8a1',top:'#7da1b2',bottom:'#d4c2a3',hemi:.9,sun:3.2,sunColor:'#ffe3b6',position:[48,20,-65],density:.006,exposure:1.04}
+      dawn:{fog:'#bfb8a5',top:'#668d9e',bottom:'#dec8a5',hemi:.56,sun:3.65,sunColor:'#ffdda6',position:[62,24,15],density:.0042,exposure:1.02}
     }[mood]||null;
     if(!settings)return;
     scene.fog.color.set(settings.fog);scene.fog.density=settings.density;scene.background.set(settings.fog);

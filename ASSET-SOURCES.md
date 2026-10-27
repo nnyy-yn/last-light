@@ -31,6 +31,14 @@ The military character reuses the following separately licensed uniform and equi
 
 Upstream merged meshes and encoded textures to WebP. This project omits the old masked head, cap and headset, refits clothing/equipment to the new character, removes one malformed detached pouch, smooths knee weights and rigidly binds each corrected boot to its foot, supplies a newly generated MakeHuman head, and adds original fitted helmet geometry. Uniform/equipment retain CC BY 4.0 attribution; MakeHuman's CC0 license does not replace that license. The clothing is a general military reference, not a certified 1993 kit reconstruction. Attribution does not imply endorsement.
 
+## v0.8 complete mounted-gun hands — MakeHuman CC0 derivative
+
+Local file: `mounted-makehuman-hands.glb` (271,592 bytes; SHA-256 `22962e1766fc786e89f10b5017674de93ede05b91994898369c683ebe7b13db0`). This asset restores complete palms, fingers and cropped wrist/forearm sections from the preserved `character-sources/makehuman/soldier-fitted-source.blend` MakeHuman body, before the runtime body's hidden-surface removal. It is a derivative of the separately documented MakeHuman Community CC0 base mesh and weights, not a film/game asset or a new hand scan.
+
+Rebuild script: `scripts/makehuman/export-mounted-hands.py`, run with Blender in background mode. The exporter crops anatomically rather than discarding vertices whose weights include forearm/twist bones, checks that palm and finger boundaries are closed, and exports the mesh with its 52-joint skin and original UVs. The GLB embeds no images or materials; `src/mounted-gunner-pose.js` maps the joints by name onto the existing soldier skeleton, verifies inverse bind matrices and reuses the existing skin material. Only the cropped forearm ends remain open, beneath the existing sleeves. It does not replace the character's uniform or the separately credited CC BY first-person weapon arms.
+
+The source report is `artifacts/district-rebuild/mounted-hand-source.json`. The existing uniform and equipment by **DanlyVostok / 1799danly** remain **CC BY 4.0**, as credited above; the new hand mesh's CC0 terms do not relicense that clothing.
+
 ## M4A1 and first-person arms — CC BY 4.0
 
 Local file: `m4a1-real.glb`. This self-contained model combines these credited works:

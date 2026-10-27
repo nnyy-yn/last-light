@@ -17,6 +17,7 @@ function validateChapter(chapter) {
     if (task.interaction === 'hold' && !(Number.isFinite(task.seconds) && task.seconds > 0)) throw new TypeError(`Task ${task.id} needs a hold duration`);
     if (task.interaction === 'defend' && !(Number.isFinite(task.defendSeconds) && task.defendSeconds > 0)) throw new TypeError(`Task ${task.id} needs a defence duration`);
     if (task.requiredKills != null && (!Number.isInteger(task.requiredKills) || task.requiredKills < 0)) throw new TypeError(`Task ${task.id} has an invalid kill gate`);
+    if(task.decision&&(!task.decision.prompt||!Array.isArray(task.decision.options)||task.decision.options.length<2||new Set(task.decision.options.map(o=>o.id)).size!==task.decision.options.length))throw new TypeError(`Task ${task.id} needs distinct decision options`);
   }
 }
 
@@ -60,6 +61,7 @@ export function createNarrative(initialChapter) {
       lineIndex, lineCount: task?.dialogue.length ?? 0,
       progress: Math.min(1, Math.max(0, progress)), holdElapsed, defendElapsed,
       requiredKills: task?.requiredKills ?? 0, kills,
+      decision:phase==='decision'?structuredClone(task.decision):null,
       complete: phase === 'done',
     };
   }
@@ -68,7 +70,7 @@ export function createNarrative(initialChapter) {
     validateChapter(nextChapter);
     // Copy the authored data so external UI or event consumers cannot mutate
     // progression halfway through a chapter.
-    chapter = { id: nextChapter.id, tasks: nextChapter.tasks.map(task => ({ ...task, dialogue: task.dialogue.map(line => ({ ...line })) })) };
+    chapter = { id: nextChapter.id, tasks: structuredClone(nextChapter.tasks) };
     taskIndex = 0; phase = 'idle'; lineIndex = -1;
     holdElapsed = 0; defendElapsed = 0; kills = 0;
     return result();
@@ -100,6 +102,7 @@ export function createNarrative(initialChapter) {
       lineIndex++;
       return result([lineEvent()]);
     }
+    if(current().decision){phase='decision';lineIndex=-1;return result([{type:'decision',taskId:current().id,taskIndex}]);}
     if (current().interaction === 'talk' || current().interaction === 'radio') return finish();
     phase = 'action'; lineIndex = -1;
     return result([{ type: 'action-start', taskId: current().id, taskIndex, interaction: current().interaction, animation: current().animation ?? null }]);
@@ -132,6 +135,18 @@ export function createNarrative(initialChapter) {
     holdElapsed = 0;
     return result();
   }
+  function chooseOption(optionId){
+    if(phase!=='decision')return result();
+    const task=current(),option=task.decision.options.find(o=>o.id===optionId);if(!option)return result();
+    const event={type:'decision-made',taskId:task.id,taskIndex,optionId:option.id};
+    if(['talk','radio'].includes(task.interaction)){const finished=finish();return {...finished,events:[event,...finished.events]};}
+    phase='action';return result([event,{type:'action-start',taskId:task.id,taskIndex,interaction:task.interaction,animation:task.animation??null}]);
+  }
+  function restoreCompleted(completedTaskIds){
+    if(!Array.isArray(completedTaskIds)||completedTaskIds.length>chapter.tasks.length||completedTaskIds.some((id,i)=>id!==chapter.tasks[i].id))return false;
+    taskIndex=completedTaskIds.length;phase=current()?'idle':'done';lineIndex=-1;holdElapsed=defendElapsed=kills=0;return true;
+  }
+  function skipOptional(){if(!current()?.optional||phase==='done')return result();const finished=finish();for(const event of finished.events)event.skipped=true;return finished;}
   reset(initialChapter);
-  return { press, update, cancel, reset, inspect };
+  return { press, update, cancel, reset, inspect,chooseOption,restoreCompleted,skipOptional };
 }

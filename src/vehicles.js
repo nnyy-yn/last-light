@@ -113,7 +113,7 @@ export function createVehicle(options={}){
   // Transform all four corners: rotated convoy vehicles keep accurate world AABBs.
   root.userData.getCollisionBounds=(position=root.position)=>root.userData.collisionBoxes.map(box=>{
     const c=Math.cos(root.rotation.y),s=Math.sin(root.rotation.y),points=[[box.minX,box.minZ],[box.minX,box.maxZ],[box.maxX,box.minZ],[box.maxX,box.maxZ]].map(([x,z])=>[position.x+x*c+z*s,position.z-x*s+z*c]);
-    return{minX:Math.min(...points.map(v=>v[0])),maxX:Math.max(...points.map(v=>v[0])),minZ:Math.min(...points.map(v=>v[1])),maxZ:Math.max(...points.map(v=>v[1]))};
+    return{minX:Math.min(...points.map(v=>v[0])),maxX:Math.max(...points.map(v=>v[0])),minZ:Math.min(...points.map(v=>v[1])),maxZ:Math.max(...points.map(v=>v[1])),minY:position.y||0,maxY:(position.y||0)+(type==='cargo-truck'?2.95:1.86),material:'metal'};
   });return root;
 }
 

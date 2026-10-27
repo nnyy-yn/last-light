@@ -117,6 +117,10 @@ try {
     await pause(200);
   }
   assert.ok(page, 'Expected a file:// game page.');
+  const rendererSession = await context.newCDPSession(page);
+  // Renderer emulation only. The native window stays hidden and unfocused.
+  await rendererSession.send('Emulation.setFocusEmulationEnabled', {enabled:true});
+  await rendererSession.send('Emulation.setDeviceMetricsOverride', {width:1280,height:800,deviceScaleFactor:1,mobile:false});
   page.setDefaultTimeout(60000);
   page.on('pageerror', (error) => report.errors.push(`JavaScript: ${String(error)}`));
   page.on('console', (message) => { if (message.type() === 'error') report.errors.push(`Console: ${message.text()}`); });
@@ -251,14 +255,14 @@ try {
   assert.equal(new Set(report.chapterScenes.map(s=>s.id)).size,4,'Clinic, hangar, cockpit and aid room must load different maps in the real EXE.');
   report.checks.push('four different chapter maps and their real-time openings load inside the offline EXE');
   await page.evaluate(()=>{__game.loadChapter(3);__game.action('play');});
-  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction?.active,undefined,{timeout:60000});
+  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction?.active,undefined,{timeout:240000,polling:1000});
   const waitingAction=await page.evaluate(()=>__game.inspect().cinematic);
-  await page.waitForTimeout(600);
+  await page.waitForFunction(before=>__game.inspect().cinematic.ambientTime>before+.05,waitingAction.ambientTime,{timeout:30000,polling:500});
   const stillWaiting=await page.evaluate(()=>__game.inspect().cinematic);
   assert.equal(stillWaiting.playerAction.progress,waitingAction.playerAction.progress,'Rope descent waits for the player');
   assert.ok(stillWaiting.ambientTime>waitingAction.ambientTime,'Waiting for input must not freeze the surroundings');
   await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyE',bubbles:true})));
-  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction.progress>.15,undefined,{timeout:20000});
+  await page.waitForFunction(()=>__game.inspect().cinematic.playerAction.progress>.15,undefined,{timeout:90000,polling:500});
   await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyE',bubbles:true})));
   report.playableScene=await page.evaluate(()=>__game.inspect().cinematic);
   assert.equal(report.playableScene.playerAction.id,'fast-rope');

@@ -141,6 +141,10 @@ export function createFieldInteractions(scene,{colliders=[],groundHeight=()=>0,o
     return result;
   }
   function inspect(){return items.map(i=>({id:i.id,kind:i.kind,amount:i.amount,pos:[i.x,i.z],approach:[i.approach.x,i.approach.z],used:i.used,progress:i.progress,opened:i.open,draws:i.visual.resources.size}));}
+  function restoreUsed(ids){
+    if(!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some(id=>!items.some(i=>i.id===id)))return false;
+    cancel();for(const item of items){item.used=ids.includes(item.id);item.open=item.used?1:0;item.visual.lid.rotation.x=-item.open*1.48;}return true;
+  }
   function getColliders(){return items.map(item=>{
     const yaw=item.visual.root.rotation.y,c=Math.abs(Math.cos(yaw)),s=Math.abs(Math.sin(yaw));
     const hx=.45*c+.30*s,hz=.45*s+.30*c;
@@ -149,5 +153,5 @@ export function createFieldInteractions(scene,{colliders=[],groundHeight=()=>0,o
     return{minX:item.x-hx,maxX:item.x+hx,minZ:item.z-hz,maxZ:item.z+hz,minY:groundHeight(item.x,item.z)+.02,maxY:groundHeight(item.x,item.z)+.4,material:'metal',fieldId:item.id};
   });}
   function dispose(){clear();for(const m of materials.values())m.dispose();for(const t of textures)t.dispose();group.removeFromParent();disposed=true;}
-  return{reset,update,cancel,inspect,getColliders,clear,dispose};
+  return{reset,update,cancel,inspect,restoreUsed,getColliders,clear,dispose};
 }

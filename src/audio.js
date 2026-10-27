@@ -1,6 +1,10 @@
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(v)?v:a));
-const GUNS={m16a2:[138,.032,.70,2350],m4a1:[154,.027,.78,2760],m249:[112,.043,.67,1840],ak:[98,.046,.62,2110],mp5:[186,.021,.46,3100],m1911:[121,.038,.57,1650]};
+// Frequency / pressure decay / crack mix / bolt resonance / bolt delay.
+// The heavy mount has a longer low pressure body, not a louder master bus.
+const GUNS={m16a2:[138,.038,.70,2350,.036],m4a1:[154,.032,.78,2760,.031],m249:[112,.049,.67,1840,.045],ak:[98,.052,.62,2110,.047],mp5:[186,.024,.46,3100,.025],m1911:[121,.044,.57,1650,.041],'mounted-m2':[72,.078,.71,890,.068]};
+const gunId=id=>id==='akm'?'ak':Object.hasOwn(GUNS,id)?id:'m4a1';
+const impactMaterial=value=>/metal|steel|vehicle|car/i.test(value)?'metal':/wood|timber/i.test(value)?'wood':/sand|soil|dirt|cloth|ground/i.test(value)?'sand':'masonry';
 export const AIRCRAFT_SAMPLE='audio/rotor-loop.wav';
 export const AUDIO_VOICE_LIMIT=48;
 function randomStream(seed=1){let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
@@ -9,14 +13,39 @@ function highpass(data,hz,sr){const low=lowpass(data,hz,sr),out=new Float32Array
 function normalize(channels,peak=.88){let max=0;for(const ch of channels)for(const v of ch)max=Math.max(max,Math.abs(v));const scale=max?peak/max:1;for(const ch of channels)for(let i=0;i<ch.length;i++)ch[i]*=scale;return channels;}
 
 /** Original deterministic PCM; live playback and offline exports use the same synthesis. */
-export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',distant=false,material='masonry'}={}){
-  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?1.1:kind==='debris'?.75:.5;
-  const n=Math.ceil(duration*sampleRate),raw=new Float32Array(n),p=GUNS[weaponId]||GUNS.m4a1;let low=0,mid=0,phase=0;
+export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gunType,distant=false,material='masonry',killed=false}={}){
+  weaponId=gunId(gunType||weaponId);material=impactMaterial(material);
+  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?(weaponId==='mounted-m2'?.78:.58):kind==='bullet-impact'?.24:kind==='hit-confirm'?.11:kind==='debris'?.75:.5;
+  const n=Math.ceil(duration*sampleRate),raw=new Float32Array(n),p=GUNS[weaponId];let low=0,mid=0,phase=0,pressureNoise=0;
   for(let i=0;i<n;i++){
     const t=i/sampleRate,w=rng()*2-1;low+=.008*(w-low);mid+=.18*(w-mid);
     if(kind==='shot'){
-      const attack=1-Math.exp(-t*10000),body=Math.exp(-t/p[1]);phase+=TAU*(43+p[0]*Math.exp(-t*23))/sampleRate;
-      raw[i]=attack*((w-mid)*Math.exp(-t/.0055)*p[2]+mid*body*1.35+Math.sin(phase)*body*.30+(t>.017?Math.sin(TAU*p[3]*t)*Math.exp(-(t-.017)/.009)*.07:0));
+      const attack=1-Math.exp(-t*13000),body=Math.exp(-t/p[1]),heavy=weaponId==='mounted-m2';
+      pressureNoise+=(1-Math.exp(-TAU*(heavy?310:620)/sampleRate))*(w-pressureNoise);
+      phase+=TAU*((heavy?37:54)+p[0]*Math.exp(-t*31))/sampleRate;
+      // Separate sharp muzzle crack, irregular pressure body and late action.
+      // No continuous high-frequency hiss between automatic shots.
+      const crack=(w-mid)*Math.exp(-t/(heavy?.0048:.0032))*p[2];
+      const pressure=(pressureNoise*2.3+Math.sin(phase)*.46+Math.sin(phase*1.93+.4)*.09)*body;
+      const boltTime=t-p[4],bolt=boltTime>=0?((w-mid)*.25+Math.sin(TAU*p[3]*boltTime)*.16)*Math.exp(-boltTime/.0065)*(1-Math.exp(-boltTime*9000)):0;
+      const returnTime=t-p[4]-.016,closing=returnTime>=0?(w-mid)*Math.exp(-returnTime/.003)*.075:0;
+      raw[i]=attack*(crack+pressure)+bolt+closing;
+    }else if(kind==='bullet-impact'){
+      const attack=Math.min(1,t/.0004),heavy=weaponId==='mounted-m2',u=t/(heavy?1.22:1);
+      if(material==='metal'){
+        raw[i]=attack*(w-mid)*Math.exp(-u/.0023)*.72;
+        for(const[f,level,decay]of[[1730,.19,.036],[2910,.15,.052],[4280,.09,.022]])raw[i]+=attack*Math.sin(TAU*f*u)*Math.exp(-u/decay)*level;
+      }else if(material==='sand')raw[i]=attack*(mid*1.2+low*.3)*Math.exp(-u/.027);
+      else{
+        raw[i]=attack*((w-mid)*Math.exp(-u/.0028)*.60+mid*Math.exp(-u/(material==='wood'?.021:.012))*1.3);
+        if(material==='wood')raw[i]+=attack*Math.sin(TAU*640*u)*Math.exp(-u/.025)*.18;
+        for(const at of[.013,.033,.061])if(t>=at)raw[i]+=(w-mid)*Math.exp(-(t-at)/.0035)*(.095-at*.7);
+      }
+    }else if(kind==='hit-confirm'){
+      // Short equipment/fabric knock, deliberately free of musical UI tones.
+      const attack=Math.min(1,t/.0007);
+      raw[i]=attack*((w-mid)*Math.exp(-t/.003)*.38+mid*Math.exp(-t/.010)*.85+Math.sin(TAU*155*t)*Math.exp(-t/.014)*.16);
+      if(killed&&t>.024)raw[i]+=(w-mid)*Math.exp(-(t-.024)/.004)*.12;
     }else if(kind==='explosion'){
       const pressure=Math.sin(TAU*(43*t+.34*(1-Math.exp(-t*17))))*Math.exp(-t/.32);
       raw[i]=Math.min(1,t/.0018)*(w*Math.exp(-t/.022)*.75+mid*Math.exp(-t/.14)*1.5+pressure*.43+low*Math.exp(-t/.85)*3.3);
@@ -44,7 +73,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',dis
   const channels=[signal.slice(),signal.slice()];
   if(['shot','explosion'].includes(kind)){
     const reflection=lowpass(signal,kind==='explosion'?750:distant?720:1700,sampleRate);
-    const taps=kind==='explosion'?[[.095,.28,.70],[.22,.22,-.65],[.43,.14,.35],[.78,.09,-.35]]:[[.043,distant?.29:.18,-.55],[.091,.16,.60],[.166,.09,-.18]];
+    const taps=kind==='explosion'?[[.095,.28,.70],[.22,.22,-.65],[.43,.14,.35],[.78,.09,-.35]]:[[.057,distant?.26:.10,-.55],[.113,.075,.60],[.186,.035,-.18]];
     for(const [delay,level,pan]of taps){const offset=Math.round(delay*sampleRate),l=Math.sqrt((1-pan)/2),r=Math.sqrt((1+pan)/2);for(let i=0;i<n-offset;i++){channels[0][i+offset]+=reflection[i]*level*l;channels[1][i+offset]+=reflection[i]*level*r;}}
   }
   return{sampleRate,channels:normalize(channels,kind==='shot'&&distant?.60:.88),duration};
@@ -163,21 +192,21 @@ export class Soundscape{
     this._voice(this._buffer('explosion',{seed:412}),{level,pan,delay,lowpassHz:occluded?650:600+9500/(1+distance/24),rate:.92+Math.random()*.12,priority:3});
     if(distance<90&&!occluded)this._voice(this._buffer('debris',{seed:314}),{level:level*.23,pan:-pan*.25,delay:delay+.12,priority:1});
   }
-  shot(id='m4a1'){if(!this._canPlay())return;this._event('shots');this._event(`shot_${id}`);const variant=(this.events.shots-1)%3;this._voice(this._buffer('shot',{weaponId:id,seed:107+variant*71}),{level:id==='m249'?.74:id==='mp5'?.66:.83,rate:.975+Math.random()*.05,priority:2});}
+  shot(id='m4a1'){if(!this._canPlay())return;id=gunId(id);this._event('shots');this._event(`shot_${id}`);const variant=(this.events.shots-1)%3;this._voice(this._buffer('shot',{weaponId:id,seed:107+variant*71}),{level:id==='m249'?.74:id==='mp5'?.66:id==='mounted-m2'?.86:.83,rate:.987+Math.random()*.026,priority:2});}
   shotAt(distance=20,pan=0,id='m4a1',occluded=false){
-    if(!this._canPlay())return;this._event('remoteShots');if(occluded)this._event('occludedShots');
-    const level=.74/(1+Math.pow(Math.max(0,distance)/19,1.35))*(occluded?.56:1),far=distance>40;
+    if(!this._canPlay())return;id=gunId(id);distance=clamp(distance,0,2000);this._event('remoteShots');if(occluded)this._event('occludedShots');
+    const level=.74/(1+Math.pow(distance/(id==='mounted-m2'?27:19),1.35))*(occluded?.56:1),far=distance>40;
     this._voice(this._buffer('shot',{weaponId:id,seed:107,distant:far}),{level,pan,delay:clamp(distance/343,0,1.5),lowpassHz:occluded?720:850+11000/(1+distance/13),rate:.97+Math.random()*.06,priority:1});
   }
-  bulletImpact(distance,pan,material='masonry'){if(!this._canPlay())return;this._event('bulletImpacts');const level=.42/(1+Math.pow(Math.max(0,distance)/8,1.5));if(material==='metal')this._voice(this._buffer('debris',{seed:58,material:'metal'}),{level,pan,delay:distance/343,lowpassHz:8000,priority:1});else this.spatialBurst(['sand','soil','ground'].includes(material)?.12:.065,level,['sand','soil','ground'].includes(material)?480:2100,pan,distance/343);}
-  confirmHit(killed=false){if(!this._canPlay())return;this.spatialBurst(.045,.11,510);if(killed)this.spatialBurst(.08,.09,260,0,.03);}
+  bulletImpact(distance,pan,material='masonry',{gunType='m4a1',power=1}={}){if(!this._canPlay())return;this._event('bulletImpacts');material=impactMaterial(material);gunType=gunId(gunType);distance=clamp(distance,0,2000);const level=.45/(1+Math.pow(distance/10,1.5))*Math.sqrt(clamp(power,.25,2));this._voice(this._buffer('bullet-impact',{seed:58+(this.events.bulletImpacts%3)*47,material,weaponId:gunType==='mounted-m2'?gunType:'m4a1'}),{level,pan,delay:distance/343,lowpassHz:750+9500/(1+distance/18),priority:1});}
+  confirmHit(killed=false){if(!this._canPlay())return;this._event('hitConfirmations');if(killed)this._event('killConfirmations');this._voice(this._buffer('hit-confirm',{seed:86,killed:Boolean(killed)}),{level:killed?.23:.18,priority:2});}
   smoke(){if(!this._canPlay())return;this._event('smoke');this.spatialBurst(.055,.22,1800);this.spatialBurst(.48,.11,2600,0,.18);}
   nearMiss(distance,pan){if(!this._canPlay())return;this._event('nearMisses');const level=Math.max(.03,1-distance/3);this.spatialBurst(.024,level*.30,5200,pan);this.spatialBurst(.10,level*.09,1800,-pan*.3,.014);}
   hit(){if(!this._canPlay())return;this._event('hits');this.burst(.16,.35,95);this.tone(66,.24,.12,'sine',31);}
   click(){this.tone(720,.045,.035,'sine',430);}
   radio(){if(!this._canPlay())return;this._event('radio');this.spatialBurst(.055,.13,2400,-.12);this.tone(880,.065,.035);}
   reload(){if(!this._canPlay())return;this._event('reloads');this.reloadProgress=0;this.spatialBurst(.045,.10,1100,.12);}
-  reloadPhase(phase,id){if(phase<=0){this.reloadProgress=0;return;}if(!this._canPlay())return;const previous=this.reloadProgress||0;for(const[at,freq,level]of[[.19,1400,.14],[.38,520,.10],[.72,1850,.21],[.88,3200,.17]])if(previous<at&&phase>=at){this._event('reloadPhases');this.spatialBurst(id==='m249'?.10:.052,level,freq,.1);}this.reloadProgress=phase;}
+  reloadPhase(phase,id){if(phase<=0){this.reloadProgress=0;return;}if(!this._canPlay())return;const previous=this.reloadProgress||0;for(const[at,freq,level]of[[.19,1400,.14],[.38,520,.10],[.72,1850,.21],[.88,3200,.17]])if(previous<at&&phase>=at){this._event('reloadPhases');this.spatialBurst((id==='m249'||id==='mounted-m2')?.10:.052,level,freq,.1);}this.reloadProgress=phase;}
   step(sprint=false){if(!this._canPlay())return;this._event('steps');this.burst(sprint?.12:.095,sprint?.20:.13,110);this.spatialBurst(.045,.045,1800,this.events.steps%2?-.12:.12,.016);}
   complete(){this.tone(280,.5,.055);this.tone(420,.7,.045,'sine',420,.18);}
   _quietContinuous(){

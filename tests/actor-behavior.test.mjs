@@ -7,6 +7,46 @@ import {traceObstacles} from '../src/ballistics.js';
 const actor=(x,z,kind='soldier')=>({position:{x,y:0,z},rotation:{y:0},userData:{kind}});
 const run=(director,seconds,context,onStep=()=>{})=>{for(let t=0;t<seconds;t+=.05){director.update(.05,context);onStep();}};
 
+test('story escorts reach the player destination regardless of unrelated actor count',()=>{
+  for(const count of [0,4,10,11,24]){
+    const director=createActorDirector();
+    for(let i=0;i<count;i++)director.add(actor(-65+(i%8)*4,-65+Math.floor(i/8)*4),{role:'guard',tether:.5});
+    const escort=actor(0,-12);director.add(escort,{id:'story-run-safe',role:'story',follow:true,tether:.5});
+    const player={x:0,z:0,yaw:0};run(director,16,{player,combatAllowed:false});
+    assert.ok(Math.hypot(escort.position.x,escort.position.z)<3.1,`Escort ${count} must enter the five-metre handover area`);
+    assert.ok(escort.position.z>0,`Escort ${count} follows behind instead of becoming a point man`);
+    assert.equal(director.inspect().at(-1).follow,true);
+  }
+});
+
+test('restoring a completed escort resets internal position and guard anchor without returning to the source',()=>{
+  let animations=0;const director=createActorDirector(),escort=actor(-25,-25);
+  escort.userData.animate=()=>animations++;
+  director.add(escort,{id:'story-restored',role:'story',tether:.5});
+  run(director,.5,{player:{x:-25,z:-20,yaw:0},combatAllowed:false});
+  const before=director.inspect()[0],beforeAnimations=animations;
+  assert.equal(director.restoreActorPosition(escort,{x:4,z:6}),true);director.setFollow(escort,false);
+  const restored=director.inspect()[0];assert.deepEqual(restored.anchor,{x:4,z:6});assert.equal(restored.x,4);assert.equal(restored.z,6);
+  assert.equal(restored.goal,null);assert.equal(restored.pathRemaining,0);assert.equal(restored.time,before.time);assert.equal(animations,beforeAnimations);
+  run(director,4,{player:{x:4,z:7,yaw:0},combatAllowed:false});
+  assert.ok(Math.hypot(escort.position.x-4,escort.position.z-6)<.5,'Guard must remain at the restored handover');
+  const stable=director.inspect()[0];assert.equal(director.restoreActorPosition(escort,{x:Infinity,z:0}),false);assert.deepEqual(director.inspect()[0],stable);
+});
+
+test('actor location restoration cannot revive a casualty or advance combat actions',()=>{
+  const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),enemy=actor(0,0,'enemy'),entity={x:0,z:0,alive:true,health:100};
+  let animations=0;enemy.userData.animate=()=>animations++;
+  const record=director.add(enemy,{id:'dead-enemy',kind:'enemy',entity});
+  record.mag=3;record.reloadStart=7;record.reloadUntil=11;record.reloadProgress=.4;
+  entity.alive=false;entity.health=0;enemy.userData.dead=true;
+  const before=director.inspect()[0],beforeAnimations=animations;
+  assert.equal(director.restoreActorPosition(enemy,{x:18,z:9}),true);
+  const after=director.inspect()[0];assert.equal(after.alive,false);assert.equal(entity.alive,false);assert.equal(entity.health,0);assert.equal(enemy.userData.dead,true);
+  assert.deepEqual({x:entity.x,z:entity.z},{x:18,z:9});assert.equal(enemy.position.y,0);
+  for(const key of ['time','mag','reloadStart','reloadUntil','reload','shotsFired'])assert.equal(after[key],before[key]);
+  assert.equal(animations,beforeAnimations);assert.equal(shots.length,0);
+});
+
 test('street residents leave exposed roadside positions for shelter without firing',()=>{
   const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),resident=actor(0,0,'civilian');
   director.add(resident,{role:'resident',shelter:[0,8],tether:13,wait:.5});
@@ -185,7 +225,7 @@ test('NPC fire consists of two-to-three shot bursts with short spacing and subst
   run(director,24,{player:{x:0,z:15,health:100},combatAllowed:true});
   const bursts=[];for(const shot of shots){const last=bursts.at(-1);if(!last||shot.time-last.at(-1).time>.6)bursts.push([shot]);else last.push(shot);}
   assert.ok(bursts.length>=4);for(const burst of bursts.slice(0,-1)){assert.ok(burst.length===2||burst.length===3);for(let i=1;i<burst.length;i++){const dt=burst[i].time-burst[i-1].time;assert.ok(dt>=.149&&dt<=.251);}}
-  for(let i=1;i<bursts.length;i++)assert.ok(bursts[i][0].time-bursts[i-1].at(-1).time>=3.45);
+  for(let i=1;i<bursts.length;i++)assert.ok(bursts[i][0].time-bursts[i-1].at(-1).time>=2.55);
 });
 
 test('finite magazine empties, reload blocks every shot, and firing resumes after refill',()=>{
@@ -272,4 +312,102 @@ test('stationary suppressed squad mates separate without being pushed through ne
   director.notifyThreat({kind:'explosion',position:[0,0],source:[0,6],radius:10,intensity:1});
   run(director,1,{player:{x:0,z:8},combatAllowed:false},()=>{for(const p of [a.position,b.position])assert.equal(blocked(p.x,p.z,walls),false);});
   assert.ok(Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z)>.72,'idle crouching actors still maintain body clearance');
+});
+
+test('normal difficulty has settled aim and a faster finite firing cycle than easy',()=>{
+  const exercise=(difficulty,crouched=false)=>{const shots=[],director=createActorDirector({onFire:e=>shots.push(e)});director.add(actor(0,0,'enemy'),{kind:'enemy'});run(director,22,{player:{x:0,z:18,health:100,crouched},combatAllowed:true,difficulty});return shots;};
+  const normal=exercise('normal'),easy=exercise('easy'),ducked=exercise('normal',true);
+  assert(normal.length>easy.length,'normal pressure rises through the firing cadence, without removing reloads');
+  assert(normal.every(s=>s.accuracy>=.08&&s.accuracy<=.49));
+  assert(normal.at(-1).accuracy>normal[0].accuracy,'time observing a target improves settled aim');
+  assert(normal[0].accuracy>easy[0].accuracy);assert(normal[0].accuracy>ducked[0].accuracy,'the player gains an actual aiming penalty by crouching');
+});
+
+test('distant gunfire uses sound range rather than the narrow near-miss cylinder',()=>{
+  const wall=[{minX:-2,maxX:2,minZ:12,maxZ:16}],shots=[],director=createActorDirector({colliders:wall,onFire:e=>shots.push(e)});
+  director.add(actor(0,0,'enemy'),{kind:'enemy'});
+  const hiddenPlayer={x:0,z:26,health:100};director.update(.05,{player:hiddenPlayer,combatAllowed:true});
+  director.notifyThreat({kind:'near-miss',source:[0,26],start:[0,26],end:[0,35],radius:2.8,intensity:.4,faction:'player'});
+  director.update(.05,{player:hiddenPlayer,combatAllowed:true});let state=director.inspect()[0];
+  assert(state.lastKnown&&Math.hypot(state.lastKnown.x,state.lastKnown.z-26)<2);assert.equal(state.suppression,0);assert.equal(state.visible,false);assert.equal(shots.length,0);
+  const heard={...state.lastKnown};run(director,1.8,{player:{x:60,z:50,health:100},combatAllowed:true});state=director.inspect()[0];
+  assert.deepEqual(state.lastKnown,heard,'hearing does not track later unseen player motion');assert.equal(state.behavior,'search');assert(Math.hypot(state.x,state.z)>1);
+});
+
+test('an existing distant reserve responds after its delay and walks into the fight without spawning',()=>{
+  const wall=[{minX:-2,maxX:2,minZ:12,maxZ:16}],enemy=actor(0,0,'enemy'),shots=[],director=createActorDirector({colliders:wall,onFire:e=>shots.push(e)});
+  director.add(enemy,{kind:'enemy',encounter:{reserve:true,activationDelay:3,lookAt:[0,26],rally:[0,6]}});
+  run(director,2,{player:{x:0,z:26,health:100},combatAllowed:true});assert.equal(director.inspect()[0].reserveActive,false);assert.equal(enemy.position.z,0);
+  director.notifyThreat({kind:'shot',source:[0,26],position:[0,35],radius:2.8,faction:'player'});
+  run(director,3,{player:{x:0,z:26,health:100},combatAllowed:true});const state=director.inspect()[0];
+  assert(state.reserveActive);assert(state.reserveActivatedAt>=3);assert(enemy.position.z>1);assert.equal(shots.length,0,'the wall still blocks firing during the approach');assert.equal(director.inspect().length,1);
+  const safe=createActorDirector();safe.add(actor(0,0,'enemy'),{kind:'enemy',encounter:{reserve:true,activationDelay:0}});run(safe,8,{player:{x:0,z:3},combatAllowed:false});assert.equal(safe.inspect()[0].reserveActive,false);
+});
+
+test('enemy flank roles alternate lateral movement while another visible member covers',()=>{
+  const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),starts=[[-1,0],[-5,1],[5,1]];
+  starts.forEach(([x,z],i)=>director.add(actor(x,z,'enemy'),{id:'enemy-'+i,kind:'enemy'}));
+  const states=[new Set(),new Set(),new Set()],flanks=[[],[],[]];
+  run(director,24,{player:{x:0,z:24,health:100},combatAllowed:true},()=>director.inspect().forEach((s,i)=>{states[i].add(s.behavior);if(s.behavior==='flank')flanks[i].push({x:s.x,z:s.z,time:s.time});}));
+  assert(!states[0].has('flank'));assert(states[0].has('suppress'));assert(states[1].has('flank'));assert(states[2].has('flank'));
+  assert(flanks[1].some(p=>p.x<starts[1][0]-1));assert(flanks[2].some(p=>p.x>starts[2][0]+1));assert(shots.some(s=>s.id==='enemy-0'));
+  assert(flanks[2][0].time>flanks[1][0].time+3,'the two wings do not start the same bound together');
+});
+
+test('authored cover contacts watch from cover, expose briefly and return without road-centre staging',()=>{
+  const walls=[{minX:-.9,maxX:.9,minZ:-2,maxZ:2}],shots=[],director=createActorDirector({colliders:walls,onFire:e=>shots.push(e)});
+  director.add(actor(0,-2.8,'enemy'),{kind:'enemy',encounter:{coverAnchor:[0,-2.8],safePeek:[-1.85,-2.95],lookAt:[0,28],tacticalRole:'support',fireDelay:4.8}});
+  const states=new Set();let hiddenSamples=0;
+  run(director,30,{player:{x:0,z:28,health:100},combatAllowed:true},()=>{const s=director.inspect()[0];states.add(s.behavior);if(lineBlocked(s,{x:0,z:28},walls))hiddenSamples++;assert(!blocked(s.x,s.z,walls,.4));});
+  assert(states.has('cover')&&states.has('peek'));assert(hiddenSamples>40);assert(shots.length>2);for(const shot of shots)assert.equal(lineBlocked(shot.origin,shot.aim,walls),false);
+});
+
+test('squad sector suppression fires only at visible hostile occupants and expires to prior hold',()=>{
+  const walls=[{minX:4,maxX:8,minZ:8,maxZ:11}],shots=[],director=createActorDirector({colliders:walls,onFire:e=>shots.push(e)});
+  const friend=actor(0,0),visible=actor(-4,19,'enemy'),hidden=actor(6,19,'enemy'),civilian=actor(-2,15,'civilian');
+  director.add(friend,{id:'squad-cover',role:'companion'});director.setSquadOrder('hold');
+  director.add(visible,{id:'visible',kind:'enemy',encounter:{reserve:true,activationDelay:99}});director.add(hidden,{id:'hidden',kind:'enemy',encounter:{reserve:true,activationDelay:99}});director.add(civilian,{id:'civilian',kind:'civilian',role:'story',tether:.35});
+  director.setSuppressionTarget([-4,19],6);
+  run(director,4,{player:{x:50,z:-20,health:0},combatAllowed:true},()=>{for(const shot of shots)assert.equal(lineBlocked(shot.origin,shot.aim,walls),false);});
+  const fired=shots.filter(s=>s.id==='squad-cover');assert(fired.length>0);assert(fired.every(s=>s.targetActor===visible||s.targetActor===hidden));assert(fired.every(s=>s.targetActor!==civilian));
+  const order=director.getSuppressionOrder(),before=director.inspect();run(director,3,{paused:true});assert.deepEqual(director.inspect(),before);assert.deepEqual(director.getSuppressionOrder(),order);
+  run(director,3,{paused:false,player:{x:50,z:-20,health:0},combatAllowed:false});assert.equal(director.getSuppressionOrder(),null);assert.equal(director.inspect()[0].behavior,'hold');
+  director.setSuppressionTarget([0,20]);director.setSuppressionTarget(null);assert.equal(director.getSuppressionOrder(),null);director.reset();assert.equal(director.getSuppressionOrder(),null);
+});
+
+test('squad suppression of an opaque sector never invents targets or fires blindly',()=>{
+  const walls=[{minX:-25,maxX:25,minZ:6,maxZ:9}],shots=[],director=createActorDirector({colliders:walls,onFire:e=>shots.push(e)});
+  director.add(actor(0,0),{role:'companion'});director.add(actor(0,18,'enemy'),{kind:'enemy',encounter:{reserve:true,activationDelay:100}});director.add(actor(2,4,'civilian'),{kind:'civilian',role:'story'});
+  director.setSuppressionTarget([0,18],8);run(director,7,{player:{x:0,z:-2,health:100},combatAllowed:true});
+  assert.equal(shots.length,0);assert.equal(director.inspect()[0].targetId,null);assert.equal(director.inspect()[0].behavior,'suppress-sector');
+});
+
+test('expanded chapter bounds permit movement beyond the original 91 metre limit',()=>{
+  const bounds={minX:-140,maxX:140,minZ:-125,maxZ:125},director=createActorDirector(),friend=actor(105,0);
+  director.reset({bounds});director.add(friend,{role:'companion'});run(director,6,{player:{x:118,z:0,yaw:0},combatAllowed:false});
+  assert(friend.position.x>111);assert.equal(director.inspect()[0].startCorrected,false);assert.deepEqual(director.navigator.bounds,bounds);
+  assert.equal(director.navigator.valid({x:141,z:0}),false);assert.equal(director.navigator.valid({x:0,z:126}),false);
+});
+
+test('failed navigation cache and spatial buckets invalidate after a wall moves',()=>{
+  const nav=createNavigator({bound:20}),wall={minX:-20,maxX:20,minZ:3,maxZ:5},start={x:0,z:0},goal={x:0,z:10};nav.setColliders([wall]);
+  assert.deepEqual(nav.findPath(start,goal),[]);assert.deepEqual(nav.findPath(start,goal),[]);
+  nav.setColliders([{...wall,minX:4}]);const path=nav.findPath(start,goal);assert(path.length>0);assert.equal(nav.clear(start,goal),true);
+  const boxes=[{minX:7.7,maxX:8.1,minZ:-1,maxZ:1}];nav.setColliders(boxes);
+  assert.equal(nav.valid({x:7.4,z:0}),false,'radius inflation must span a spatial-bucket boundary');assert.equal(nav.clear({x:0,z:0},{x:15,z:0}),false);
+});
+
+test('finite-height vehicle cover exposes a turret gunner but protects a ground-level player',()=>{
+  const exercise=(y,fullHeight=false)=>{const shots=[],box={minX:-1.2,maxX:1.2,minZ:14,maxZ:16,...(fullHeight?{}:{minY:0,maxY:1.86})};const director=createActorDirector({colliders:[box],onFire:e=>{assert.equal(traceObstacles(e.origin,e.aim,[box]),null);shots.push(e);}});
+    director.add(actor(0,0,'enemy'),{kind:'enemy'});director.update(.05,{player:{x:0,z:18,y,health:100},combatAllowed:true});const acquired=director.inspect()[0].visible;run(director,8,{player:{x:0,z:18,y,health:100},combatAllowed:true});return {acquired,shots};};
+  const gunner=exercise(2.37),ground=exercise(1.68),wall=exercise(2.37,true);
+  assert.equal(gunner.acquired,true);assert(gunner.shots.length>0,'enemy must be able to shoot at an exposed M2 station');assert(gunner.shots.every(s=>s.aim.y===2.37));
+  assert.equal(ground.acquired,false);assert.equal(ground.shots.length,0);assert.equal(wall.acquired,false);assert.equal(wall.shots.length,0);
+});
+
+test('outlying residents stay local until a nearby threat then use their own shelter',()=>{
+  const director=createActorDirector(),resident=actor(100,0,'civilian');resident.userData.resident={localThreatOnly:true};
+  director.reset({bounds:{minX:-140,maxX:140,minZ:-140,maxZ:140}});director.add(resident,{kind:'civilian',role:'resident',shelter:[100,8],tether:13});
+  run(director,7,{player:{x:0,z:0},combatAllowed:true});assert.notEqual(director.inspect()[0].behavior,'evacuate');assert(resident.position.z<3);
+  director.notifyThreat({kind:'shot',source:[108,0],position:[110,0],radius:2.8,faction:'enemy'});run(director,14,{player:{x:0,z:0},combatAllowed:true});assert.equal(director.inspect()[0].behavior,'shelter');assert(resident.position.z>7,'a brief quiet interval must not make a civilian walk back into the exposed street');
 });

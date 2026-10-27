@@ -13,9 +13,9 @@ function within(p,b,r=.40){return p[0]-r>=b.minX&&p[0]+r<=b.maxX&&p[1]-r>=b.minZ
 
 test('city residents and initial contacts respect real obstacle extents, route clearance and bounds',()=>{
  const l=layout(),boxes=[{minX:-3.85,maxX:-3.48,minZ:-40,maxZ:40},{minX:1.0,maxX:5,minZ:2,maxZ:5},{minX:3.55,maxX:4.0,minZ:26,maxZ:28}];
- const result=buildStreetPopulation(l,boxes);assert(result.residents.length>0);assert(result.contacts.length>0);
+ const result=buildStreetPopulation(l,boxes);assert(result.residents.length>0);
  for(const r of result.residents){for(const p of[r.pos,r.shelter]){assert(within(p,l.bounds));assert(boxes.every(b=>clearance(p,b)>.4));}assert(clearSegment(r.pos,r.shelter,boxes),'a whole resident, not just its centre line, must fit');}
- for(const c of result.contacts){assert(within(c.pos,l.bounds));assert(clearSegment(l.spawn,c.pos,boxes,0),'contact must be visible from spawn');for(const p of c.patrol){assert(within(p,l.bounds));assert(clearSegment(c.pos,p,boxes),'initial crossing must fit through the actual street');}}
+ for(const c of result.contacts){assert(within(c.pos,l.bounds));assert(!clearSegment(l.spawn,c.pos,boxes,0),'contact waits behind actual cover');assert(clearSegment(l.spawn,c.safePeek,boxes,0));assert(clearSegment(c.pos,c.safePeek,boxes),'a whole soldier must fit around the corner');}
 });
 
 test('reserved shelter locations cannot become another resident or contact spawn',()=>{
@@ -23,34 +23,51 @@ test('reserved shelter locations cannot become another resident or contact spawn
  assert(result.residents.length>=3);
  const endpoints=result.residents.flatMap((r,i)=>[{p:r.pos,owner:i},{p:r.shelter,owner:i}]);
  for(let i=0;i<endpoints.length;i++)for(let j=i+1;j<endpoints.length;j++)if(endpoints[i].owner!==endpoints[j].owner)assert(distance(endpoints[i].p,endpoints[j].p)>=1.1,'resident occupancy and shelter reservations must not overlap');
- for(const c of result.contacts)for(const e of endpoints)assert(distance(c.pos,e.p)>=1.1);
+ for(const c of [...result.contacts,...result.reserves])for(const e of endpoints)assert(distance(c.pos,e.p)>=1.1);
 });
 
-test('an initial contact has a safe actual crossing waypoint, never its own spawn',()=>{
- const l=layout(),result=buildStreetPopulation(l);assert.equal(result.contacts.length,2);
- for(const c of result.contacts){assert(distance(c.pos,c.patrol[0])>=1.5,'enemy opening reads patrol[0], so it must move');assert(clearSegment(c.pos,c.patrol[0],[],.4));assert(c.fireDelay>=5);}
+test('initial contacts use physical shelter and a body-clear peek instead of open-road staging',()=>{
+ const l=layout(),boxes=[{minX:-.9,maxX:.9,minZ:-2,maxZ:2}],result=buildStreetPopulation(l,boxes);assert(result.contacts.length>0);
+ for(const c of result.contacts){assert.deepEqual(c.pos,c.coverAnchor);assert(distance(c.pos,c.safePeek)>=1);assert(!clearSegment(l.spawn,c.pos,boxes,0));assert(clearSegment(l.spawn,c.safePeek,boxes,0));assert(clearSegment(c.pos,c.safePeek,boxes,.4));assert.equal(c.opening,false);}
+ assert.equal(buildStreetPopulation(l).contacts.length,0,'an empty road must not manufacture two stationary targets');
 });
 
-test('clear line of sight behind the initial camera is not advertised as first contact',()=>{
+test('camera-facing empty roads do not force contacts in either camera direction',()=>{
  const l=layout({spawn:[0,0],facing:0,route:[[0,0],[0,36]],roads:[{points:[[0,-35],[0,38]],width:8}]}),result=buildStreetPopulation(l);
- assert.equal(result.contacts.length,0,'all candidate contacts are behind the camera');
+ assert.equal(result.contacts.length,0,'no actual cover is available');
 });
 
-test('short patrol targets cannot cross an adjacent thin wall although the spawn is free',()=>{
- const l=layout({type:'military-camp',roads:[],spawn:[0,28],route:[[0,28],[0,-32]]}),boxes=[{minX:1.72,maxX:2.2,minZ:11.7,maxZ:12.3}];
- const result=buildStreetPopulation(l,boxes);assert(result.contacts.length>0);for(const c of result.contacts)for(const p of c.patrol)assert(clearSegment(c.pos,p,boxes,.4));
- // Completely sealed street must never force an invalid contact to satisfy count.
- const sealed=buildStreetPopulation(l,[{minX:-30,maxX:30,minZ:12,maxZ:15}]);assert.equal(sealed.contacts.length,0);
+test('cover points sealed by adjacent obstacles are rejected rather than forcing a count',()=>{
+ const l=layout(),boxes=[{minX:-.9,maxX:.9,minZ:-2,maxZ:2},{minX:-4,maxX:-1.3,minZ:-6,maxZ:4},{minX:1.3,maxX:4,minZ:-6,maxZ:4}];
+ const result=buildStreetPopulation(l,boxes);for(const c of result.contacts)assert(clearSegment(c.pos,c.safePeek,boxes,.4));
+ const sealed=buildStreetPopulation(l,[{minX:-30,maxX:30,minZ:-42,maxZ:42}]);assert.equal(sealed.contacts.length,0);assert.equal(sealed.reserves.length,0);
 });
 
 test('peaceful bases, hangar, medical room and confined cockpit do not acquire combatants',()=>{
- for(const id of[2,3,9,11,16])assert.deepEqual(buildStreetPopulation(getChapterLayout(id)),{residents:[],contacts:[]});
- const clinic=buildStreetPopulation(getChapterLayout(1));assert(clinic.residents.length>0);assert.equal(clinic.contacts.length,0);
+ for(const id of[2,3,9,11,16]){const population=buildStreetPopulation(getChapterLayout(id));assert.equal(population.contacts.length,0);assert.equal(population.reserves.length,0);}
+ const clinic=buildStreetPopulation(getChapterLayout(1));assert(clinic.residents.length>0);assert.equal(clinic.contacts.length,0);assert.equal(clinic.reserves.length,0);
 });
 
 test('all sixteen authored layouts remain deterministic and do not mutate story positions',()=>{
- for(const source of CHAPTER_LAYOUTS){const l=structuredClone(source),before=structuredClone(l),first=buildStreetPopulation(l);assert.deepEqual(l,before);assert.deepEqual(first,buildStreetPopulation(l));assert(first.residents.length<=6);assert(first.contacts.length<=2);
+ for(const source of CHAPTER_LAYOUTS){const l=structuredClone(source),before=structuredClone(l),first=buildStreetPopulation(l);assert.deepEqual(l,before);assert.deepEqual(first,buildStreetPopulation(l));assert(first.residents.length<=10);assert(first.contacts.length<=2);
   for(const r of first.residents)for(const p of[r.pos,r.shelter]){assert(within(p,l.bounds));for(const reserved of[...l.taskPositions,...l.enemySpawns.map(e=>e.pos)])assert(distance(p,reserved)>2.4);}
-  for(const c of first.contacts){const d=distance(l.spawn,c.pos),dx=c.pos[0]-l.spawn[0],dz=c.pos[1]-l.spawn[1];assert(d>=18&&d<=35);assert((-Math.sin(l.facing)*dx-Math.cos(l.facing)*dz)/d>Math.cos(42*Math.PI/180));for(const p of c.patrol)assert(within(p,l.bounds));}
+  for(const c of first.contacts){const d=distance(l.spawn,c.pos);assert(d>=18&&d<=43);assert(within(c.safePeek,l.bounds));}
+  assert(first.reserves.length<=l.encounter.reserveCount);
+  for(const r of first.reserves){assert(r.reserve);const d=distance(l.spawn,r.pos);assert(d>=35&&d<=88);for(const p of[r.pos,r.rally])assert(within(p,l.bounds));assert(clearSegment(r.pos,r.rally,[],.4));}
  }
+});
+
+test('reserves occupy separated pre-existing roadside positions with safe approach segments',()=>{
+ const l=layout(),boxes=[{minX:2.6,maxX:5,minZ:-23,maxZ:-21}],result=buildStreetPopulation(l,boxes);assert(result.reserves.length>=2);
+ const other=result.residents.flatMap(r=>[r.pos,r.shelter]).concat(result.contacts.flatMap(c=>[c.pos,c.safePeek]),l.taskPositions,l.enemySpawns.map(e=>e.pos));
+ for(const [i,r] of result.reserves.entries()){
+   assert(distance(r.pos,l.spawn)>=35);assert(clearSegment(r.pos,r.rally,boxes,.4));assert(r.activationDelay>=10);assert.equal(r.reserve,true);
+   for(const p of[r.pos,r.rally]){assert(boxes.every(b=>clearance(p,b)>.4));for(const q of other)assert(distance(p,q)>2.4);}
+   for(const previous of result.reserves.slice(0,i))assert(distance(previous.pos,r.pos)>=9);
+ }
+});
+
+
+test('lamp-size poles and low debris are not advertised as soldier-sized cover',()=>{
+ const l=layout();for(const boxes of [[{minX:-.12,maxX:.12,minZ:-.12,maxZ:.12}],[{minX:-.9,maxX:.9,minZ:-2,maxZ:2,minY:0,maxY:.3}]])assert.equal(buildStreetPopulation(l,boxes).contacts.length,0);
 });

@@ -33,3 +33,17 @@ node scripts/makehuman/prepare-runtime.mjs civilian combatant soldier
 MakeHuman 基础网格、targets、rig 和官方系统资产为 CC0。使用的系统资产：`middleage_african_male`、`young_caucasian_male`、`low-poly` eyes、`eyebrow001`、`short01`、`male_casualsuit01`、`male_casualsuit05`、`shoes03`。权利人说明见官方资产文件及随附 CC0 许可。MPFB 程序本身为 GPL，其生成资产输出与程序逻辑分开，详见 `LICENSE-MPFB-explanation.md`。
 
 军装及配件继续遵守 DanlyVostok / 1799danly 的 CC BY 4.0；完整署名、上游链接及本项目修改说明在根目录和 `public/assets/ASSET-SOURCES.md`。MakeHuman 许可不覆盖这些外部军装。
+
+## 0.8 车载 M2 完整手掌导出
+
+`public/assets/mounted-makehuman-hands.glb` 从保留完整人体的 `soldier-fitted-source.blend` 中导出，只包含双手及截取的腕部/前臂，不包含军装。此前运行时人体按权重剔除隐藏表面时损失了部分受前臂/扭转骨影响的掌面；此脚本从原始完整源按解剖位置裁取，保留原始 UV 和蒙皮权重，并检查掌面、指根和指尖没有开放边缘。开放截面只允许位于袖口内的前臂末端。
+
+在项目根目录执行（后台，不打开 Blender 窗口）：
+
+```powershell
+& tools/models/blender/blender.exe --background --factory-startup --python-exit-code 1 --python scripts/makehuman/export-mounted-hands.py
+```
+
+导出脚本只读取现有 `.blend` 源；输出为271,592字节 GLB，带52骨蒙皮、无内嵌图片和材质。SHA-256为 `22962e1766fc786e89f10b5017674de93ede05b91994898369c683ebe7b13db0`。统计与哈希写入 `artifacts/district-rebuild/mounted-hand-source.json`。运行时 `src/mounted-gunner-pose.js` 按骨骼名称映射到现有士兵骨架，验证逆绑定矩阵并复用原皮肤材质；不用黑色贴片或双面材质掩盖掌面缺失。
+
+手掌网格及其原始人体数据继续遵循MakeHuman Community CC0；已有军装与配件仍为DanlyVostok / 1799danly的CC BY 4.0，署名和许可不变。导出后须重新执行Vite构建，再核对 `dist/assets/mounted-makehuman-hands.glb` 与源GLB一致；只更新 `public/` 不会刷新已有发行包。

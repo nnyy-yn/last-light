@@ -1,0 +1,951 @@
+{
+  "source": "artifacts/rebuild-v0.8/campaign/index-BZjDoGLX-2026-10-26T10-27-30-787Z/report.json",
+  "description": "Exact clinic collision boxes intersecting the escorted route, captured by the failed browser campaign. No obstacle geometry is invented or removed inside the route bounds.",
+  "bounds": {
+    "minX": -120,
+    "maxX": 120,
+    "minZ": -120,
+    "maxZ": 120
+  },
+  "corridorBounds": {
+    "minX": -24,
+    "maxX": 30,
+    "minZ": -27,
+    "maxZ": 13
+  },
+  "colliders": [
+    {
+      "minX": -2,
+      "maxX": 1.5999999999999999,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 1.6000000000000003,
+      "maxX": 5.2,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 5.2,
+      "maxX": 5.8,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 8.2,
+      "maxX": 8.8,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 8.799999999999999,
+      "maxX": 12.4,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 12.399999999999999,
+      "maxX": 16,
+      "minZ": 4.79,
+      "maxZ": 5.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 12.399999999999999,
+      "maxX": 16,
+      "minZ": -13.21,
+      "maxZ": -12.79,
+      "material": "masonry"
+    },
+    {
+      "minX": 8.799999999999999,
+      "maxX": 12.4,
+      "minZ": -13.21,
+      "maxZ": -12.79,
+      "material": "masonry"
+    },
+    {
+      "minX": 5.2,
+      "maxX": 8.8,
+      "minZ": -13.21,
+      "maxZ": -12.79,
+      "material": "masonry"
+    },
+    {
+      "minX": 1.6000000000000003,
+      "maxX": 5.2,
+      "minZ": -13.21,
+      "maxZ": -12.79,
+      "material": "masonry"
+    },
+    {
+      "minX": -1.9999999999999993,
+      "maxX": 1.6000000000000008,
+      "minZ": -13.21,
+      "maxZ": -12.79,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": 1.4000000000000001,
+      "maxZ": 5,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": -2.2,
+      "maxZ": 1.3999999999999997,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": -2.8,
+      "maxZ": -2.2,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": -5.8,
+      "maxZ": -5.2,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": -9.4,
+      "maxZ": -5.8,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.79,
+      "maxX": 16.21,
+      "minZ": -13,
+      "maxZ": -9.399999999999999,
+      "material": "masonry"
+    },
+    {
+      "minX": -2.2100000000000004,
+      "maxX": -1.7900000000000003,
+      "minZ": -13,
+      "maxZ": -9.399999999999999,
+      "material": "masonry"
+    },
+    {
+      "minX": -2.21,
+      "maxX": -1.7899999999999998,
+      "minZ": -9.4,
+      "maxZ": -5.8,
+      "material": "masonry"
+    },
+    {
+      "minX": -2.21,
+      "maxX": -1.7899999999999998,
+      "minZ": -5.8,
+      "maxZ": -2.2,
+      "material": "masonry"
+    },
+    {
+      "minX": -2.21,
+      "maxX": -1.7899999999999996,
+      "minZ": -2.2,
+      "maxZ": 1.3999999999999997,
+      "material": "masonry"
+    },
+    {
+      "minX": -2.2099999999999995,
+      "maxX": -1.7899999999999994,
+      "minZ": 1.3999999999999992,
+      "maxZ": 4.999999999999999,
+      "material": "masonry"
+    },
+    {
+      "minX": 1.449999999999999,
+      "maxX": 2.469999999999999,
+      "minZ": -9.370000000000001,
+      "maxZ": -7.2700000000000005,
+      "material": "metal"
+    },
+    {
+      "minX": 1.449999999999999,
+      "maxX": 2.469999999999999,
+      "minZ": -1.2700000000000002,
+      "maxZ": 0.8299999999999998,
+      "material": "metal"
+    },
+    {
+      "minX": 11.530000000000001,
+      "maxX": 12.55,
+      "minZ": -9.370000000000001,
+      "maxZ": -7.2700000000000005,
+      "material": "metal"
+    },
+    {
+      "minX": 11.530000000000001,
+      "maxX": 12.55,
+      "minZ": -1.2700000000000002,
+      "maxZ": 0.8299999999999998,
+      "material": "metal"
+    },
+    {
+      "minX": -26.5,
+      "maxX": -23.5,
+      "minZ": -5.71,
+      "maxZ": -5.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -26.5,
+      "maxX": -23.5,
+      "minZ": -26.71,
+      "maxZ": -26.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -9,
+      "maxZ": -5.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -12.5,
+      "maxZ": -9,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -16,
+      "maxZ": -12.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -19.5,
+      "maxZ": -16,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -23,
+      "maxZ": -19.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.71,
+      "maxX": -23.29,
+      "minZ": -26.5,
+      "maxZ": -23,
+      "material": "masonry"
+    },
+    {
+      "minX": -32.5,
+      "maxX": -23.5,
+      "minZ": -26.5,
+      "maxZ": -5.5,
+      "material": "masonry"
+    },
+    {
+      "minX": 29.5,
+      "maxX": 32.5,
+      "minZ": 10.79,
+      "maxZ": 11.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 26.5,
+      "maxX": 29.5,
+      "minZ": 10.79,
+      "maxZ": 11.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 23.5,
+      "maxX": 26.5,
+      "minZ": 10.79,
+      "maxZ": 11.21,
+      "material": "masonry"
+    },
+    {
+      "minX": 23.29,
+      "maxX": 23.71,
+      "minZ": 11,
+      "maxZ": 14.600000000000001,
+      "material": "masonry"
+    },
+    {
+      "minX": 23.5,
+      "maxX": 32.5,
+      "minZ": 11,
+      "maxZ": 29,
+      "material": "masonry"
+    },
+    {
+      "minX": -15,
+      "maxX": -11.399999999999999,
+      "minZ": -20.71,
+      "maxZ": -20.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -11.4,
+      "maxX": -7.8,
+      "minZ": -20.71,
+      "maxZ": -20.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -7.8,
+      "maxX": -4.2,
+      "minZ": -20.71,
+      "maxZ": -20.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -4.2,
+      "maxX": -0.6000000000000003,
+      "minZ": -20.71,
+      "maxZ": -20.29,
+      "material": "masonry"
+    },
+    {
+      "minX": -0.6000000000000008,
+      "maxX": 2.999999999999999,
+      "minZ": -20.71,
+      "maxZ": -20.29,
+      "material": "masonry"
+    },
+    {
+      "minX": 2.79,
+      "maxX": 3.21,
+      "minZ": -23.5,
+      "maxZ": -20.5,
+      "material": "masonry"
+    },
+    {
+      "minX": 2.79,
+      "maxX": 3.21,
+      "minZ": -26.5,
+      "maxZ": -23.5,
+      "material": "masonry"
+    },
+    {
+      "minX": 2.79,
+      "maxX": 3.21,
+      "minZ": -29.5,
+      "maxZ": -26.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -15.21,
+      "maxX": -14.79,
+      "minZ": -29.5,
+      "maxZ": -26.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -15.21,
+      "maxX": -14.79,
+      "minZ": -26.5,
+      "maxZ": -23.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -15.21,
+      "maxX": -14.79,
+      "minZ": -23.5,
+      "maxZ": -20.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -15,
+      "maxX": 3,
+      "minZ": -29.5,
+      "maxZ": -20.5,
+      "material": "masonry"
+    },
+    {
+      "minX": -6.15,
+      "maxX": -3.85,
+      "minZ": 2.85,
+      "maxZ": 5.15,
+      "material": "masonry"
+    },
+    {
+      "minX": 25.4,
+      "maxX": 28.6,
+      "minZ": -11.6,
+      "maxZ": -10.4,
+      "material": "masonry"
+    },
+    {
+      "minX": -6.96,
+      "maxX": -5.04,
+      "minZ": 12.625,
+      "maxZ": 13.475000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -4.949999999999999,
+      "maxX": -3.7499999999999996,
+      "minZ": 11.72,
+      "maxZ": 12.020000000000001,
+      "material": "masonry"
+    },
+    {
+      "minX": -8.3,
+      "maxX": -7.1000000000000005,
+      "minZ": 11.69,
+      "maxZ": 11.99,
+      "material": "masonry"
+    },
+    {
+      "minX": -7.95,
+      "maxX": -7.29,
+      "minZ": 12.47,
+      "maxZ": 13.13,
+      "material": "metal"
+    },
+    {
+      "minX": -4.947,
+      "maxX": -4.797,
+      "minZ": 12.085,
+      "maxZ": 12.235,
+      "material": "wood"
+    },
+    {
+      "minX": -7.203,
+      "maxX": -7.053,
+      "minZ": 12.085,
+      "maxZ": 12.235,
+      "material": "wood"
+    },
+    {
+      "minX": 27.04,
+      "maxX": 28.96,
+      "minZ": 10.125,
+      "maxZ": 10.975000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": 29.049999999999997,
+      "maxX": 30.25,
+      "minZ": 9.22,
+      "maxZ": 9.520000000000001,
+      "material": "masonry"
+    },
+    {
+      "minX": 25.7,
+      "maxX": 26.900000000000002,
+      "minZ": 9.19,
+      "maxZ": 9.49,
+      "material": "masonry"
+    },
+    {
+      "minX": -22.689999999999998,
+      "maxX": -22.39,
+      "minZ": 8.649999999999999,
+      "maxZ": 9.849999999999998,
+      "material": "masonry"
+    },
+    {
+      "minX": -23.909999999999997,
+      "maxX": -23.75,
+      "minZ": 10.769999999999998,
+      "maxZ": 10.929999999999998,
+      "material": "wood"
+    },
+    {
+      "minX": -24.529999999999998,
+      "maxX": -23.87,
+      "minZ": 9.409999999999998,
+      "maxZ": 10.069999999999999,
+      "material": "metal"
+    },
+    {
+      "minX": 6.450000000000006,
+      "maxX": 7.650000000000006,
+      "minZ": 12.389999999999999,
+      "maxZ": 12.69,
+      "material": "masonry"
+    },
+    {
+      "minX": 6.480000000000007,
+      "maxX": 7.3200000000000065,
+      "minZ": 12.979999999999999,
+      "maxZ": 13.819999999999999,
+      "material": "rubber"
+    },
+    {
+      "minX": -16.86,
+      "maxX": -11.14,
+      "minZ": -5.550000000000001,
+      "maxZ": -5.210000000000001,
+      "material": "masonry"
+    },
+    {
+      "minX": -16.93,
+      "maxX": -16.61,
+      "minZ": -5.225000000000001,
+      "maxZ": -2.575000000000001,
+      "material": "masonry"
+    },
+    {
+      "minX": -12.45,
+      "maxX": -11.25,
+      "minZ": -1.5900000000000014,
+      "maxZ": -1.2900000000000016,
+      "material": "masonry"
+    },
+    {
+      "minX": -16.403,
+      "maxX": -16.253,
+      "minZ": -2.5050000000000012,
+      "maxZ": -2.355000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -13.007,
+      "maxX": -12.857000000000001,
+      "minZ": -2.5050000000000012,
+      "maxZ": -2.355000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -16.403,
+      "maxX": -16.253,
+      "minZ": -4.7650000000000015,
+      "maxZ": -4.615000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -13.187,
+      "maxX": -13.037,
+      "minZ": -4.7650000000000015,
+      "maxZ": -4.615000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -15.6,
+      "maxX": -13.799999999999999,
+      "minZ": -4.070000000000001,
+      "maxZ": -3.2500000000000013,
+      "material": "wood"
+    },
+    {
+      "minX": -12.86,
+      "maxX": -11.96,
+      "minZ": -4.900000000000002,
+      "maxZ": -4.100000000000001,
+      "material": "wood"
+    },
+    {
+      "minX": -12.67,
+      "maxX": -12.01,
+      "minZ": -3.4300000000000015,
+      "maxZ": -2.7700000000000014,
+      "material": "metal"
+    },
+    {
+      "minX": 29.31,
+      "maxX": 29.650000000000002,
+      "minZ": 1.1400000000000001,
+      "maxZ": 6.859999999999999,
+      "material": "masonry"
+    },
+    {
+      "minX": 26.675,
+      "maxX": 29.325,
+      "minZ": 1.07,
+      "maxZ": 1.39,
+      "material": "masonry"
+    },
+    {
+      "minX": 25.39,
+      "maxX": 25.689999999999998,
+      "minZ": 5.550000000000001,
+      "maxZ": 6.75,
+      "material": "masonry"
+    },
+    {
+      "minX": 28.950000000000003,
+      "maxX": 29.11,
+      "minZ": 1.9699999999999998,
+      "maxZ": 2.13,
+      "material": "wood"
+    },
+    {
+      "minX": 26.75,
+      "maxX": 26.909999999999997,
+      "minZ": 1.9699999999999998,
+      "maxZ": 2.13,
+      "material": "wood"
+    },
+    {
+      "minX": 28.950000000000003,
+      "maxX": 29.11,
+      "minZ": 4.47,
+      "maxZ": 4.63,
+      "material": "wood"
+    },
+    {
+      "minX": 26.75,
+      "maxX": 26.909999999999997,
+      "minZ": 4.47,
+      "maxZ": 4.63,
+      "material": "wood"
+    },
+    {
+      "minX": 27.42,
+      "maxX": 28.08,
+      "minZ": 2.87,
+      "maxZ": 3.63,
+      "material": "wood"
+    },
+    {
+      "minX": 28.2,
+      "maxX": 28.999999999999996,
+      "minZ": 5.14,
+      "maxZ": 6.04,
+      "material": "wood"
+    },
+    {
+      "minX": 26.87,
+      "maxX": 27.529999999999998,
+      "minZ": 5.33,
+      "maxZ": 5.99,
+      "material": "metal"
+    },
+    {
+      "minX": 25.979999999999997,
+      "maxX": 26.82,
+      "minZ": 5.88,
+      "maxZ": 6.72,
+      "material": "rubber"
+    },
+    {
+      "minX": 12.350000000000001,
+      "maxX": 12.690000000000001,
+      "minZ": -22.060000000000002,
+      "maxZ": -16.340000000000003,
+      "material": "masonry"
+    },
+    {
+      "minX": 12.675,
+      "maxX": 15.325,
+      "minZ": -16.590000000000003,
+      "maxZ": -16.270000000000003,
+      "material": "masonry"
+    },
+    {
+      "minX": 16.310000000000002,
+      "maxX": 16.61,
+      "minZ": -21.950000000000003,
+      "maxZ": -20.75,
+      "material": "masonry"
+    },
+    {
+      "minX": 15.395000000000001,
+      "maxX": 15.545,
+      "minZ": -16.947000000000003,
+      "maxZ": -16.797000000000004,
+      "material": "wood"
+    },
+    {
+      "minX": 15.395000000000001,
+      "maxX": 15.545,
+      "minZ": -20.343000000000004,
+      "maxZ": -20.193000000000005,
+      "material": "wood"
+    },
+    {
+      "minX": 13.135000000000002,
+      "maxX": 13.285,
+      "minZ": -16.947000000000003,
+      "maxZ": -16.797000000000004,
+      "material": "wood"
+    },
+    {
+      "minX": 13.135000000000002,
+      "maxX": 13.285,
+      "minZ": -20.163000000000004,
+      "maxZ": -20.013000000000005,
+      "material": "wood"
+    },
+    {
+      "minX": 13.83,
+      "maxX": 14.65,
+      "minZ": -19.400000000000002,
+      "maxZ": -17.600000000000005,
+      "material": "wood"
+    },
+    {
+      "minX": 13,
+      "maxX": 13.8,
+      "minZ": -21.240000000000002,
+      "maxZ": -20.340000000000003,
+      "material": "wood"
+    },
+    {
+      "minX": 14.47,
+      "maxX": 15.13,
+      "minZ": -21.19,
+      "maxZ": -20.530000000000005,
+      "material": "metal"
+    },
+    {
+      "minX": 29.31,
+      "maxX": 29.650000000000002,
+      "minZ": -22.060000000000002,
+      "maxZ": -16.340000000000003,
+      "material": "masonry"
+    },
+    {
+      "minX": 26.675,
+      "maxX": 29.325,
+      "minZ": -22.130000000000003,
+      "maxZ": -21.810000000000002,
+      "material": "masonry"
+    },
+    {
+      "minX": 25.39,
+      "maxX": 25.689999999999998,
+      "minZ": -17.650000000000006,
+      "maxZ": -16.450000000000003,
+      "material": "masonry"
+    },
+    {
+      "minX": 26.455,
+      "maxX": 26.604999999999997,
+      "minZ": -21.603,
+      "maxZ": -21.453000000000003,
+      "material": "wood"
+    },
+    {
+      "minX": 26.455,
+      "maxX": 26.604999999999997,
+      "minZ": -18.387,
+      "maxZ": -18.237000000000002,
+      "material": "wood"
+    },
+    {
+      "minX": 28.715,
+      "maxX": 28.865,
+      "minZ": -21.603,
+      "maxZ": -21.453000000000003,
+      "material": "wood"
+    },
+    {
+      "minX": 28.715,
+      "maxX": 28.865,
+      "minZ": -18.387,
+      "maxZ": -18.237000000000002,
+      "material": "wood"
+    },
+    {
+      "minX": 27.349999999999998,
+      "maxX": 28.169999999999998,
+      "minZ": -20.8,
+      "maxZ": -19.000000000000004,
+      "material": "wood"
+    },
+    {
+      "minX": 28.2,
+      "maxX": 28.999999999999996,
+      "minZ": -18.060000000000002,
+      "maxZ": -17.160000000000004,
+      "material": "wood"
+    },
+    {
+      "minX": 26.87,
+      "maxX": 27.529999999999998,
+      "minZ": -17.87,
+      "maxZ": -17.210000000000004,
+      "material": "metal"
+    },
+    {
+      "minX": 25.979999999999997,
+      "maxX": 26.82,
+      "minZ": -17.320000000000004,
+      "maxZ": -16.48,
+      "material": "rubber"
+    },
+    {
+      "minX": 10.975,
+      "maxX": 13.025,
+      "minZ": -12.1,
+      "maxZ": -10.9,
+      "material": "metal",
+      "interiorDetail": "clinic-pharmacy"
+    },
+    {
+      "minX": 5.800000000000001,
+      "maxX": 8.2,
+      "minZ": -11.4,
+      "maxZ": -10.4,
+      "material": "metal",
+      "interiorDetail": "clinic-clean-dressings"
+    },
+    {
+      "minX": -0.6000000000000001,
+      "maxX": 1.2,
+      "minZ": -11.5,
+      "maxZ": -10.100000000000001,
+      "material": "metal",
+      "interiorDetail": "clinic-water-wash"
+    },
+    {
+      "minX": 8.774999999999999,
+      "maxX": 9.625,
+      "minZ": -5.525,
+      "maxZ": -4.875,
+      "material": "metal",
+      "interiorDetail": "clinic-treatment-trolley"
+    },
+    {
+      "minX": 5.15,
+      "maxX": 6.85,
+      "minZ": -4.3,
+      "maxZ": -3.7,
+      "material": "metal",
+      "interiorDetail": "clinic-privacy-screen"
+    },
+    {
+      "minX": -0.95,
+      "maxX": 1.3499999999999999,
+      "minZ": 1.075,
+      "maxZ": 1.7249999999999999,
+      "material": "metal",
+      "interiorDetail": "clinic-waiting-bench"
+    },
+    {
+      "minX": -13.700000000000001,
+      "maxX": -11.9,
+      "minZ": 10.600000000000001,
+      "maxZ": 12,
+      "material": "metal",
+      "interiorDetail": "courtyard-drinking-water"
+    }
+  ],
+  "actorStart": [
+    -17.120272434631044,
+    4.044555236144829
+  ],
+  "playerStart": [
+    -14.275995121461676,
+    4.610317169991601
+  ],
+  "playerRoute": [
+    {
+      "x": -3,
+      "z": -12.75
+    },
+    {
+      "x": -3,
+      "z": -13.5
+    },
+    {
+      "x": -1.5,
+      "z": -14.25
+    },
+    {
+      "x": 15.75,
+      "z": -15.75
+    },
+    {
+      "x": 21,
+      "z": -19
+    }
+  ],
+  "goal": [
+    21,
+    -19
+  ],
+  "stalledActor": {
+    "id": "story-find-family",
+    "kind": "civilian",
+    "role": "story",
+    "x": 8.517152822478876,
+    "z": -15.83605702823143,
+    "anchor": {
+      "x": -17,
+      "z": 4
+    },
+    "tether": 0.5,
+    "follow": true,
+    "behavior": "follow",
+    "stance": "stand",
+    "speed": 0,
+    "goal": {
+      "x": 13.81512487738625,
+      "z": -17.127359272582947
+    },
+    "lastKnown": null,
+    "lastSeen": null,
+    "visible": false,
+    "targetId": null,
+    "firstContactAt": null,
+    "openingUntil": 0,
+    "suppression": 0,
+    "cover": null,
+    "peek": null,
+    "shotsFired": 0,
+    "shotsBlocked": 0,
+    "mag": 18,
+    "magSize": 18,
+    "burstRemaining": 0,
+    "reload": 0,
+    "reloading": false,
+    "reloads": 0,
+    "reloadStart": 0,
+    "reloadUntil": 0,
+    "stuckCount": 0,
+    "pathRemaining": 0,
+    "alive": true,
+    "startCorrected": false,
+    "tacticalRole": null,
+    "reserveActive": true,
+    "reserveActivatedAt": null,
+    "maneuver": null,
+    "aimTime": 0,
+    "suppressionOrder": null,
+    "time": 104.69780000000432
+  },
+  "stalledPlayer": {
+    "x": 15.783940407703101,
+    "z": -15.752683597059544,
+    "y": 1.8103798363583783,
+    "yaw": -1.4918925732371195,
+    "pitch": -0.0722942288128093,
+    "health": 100,
+    "stamina": 100,
+    "mag": 0,
+    "weaponId": "m16a2"
+  },
+  "vehicle": {
+    "chapter": 15,
+    "convoyId": "relief-detachment-15-8",
+    "source": "artifacts/district-rebuild/expanded-scene-colliders.json",
+    "box": {
+      "minX": -2.4000000000000004,
+      "maxX": 2.4000000000000004,
+      "minZ": -19.580000000000002,
+      "maxZ": -17.419999999999998,
+      "material": "metal"
+    }
+  }
+}

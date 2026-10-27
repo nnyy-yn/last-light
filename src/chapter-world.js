@@ -7,6 +7,8 @@ import {createGroundSurface} from './ground-surface.js';
 import {createStreetFrontage} from './street-frontage.js';
 import {dressChapterInterior} from './chapter-interiors.js';
 import {getChapterConvoy} from './chapter-convoys.js';
+import {createDistrictBuildings} from './district-buildings.js';
+import {buildChapterBoundary,planChapterBoundary,rectanglesOverlap} from './chapter-boundary.js';
 
 // The builder owns only this chapter's batches, lamps and instanced props.
 // Loaded GLB geometry and PBR maps remain shared and are never disposed here.
@@ -25,6 +27,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   const cropMap=(source,color=false)=>{const t=canvasTexture(1024,1024,(ctx,w,h)=>{const image=source.image;ctx.drawImage(image,image.width*.52,image.height*.08,image.width*.205,image.height*.84,0,0,w,h);if(color){for(let i=0;i<12;i++){const x=rand(0,w),y=rand(0,h),r=rand(120,330),g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(69,62,46,.045)');g.addColorStop(1,'rgba(69,62,46,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}}});t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;if(!color)t.colorSpace=THREE.NoColorSpace;return t;};
   const plasterMaps={map:cropMap(palette.wallMaps.map,true),normalMap:cropMap(palette.wallMaps.normalMap),roughnessMap:cropMap(palette.wallMaps.roughnessMap)};
   const plaster=['#ccc8b8','#aeb8aa','#c5b298'].map(color=>material({...plasterMaps,color,roughness:1,normalScale:new THREE.Vector2(1.1,1.1)}));
+  const interiorPlaster=material({...plasterMaps,color:'#38392f',roughness:1,normalScale:new THREE.Vector2(.55,.55)});interiorPlaster.name='district:recessed-dark-plaster';
   const rubble=material({...rubbleMaps,color:'#9a8b77',roughness:1}),exposed=material({...palette.brokenMaps,color:'#a79b86',roughness:1}),brickEdge=material({...palette.brickMaps,color:'#8e735c',roughness:1});
   const awning=material({...palette.dirtMaps,color:'#8d8870',roughness:1,side:THREE.DoubleSide}),burned=material({...palette.wallMaps,color:'#524e43',roughness:1});
   const sootMap=canvasTexture(512,512,(ctx,w,h)=>{for(let i=0;i<145;i++){const v=rnd(),y=h*(.88-v*.82),x=w*(.5+rand(-.09,.09)*(1+v*1.7)),r=rand(16,56)*(1-v*.32),g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,255,255,.10)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}});
@@ -32,6 +35,11 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   const shard=material({color:'#546867',roughness:.7,metalness:.1}),roadMark=material({color:'#b9b397',roughness:1});
   const signMap=canvasTexture(512,128,(ctx,w,h)=>{ctx.fillStyle='#61675a';ctx.fillRect(0,0,w,h);ctx.fillStyle='#c4bea5';ctx.font='bold 38px sans-serif';ctx.fillText('SUUQA  •  DUKAAN',18,76);});
   const signs=[material({map:signMap,roughness:1})];
+  const districtSigns=['SUUQA  ·  DUKAAN','DAYACTIR  ·  BAABUUR','RAASHIN  ·  BIYO'].map((text,i)=>{
+    const map=canvasTexture(768,128,(ctx,w,h)=>{ctx.fillStyle=['#6f7562','#726454','#52706d'][i];ctx.fillRect(0,0,w,h);ctx.strokeStyle='#a8a18c';ctx.lineWidth=5;ctx.strokeRect(9,9,w-18,h-18);ctx.fillStyle='#d7ceb3';ctx.textAlign='center';ctx.font='bold 48px sans-serif';ctx.fillText(text,w/2,82);for(let n=0;n<23;n++){ctx.fillStyle='rgba(72,66,51,.26)';ctx.fillRect((n*137)%w,(n*43)%h,10+(n%4)*11,3+(n%3)*2);}});return material({map,roughness:1});
+  });
+  const grimeMap=canvasTexture(512,256,(ctx,w,h)=>{for(let i=0;i<74;i++){const x=(i*137)%w,y=h-(i*43)%150,r=19+(i%7)*8,g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);}for(let i=0;i<19;i++){ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect((i*89)%w,120+(i%5)*11,2+i%3,130);}});
+  const weathering=material({map:grimeMap,color:'#574b37',roughness:1,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});weathering.userData.noShadow=true;
   const transform=new THREE.Object3D();
   function add(geometry,mat,position=[0,0,0],rotation=[0,0,0]){
     if(geometry.index){const original=geometry;geometry=geometry.toNonIndexed();original.dispose();}
@@ -50,6 +58,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   }
   function line(a,b,r,m=metal,sides=6){const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b),delta=end.clone().sub(start),g=new THREE.CylinderGeometry(r,r,delta.length(),sides);g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize()));g.translate(...start.add(end).multiplyScalar(.5).toArray());add(g,m);}
   function curve(points,r,m){add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),18,r,5,false),m);}
+  const district=createDistrictBuildings({add,box,line,materials:{...palette,plaster,exposed,brickEdge,burned,awning,interiorPlaster,weathering,scorch,signs:districtSigns},rnd,stats});
   const details=createEnvironmentDetail({material,canvasTexture,palette:{...palette,shard,exposed,brickEdge},stats});
   let ruins;
   function obstacle(x,z,w,d,materialName='masonry'){
@@ -102,6 +111,12 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   }
   function building(b,index){
     stats.buildings++;const {x,z,w,d,h}=b;
+    if(b.district){
+      const zone=layout.expansion?.regions[b.region||0]?.style;
+      const made=district.building({...b,index:index+layout.chapter*19,playable:true,zone,detail:b.detail||'mid'});
+      for(const solid of made.collisionBoxes)colliders.push({...solid,district:true});
+      stats.playableDistrictBuildings=(stats.playableDistrictBuildings||0)+1;stats.districtCourtyards=(stats.districtCourtyards||0)+(b.style==='courtyard'?1:0);stats.districtFixtures=(stats.districtFixtures||0)+made.streetFixtures;return;
+    }
     if(b.ruin){
       ruins??=createRuinDetail({add,palette,stats,exposed,brickEdge,oldPlaster:walls[2],burned,rubble,awning,signs,material,canvasTexture,scorch});
       ruins.building({cx:x,cz:z,w,d,h,index:index+layout.chapter*13});obstacle(x,z,w,d);stats.ruinedBays+=6;
@@ -157,7 +172,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     object.position.x=x;object.position.z=z;object.position.y+=surface.sampleHeight(x,z);object.rotation.y+=rotation;group.add(object);objects.push(object);object.updateMatrixWorld(true);
     if(collision)for(const b of object.userData.collisionBoxes||[]){
       const corners=[[b.minX,b.minZ],[b.maxX,b.minZ],[b.minX,b.maxZ],[b.maxX,b.maxZ]].map(([xx,zz])=>new THREE.Vector3(xx,0,zz).applyMatrix4(object.matrixWorld));
-      colliders.push({minX:Math.min(...corners.map(p=>p.x)),maxX:Math.max(...corners.map(p=>p.x)),minZ:Math.min(...corners.map(p=>p.z)),maxZ:Math.max(...corners.map(p=>p.z)),material:'metal'});
+      colliders.push({minX:Math.min(...corners.map(p=>p.x)),maxX:Math.max(...corners.map(p=>p.x)),minZ:Math.min(...corners.map(p=>p.z)),maxZ:Math.max(...corners.map(p=>p.z)),...(object.userData.vehicleType?{minY:object.position.y,maxY:object.position.y+(object.userData.vehicleType==='cargo-truck'?2.95:1.86)}:{}),material:'metal'});
     }
     return object;
   }
@@ -240,7 +255,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
 
   const bounds=layout.bounds,spanX=bounds.maxX-bounds.minX,spanZ=bounds.maxZ-bounds.minZ;
   const camp=['military-camp','hangar-apron','base-hospital'].includes(layout.type),extensions=[];
-  const groundRoads=layout.roads.flatMap(r=>r.points.slice(1).map((b,i)=>({a:r.points[i],b,width:r.width,surface:r.surface})));
+  const groundRoads=layout.roads.flatMap(r=>r.points.slice(1).map((b,i)=>({a:r.points[i],b,width:r.width,surface:r.surface,expansion:!!r.expansion})));
   // Finite streets terminate at perpendicular junctions and inhabited blocks.
   for(const r of layout.roads){if(r.points.length<2||Math.hypot(r.points[0][0]-r.points.at(-1)[0],r.points[0][1]-r.points.at(-1)[1])<.1)continue;for(const start of[true,false]){
     const p=start?r.points[0]:r.points.at(-1),q=start?r.points[1]:r.points.at(-2),dx=p[0]-q[0],dz=p[1]-q[1],length=Math.hypot(dx,dz),ux=dx/length,uz=dz/length;
@@ -267,8 +282,9 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     line([x-1.5,y+.38,z+.14],[x+1.5,y+1.52,z+.14],.035,rusty);obstacle(x,z,17.2,.52);
     fragmentPile(x-6.8,z+1.2,.65);stats.routeTerminations=1;
   }
-  createStreetFrontage({layout,add,box,line,curve,material,canvasTexture,palette:{...palette,exposed,brickEdge,sand},rand,obstacle,colliders,routeDistance,safeProp,sampleHeight:surface.sampleHeight,stats});
-  dressChapterInterior(layout,{add,box,line,curve,material,canvasTexture,palette:{...palette,exposed,brickEdge,sand},obstacle,colliders,routeDistance,safeProp,sampleHeight:surface.sampleHeight,stats,addInteriorLight({position,color='#e1b982',intensity=16,distance=9}){const light=new THREE.PointLight(color,intensity,distance,2);light.position.set(...position);light.userData.chapterLamp=true;light.userData.interior=true;light.userData.fixtureIntensity=intensity;group.add(light);lights.push(light);nightLights.push(light);}});
+  const coreLayout={...layout,bounds:layout.coreBounds||layout.bounds,buildings:layout.buildings.filter(b=>!b.district),roads:layout.roads.filter(r=>!r.expansion),props:layout.props.filter(p=>!p.expansion)};
+  createStreetFrontage({layout:coreLayout,add,box,line,curve,material,canvasTexture,palette:{...palette,exposed,brickEdge,sand},rand,obstacle,colliders,routeDistance,safeProp,sampleHeight:surface.sampleHeight,stats});
+  dressChapterInterior(coreLayout,{add,box,line,curve,material,canvasTexture,palette:{...palette,exposed,brickEdge,sand},obstacle,colliders,routeDistance,safeProp,sampleHeight:surface.sampleHeight,stats,addInteriorLight({position,color='#e1b982',intensity=16,distance=9}){const light=new THREE.PointLight(color,intensity,distance,2);light.position.set(...position);light.userData.chapterLamp=true;light.userData.interior=true;light.userData.fixtureIntensity=intensity;group.add(light);lights.push(light);nightLights.push(light);}});
   if(layout.enemySpawns.length&&layout.type!=='restricted-cockpit'){
     // Deposits collect against each road edge in uneven pockets. The geometry
     // is ankle-height scenery; the authored route/collision data is unchanged.
@@ -282,13 +298,13 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     let clusters=0;
     for(const def of layout.roads)for(let segment=1;segment<def.points.length;segment++){
       const a=def.points[segment-1],b=def.points[segment],length=Math.hypot(b[0]-a[0],b[1]-a[1]),dx=(b[0]-a[0])/length,dz=(b[1]-a[1])/length;
-      for(const side of[-1,1])for(let at=rand(1.5,4);at<length;at+=rand(5.2,9.5)){
+      for(const side of[-1,1])for(let at=rand(1.5,4);at<length;at+=def.expansion?rand(20,30):rand(5.2,9.5)){
         if(rnd()<.18)continue;const edge=side*(def.width*.5-rand(.35,1.05)),x=a[0]+dx*at+dz*edge,z=a[1]+dz*at-dx*edge;
         if(!clear(x,z,.8))continue;const yaw=Math.atan2(dx,dz),spread=rand(1.0,2.0);
         const patch=new THREE.PlaneGeometry(rand(3.0,5.5),rand(2.3,3.7),8,6),pv=patch.attributes.position;
         for(let i=0;i<pv.count;i++){const u=pv.getX(i),v=pv.getY(i),xx=x+u*Math.cos(yaw)+v*Math.sin(yaw),zz=z+u*Math.sin(yaw)-v*Math.cos(yaw);pv.setZ(i,surface.sampleHeight(xx,zz)+.009);}
         patch.computeVertexNormals();add(patch,clusters%6===0?soot:dust,[x,0,z],[-PI/2,0,-yaw]);
-        for(let k=0;k<24;k++){
+        for(let k=0;k<(def.expansion?9:24);k++){
           const along=rand(-spread,spread),across=rand(-.65,.65),xx=x+dx*along+dz*across,zz=z+dz*along-dx*across;if(!clear(xx,zz))continue;
           const yy=surface.sampleHeight(xx,zz);
           if(k<17){const size=rand(.07,.28),height=rand(.045,.11),g=new THREE.DodecahedronGeometry(1,0);g.scale(size,height,size*rand(.65,1.3));add(g,k%4?exposed:brickEdge,[xx,yy+height*.65,zz],[rand(-.2,.2),rand(0,PI),rand(-.2,.2)]);}
@@ -301,59 +317,68 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     }
     stats.roadsideClusters=clusters;
   }
+  // Three inhabited street scenes anchor the new districts. Damage is tied to
+  // one abandoned shopfront/repair bay per zone, never to the story route.
+  stats.districtStreetScenes=[];
+  for(const [region,zone]of (layout.expansion?.regions||[]).entries()){
+    const candidates=layout.buildings.filter(b=>b.district&&b.style!=='courtyard'&&b.region===region).sort((a,b)=>Math.hypot(a.x-zone.pos[0],a.z-zone.pos[1])-Math.hypot(b.x-zone.pos[0],b.z-zone.pos[1]));
+    const lot=candidates.find(b=>{const x=b.x+b.w*.24,z=b.z+b.d/2+.7;return safeProp(x,z,1.6)&&!colliders.some(c=>x>c.minX-.9&&x<c.maxX+.9&&z>c.minZ-.55&&z<c.maxZ+.55);});
+    if(!lot)continue;
+    const x=lot.x+lot.w*.24,z=lot.z+lot.d/2+.7,y=surface.sampleHeight(x,z),war=layout.enemySpawns.length>0;
+    if(war&&zone.style==='market'){
+      // A cart overturned during the withdrawal: tilted box, exposed axle,
+      // connected wheels, folded cloth and a short trail of spilled stock.
+      box(1.55,.10,.84,wood,x,y+.43,z,.15,0,.27);for(const side of[-1,1])box(1.55,.36,.07,wood,x,y+.56,z+side*.39,.15,0,.27);
+      line([x-.9,y+.24,z],[x+.9,y+.24,z],.045,metal);for(const side of[-1,1])add(new THREE.TorusGeometry(.26,.055,6,12),rusty,[x+side*.85,y+.26,z],[0,PI/2,0]);
+      box(.8,.09,.7,awning,x+.48,y+.08,z+.4,.4,.08,.1);const c=obstacle(x,z,1.9,1.15,'wood');c.minY=y;c.maxY=y+.85;
+    }else if(war&&zone.style==='workshop'){
+      box(1.6,.26,.82,burned,x,y+.18,z,.15);box(1.7,.065,.9,rusty,x,y+.47,z,.15,0,.22);
+      for(const off of[-.5,.5]){line([x+off,y+.14,z-.4],[x+off+.08,y+.63,z+.4],.037,rusty);add(new THREE.TorusGeometry(.29,.10,5,10),rubber,[x+off,y+.31,z+.5],[0,PI/2,.2]);}
+      const c=obstacle(x,z,1.9,1.3,'metal');c.minY=y;c.maxY=y+.72;
+      const smokeAnchor=new THREE.Group();smokeAnchor.position.set(x,y,z);group.add(smokeAnchor);objects.push(smokeAnchor);addFire(smokeAnchor,{scale:.25,intensity:.22});addSmoke(smokeAnchor,0,0,4,{height:7,spread:.22,persistent:true,intensity:.13});
+    }else{
+      for(let j=0;j<3;j++){const xx=x+(j-1)*.51,h=.36+(j%2)*.2;box(.46,h,.5,wood,xx,y+h/2,z,.07*(j-1));for(let k=0;k<3;k++)box(.48,.045,.045,exposed,xx,y+.08+k*.13,z+.26);}
+      const c=obstacle(x,z,1.55,.55,'wood');c.minY=y;c.maxY=y+.62;
+    }
+    if(war){
+      const patch=new THREE.PlaneGeometry(3.2,2.1);add(patch,scorch,[x,y+.012,z+.45],[-PI/2,0,.2]);
+      for(let j=0;j<28;j++){const a=j*2.399,r=.35+(j%6)*.24,xx=x+Math.cos(a)*r,zz=z+Math.sin(a)*r*.62,yy=surface.sampleHeight(xx,zz);if(j<19)box(.16+(j%3)*.08,.06+(j%2)*.04,.14,j%4?brickEdge:exposed,xx,yy+.05,zz,a,.1*Math.sin(j),.1*Math.cos(j));else box(.12,.12,.14,j%2?cloth:wood,xx,yy+.06,zz,a);}
+    }
+    // A real sagging utility span connects two poles across the closest street.
+    const street=groundRoads.filter(r=>r.expansion&&Math.hypot(r.b[0]-r.a[0],r.b[1]-r.a[1])>35).sort((a,b)=>Math.hypot((a.a[0]+a.b[0])/2-x,(a.a[1]+a.b[1])/2-z)-Math.hypot((b.a[0]+b.b[0])/2-x,(b.a[1]+b.b[1])/2-z))[0];
+    if(street){const dx=street.b[0]-street.a[0],dz=street.b[1]-street.a[1],len=Math.hypot(dx,dz),ux=dx/len,uz=dz/len,mx=(street.a[0]+street.b[0])/2,mz=(street.a[1]+street.b[1])/2,r=street.width/2+1.3,ends=[[-1],[1]].map(([side])=>[mx+uz*r*side,mz-ux*r*side]);
+      for(const p of ends){const yy=surface.sampleHeight(...p);line([p[0],yy,p[1]],[p[0],yy+5.4,p[1]],.07,wood);line([p[0]-.45*ux,yy+5.05,p[1]-.45*uz],[p[0]+.45*ux,yy+5.05,p[1]+.45*uz],.025,rusty);}
+      for(const off of[-.22,.22])curve([[ends[0][0]+ux*off,5.05,ends[0][1]+uz*off],[mx+ux*off,4.45,mz+uz*off],[ends[1][0]+ux*off,5.05,ends[1][1]+uz*off]],.012,dark);
+    }
+    stats.districtStreetScenes.push({region:zone.name,style:zone.style,position:[x,z],damaged:war});
+  }
   if(layout.bounds){
-    // The playable footprints remain independent. Dense surrounding quarters
-    // are scenery only, extending below aerial cameras rather than ending in
-    // a bare plane beyond the last playable house.
-    if(layout.type!=='restricted-cockpit')for(const [x,z,w,d]of [[bounds.minX-.3,(bounds.minZ+bounds.maxZ)/2,.5,spanZ+1],[bounds.maxX+.3,(bounds.minZ+bounds.maxZ)/2,.5,spanZ+1],[(bounds.minX+bounds.maxX)/2,bounds.minZ-.3,spanX+1,.5],[(bounds.minX+bounds.maxX)/2,bounds.maxZ+.3,spanX+1,.5]])obstacle(x,z,w,d);
+    // Physical closure is visible: continuous houses/closed compounds replace
+    // invisible perimeter planes. Protected rear wings also close empty local
+    // service alleys without covering the playable rings or court approaches.
+    const boundary=buildChapterBoundary({layout,plan:planChapterBoundary(layout),district,box,line,materials:{plaster,concrete,exposed,wood,rusty,metal},colliders,stats});
     const outside=(x,z,margin=0)=>x<bounds.minX-margin||x>bounds.maxX+margin||z<bounds.minZ-margin||z>bounds.maxZ+margin;
     const extensionClear=(x,z,r)=>!extensions.some(({a,b,width})=>{const dx=b[0]-a[0],dz=b[1]-a[1],t=THREE.MathUtils.clamp(((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz),0,1);return Math.hypot(x-a[0]-t*dx,z-a[1]-t*dz)<width*.5+r;});
-    const spacing=camp?27:21,extent=230;
-    let backgroundBuildings=0;
+    const beforeBackground=district.inspect();
+    const lots=[],spacing=camp?31:25,extent=Math.ceil((Math.max(...Object.values(bounds).map(Math.abs))+105)/spacing)*spacing;
     for(let gx=-extent;gx<=extent;gx+=spacing)for(let gz=-extent;gz<=extent;gz+=spacing){
-      const x=gx+rand(-1.3,1.3),z=gz+rand(-1.3,1.3),w=camp?rand(13,20):rand(12,17),d=camp?rand(10,18):rand(11,17);
-      if(!outside(x,z,Math.max(w,d)/2+3)||!extensionClear(x,z,Math.max(w,d)/2))continue;
-      const h=camp?rand(3.2,5.8):3.1*(2+Math.floor(rnd()*3)),m=camp?green:plaster[backgroundBuildings%plaster.length];
-      const damaged=!camp&&layout.enemySpawns.length&&backgroundBuildings%4===0&&Math.hypot(x,z)<175;
-      if(damaged){
-        const lower=h-3.1;box(w,lower,d,m,x,lower*.5,z);box(w*.51,3.1,d,m,x-w*.245,lower+1.55,z);box(w*.51+.15,.18,d+.15,concrete,x-w*.245,h+.09,z);
-        box(w*.49,.22,d*.45,exposed,x+w*.255,lower+.06,z-d*.27);box(w*.30,.24,d*.43,exposed,x+w*.31,lower-1.25,z+d*.18,0,.19,-.16);
-        for(let n=0;n<4;n++){const zz=z-d*.36+n*d*.23;box(.25,rand(.35,1.2),.32,brickEdge,x+w*.5,lower+.28,zz);line([x+w*.03,lower+.2,zz],[x+w*.22,lower+.5,zz+.12],.014,rusty);}
-        stats.backgroundDamaged=(stats.backgroundDamaged||0)+1;
-      }else{box(w,h,d,m,x,h/2,z);box(w+.23,.18,d+.23,concrete,x,h+.09,z);}
-      // Dark inset window rows and cornices establish metre-scale facades in
-      // a few material batches; no per-building meshes or texture allocations.
-      for(let floor=0;floor<Math.floor(h/3.1);floor++)for(let bay=0;bay<Math.floor(w/3);bay++)for(const side of[-1,1]){
-        const xx=x-w/2+1.5+bay*3,zz=z+side*(d/2+.025),rotation=[0,side<0?PI:0,0];
-        if(damaged&&floor===Math.floor(h/3.1)-1&&xx>x-w*.03)continue;
-        add(new THREE.PlaneGeometry(1.02,1.44),dark,[xx,1.8+floor*3.1,zz],rotation);add(new THREE.PlaneGeometry(1.18,.07),trim,[xx,1.04+floor*3.1,zz+.005*side],rotation);
-      }
-      for(let floor=0;floor<Math.floor(h/3.1);floor++)for(let bay=0;bay<Math.floor(d/3.2);bay++)for(const side of[-1,1])if(!(damaged&&side===1&&floor===Math.floor(h/3.1)-1))add(new THREE.PlaneGeometry(1,1.4),dark,[x+side*(w/2+.025),1.8+floor*3.1,z-d/2+1.5+bay*3.2],[0,side*PI/2,0]);
-      if(backgroundBuildings%3===0){box(w*.4,.8,.25,concrete,x-w*.25,h+.5,z+d*.45);box(1.3,.95,1.2,concrete,x+(damaged?-w*.26:w*.26),h+.57,z-d*.27);line([x-w*.2,h,z],[x-w*.2,h+2.3,z],.018,metal);}
-      if(!camp&&Math.hypot(x,z)<165){
-        // The first outer quarters have lived-in frontage and enclosed yards,
-        // not just a row of facade cards above an empty strip of sand.
-        let nearest=null,best=Infinity;
-        for(const street of groundRoads){const dx=street.b[0]-street.a[0],dz=street.b[1]-street.a[1],t=THREE.MathUtils.clamp(((x-street.a[0])*dx+(z-street.a[1])*dz)/(dx*dx+dz*dz),0,1),px=street.a[0]+t*dx,pz=street.a[1]+t*dz,dist=Math.hypot(px-x,pz-z);if(dist<best){best=dist;nearest=[px,pz];}}
-        if(nearest&&best<39){
-          const vx=nearest[0]-x,vz=nearest[1]-z,nx=Math.abs(vx)>Math.abs(vz)?Math.sign(vx):0,nz=nx?0:Math.sign(vz),tx=nz,tz=-nx,face=nx?w/2:d/2,length=nx?d:w,fx=x+nx*(face+.04),fz=z+nz*(face+.04),yaw=Math.atan2(nx,nz);
-          box(1.5,2.35,.065,wood,fx,1.175,fz,yaw);for(const side of[-1,1])box(.12,2.48,.16,trim,fx+tx*side*.81,1.24,fz+tz*side*.81,yaw);box(1.76,.13,.16,trim,fx,2.48,fz,yaw);
-          if(backgroundBuildings%3!==0){
-            box(length*.46,.045,1.8,cloth,fx+nx*.85,2.65,fz+nz*.85,yaw,-.1);
-            for(const side of[-1,1])line([fx+tx*side*length*.22+nx*1.65,0,fz+tz*side*length*.22+nz*1.65],[fx+tx*side*length*.22+nx*1.65,2.5,fz+tz*side*length*.22+nz*1.65],.024,wood);
-          }
-          for(const side of[-1,1]){
-            const wx=fx+nx*2.8+tx*side*length*.31,wz=fz+nz*2.8+tz*side*length*.31;
-            if(extensionClear(wx,wz,length*.17)){box(length*.34,.85,.28,plaster[(backgroundBuildings+1)%3],wx,.425,wz,yaw);box(length*.34,.09,.34,concrete,wx,.89,wz,yaw);}
-            const xx=fx+tx*side*(length*.5-.4),zz=fz+tz*side*(length*.5-.4);if(extensionClear(xx+nx*1.3,zz+nz*1.3,.4))box(.28,1.1,2.6,plaster[(backgroundBuildings+1)%3],xx+nx*1.3,.55,zz+nz*1.3,yaw);
-          }
-          if(backgroundBuildings%5===0){for(let j=0;j<3;j++)add(new THREE.CylinderGeometry(.28,.31,.8,10),rusty,[fx+tx*(2+j*.7)+nx*.6,.4,fz+tz*(2+j*.7)+nz*.6]);}
-          stats.backgroundFrontages=(stats.backgroundFrontages||0)+1;
-        }
-      }
-      backgroundBuildings++;
+      const x=gx+rand(-2.4,2.4),z=gz+rand(-2.4,2.4),w=camp?rand(12,19):rand(12,18),d=camp?rand(10,17):rand(11,18);
+      if(!outside(x,z,Math.max(w,d)/2+3)||!extensionClear(x,z,Math.max(w,d)/2+1.2))continue;
+      if(boundary.occupied.some(b=>rectanglesOverlap({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2},b,2.0)))continue;
+      const edge=Math.hypot(Math.max(bounds.minX-x,0,x-bounds.maxX),Math.max(bounds.minZ-z,0,z-bounds.maxZ));
+      lots.push({x,z,w,d,edge});
     }
-    stats.backgroundBuildings=backgroundBuildings;
+    lots.sort((a,b)=>a.edge-b.edge);
+    // Spend geometry on the blocks a player can read. Each lot has actual
+    // interior depth, independent volumes and a deliberately varied roofline.
+    // The new continuous front ring supplies the near silhouette. Spend fewer
+    // far shells behind it instead of drawing two equally dense full districts.
+    for(const [i,lot]of lots.slice(0,camp?36:60).entries()){
+      const style=camp?'camp':['shop-house','apartment','courtyard','workshop'][i%4];
+      const floors=style==='workshop'?2:style==='courtyard'?3:3+(i%3),h=camp?rand(3.2,5.5):floors*3.05+rand(-.28,.44);
+      district.building({...lot,h,y:0,index:i,style,detail:lot.edge<28?'mid':'far',damage:camp?0:layout.enemySpawns.length?(i%3===0?.78:i%3===1?.42:.12):.08});
+    }
+    stats.backgroundBuildings=district.inspect().buildings-beforeBackground.buildings;stats.backgroundDamaged=district.inspect().damagedCorners-beforeBackground.damagedCorners;stats.backgroundFrontages=district.inspect().recessedRooms-beforeBackground.recessedRooms;
     if(!camp){let parked=0;for(let i=0;i<extensions.length;i++){
       const r=extensions[i],dx=r.b[0]-r.a[0],dz=r.b[1]-r.a[1],length=Math.hypot(dx,dz),ux=dx/length,uz=dz/length;
       let previous=null;for(let t=7;t<length;t+=21){
@@ -365,13 +390,6 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
       if(i%3===1&&parked<4){const t=length*.55,x=r.a[0]+ux*t+uz*(r.width*.5-1),z=r.a[1]+uz*t-ux*(r.width*.5-1);if(outside(x,z,10)){const car=makeVehicle({burned:true,medical:false});car.userData.chapterPropKind='background-vehicle';placeObject(car,x,z,Math.atan2(ux,uz)+.1,false);parked++;}}
       if(i%3===2){const x=r.b[0],z=r.b[1];for(const off of[-2.4,2.4])box(1.5,.64,.7,exposed,x+uz*off,.32,z-ux*off,Math.atan2(ux,uz)+.13);}
     }stats.backgroundVehicles=parked;}
-    if(camp){
-      // Camp perimeter walls stop only at authored vehicle exits.
-      for(const [x,z,w,d]of [[bounds.minX-2,0,.3,spanZ+4],[bounds.maxX+2,0,.3,spanZ+4],[0,bounds.minZ-2,spanX+4,.3],[0,bounds.maxZ+2,spanX+4,.3]]){
-        const horizontal=w>d,length=horizontal?w:d;
-        for(let n=0;n<length;n+=3){const xx=x+(horizontal?n-length/2:0),zz=z+(horizontal?0:n-length/2);if(extensionClear(xx,zz,1.6))box(horizontal?2.9:.3,2.1,horizontal?.3:2.9,concrete,xx,1.05,zz);}
-      }
-    }
     if(layout.enemySpawns.length){const haze=new THREE.Group();haze.position.set(bounds.maxX+9,0,bounds.minZ-7);group.add(haze);objects.push(haze);addSmoke(haze,0,0,12,{height:30,spread:.8,persistent:true,intensity:.38});}
   }
   for(const [mat,parts]of batches){
