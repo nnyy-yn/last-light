@@ -1,9 +1,10 @@
 import {RESOURCE_LIMITS} from './simulation.js';
 import {MOUNTED_M2} from './mounted-weapons.js';
+import {createAmmoReserves,validateAmmoReserves,WEAPON_MAGAZINES} from './ammunition.js';
 
 // Data only: no storage, rendering, actor creation or reward callbacks. Call
 // capture after applying a task's reward and incrementing the task cursor.
-export const CHAPTER_CHECKPOINT_VERSION=2;
+export const CHAPTER_CHECKPOINT_VERSION=3;
 export const CHECKPOINT_WEAPON_CAPACITIES=Object.freeze({m16a2:30,m249:100,ak:30,mp5:30,m1911:7,m4a1:30});
 const RUNTIME_TASK_KEYS=new Set(['obj','done','participantActors','runtime']);
 const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -69,12 +70,24 @@ export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,m
     if(!integer(value.taskIndex,0,tasks.length)||!Array.isArray(value.completedTaskIds)||value.completedTaskIds.length!==value.taskIndex||value.completedTaskIds.some((taskId,i)=>taskId!==tasks[i].id)||value.nextTaskId!==(tasks[value.taskIndex]?.id??null))return null;
     const resources=cleanResources(value.resources),player=cleanPlayer(value.player,capacities,bounds);
     if(!resources||!player||!record(value.stowedMagazines))return null;
+    const ammoReserves=validateAmmoReserves(value.ammoReserves,resources.ammo);if(!ammoReserves)return null;
     const weaponIds=Object.keys(capacities),stowedMagazines={};
     if(Object.keys(value.stowedMagazines).length!==weaponIds.length)return null;
     for(const key of weaponIds){if(!integer(value.stowedMagazines[key],0,capacities[key]))return null;stowedMagazines[key]=value.stowedMagazines[key];}
     if(stowedMagazines[player.weaponId]!==0)return null; // The active magazine exists only on the player.
     if(typeof value.assistUsed!=='boolean')return null;
     if(!integer(enemyCount,0,512)||!uniqueArray(value.killedEnemyIndices,n=>integer(n,0,enemyCount-1),enemyCount)||!integer(value.smokeCharges,0,2)||!finite(value.pacingElapsed,0,604800))return null;
+    // Every defeated enemy retains exactly one physical pickup record, even
+    // when that firearm is empty or was already taken. Never reconstruct loot
+    // from a kill count, because that would award new ammunition after reload.
+    if(!Array.isArray(value.weaponDrops)||value.weaponDrops.length!==value.killedEnemyIndices.length)return null;
+    const killed=new Set(value.killedEnemyIndices),dropIds=new Set(),weaponDrops=[];
+    for(const drop of value.weaponDrops){
+      if(!record(drop)||!integer(drop.enemyIndex,0,enemyCount-1)||!killed.has(drop.enemyIndex)||dropIds.has(drop.enemyIndex)||!Object.hasOwn(WEAPON_MAGAZINES,drop.weaponId)||!integer(drop.mag,0,WEAPON_MAGAZINES[drop.weaponId])||!integer(drop.reserve,0,300)||typeof drop.taken!=='boolean')return null;
+      if(!Array.isArray(drop.position)||drop.position.length!==2||!finite(drop.position[0],bounds?.minX??-5000,bounds?.maxX??5000)||!finite(drop.position[1],bounds?.minZ??-5000,bounds?.maxZ??5000))return null;
+      dropIds.add(drop.enemyIndex);weaponDrops.push({enemyIndex:drop.enemyIndex,weaponId:drop.weaponId,mag:drop.mag,reserve:drop.reserve,taken:drop.taken,position:[...drop.position]});
+    }
+    weaponDrops.sort((a,b)=>a.enemyIndex-b.enemyIndex);
     const allowedFields=fieldIds??[`field-${chapter.id}-medicine`,`field-${chapter.id}-ammo`];
     if(!uniqueArray(allowedFields,id,256)||!uniqueArray(value.fieldCollectedIds,key=>id(key)&&allowedFields.includes(key),allowedFields.length))return null;
     if(!Array.isArray(value.mountedWeapons)||value.mountedWeapons.length>64)return null;
@@ -90,13 +103,13 @@ export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,m
       decisionIds.add(selected.taskId);taskDecisions.push({taskId:selected.taskId,optionId:selected.optionId});
     }
     if(requiredDecisions.some(task=>!decisionIds.has(task.id)))return null;
-    return {version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:signature,taskIndex:value.taskIndex,completedTaskIds:tasks.slice(0,value.taskIndex).map(t=>t.id),nextTaskId:tasks[value.taskIndex]?.id??null,resources,player,stowedMagazines,assistUsed:value.assistUsed,killedEnemyIndices:[...value.killedEnemyIndices].sort((a,b)=>a-b),smokeCharges:value.smokeCharges,mountedWeapons,fieldCollectedIds:[...value.fieldCollectedIds],pacingElapsed:value.pacingElapsed,taskDecisions};
+    return {version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:signature,taskIndex:value.taskIndex,completedTaskIds:tasks.slice(0,value.taskIndex).map(t=>t.id),nextTaskId:tasks[value.taskIndex]?.id??null,resources,ammoReserves,player,stowedMagazines,weaponDrops,assistUsed:value.assistUsed,killedEnemyIndices:[...value.killedEnemyIndices].sort((a,b)=>a-b),smokeCharges:value.smokeCharges,mountedWeapons,fieldCollectedIds:[...value.fieldCollectedIds],pacingElapsed:value.pacingElapsed,taskDecisions};
   }catch{return null;}
 }
 
-export function captureChapterCheckpoint({chapter,campaign,taskIndex,player,stowedMagazines,assistUsed=false,killedEnemyIndices=[],smokeCharges=0,mountedWeapons=[],fieldCollectedIds=[],pacingElapsed=0,taskDecisions=[],...context}){
+export function captureChapterCheckpoint({chapter,campaign,taskIndex,player,stowedMagazines,assistUsed=false,killedEnemyIndices=[],weaponDrops=[],ammoReserves=Object.hasOwn(campaign||{},'ammoReserves')?campaign.ammoReserves:createAmmoReserves(campaign?.resources?.ammo),smokeCharges=0,mountedWeapons=[],fieldCollectedIds=[],pacingElapsed=0,taskDecisions=[],...context}){
   if(!campaign||campaign.chapter!==chapter?.id-1||campaign.completed)throw new TypeError('Cannot capture a checkpoint outside the current unfinished chapter.');
-  const tasks=authoredTasks(chapter),candidate={version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:chapterTaskSignature(chapter),taskIndex,completedTaskIds:tasks.slice(0,taskIndex).map(t=>t.id),nextTaskId:tasks[taskIndex]?.id??null,resources:campaign.resources,player,stowedMagazines,assistUsed,killedEnemyIndices,smokeCharges,mountedWeapons,fieldCollectedIds,pacingElapsed,taskDecisions};
+  const tasks=authoredTasks(chapter),candidate={version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:chapterTaskSignature(chapter),taskIndex,completedTaskIds:tasks.slice(0,taskIndex).map(t=>t.id),nextTaskId:tasks[taskIndex]?.id??null,resources:campaign.resources,ammoReserves,player,stowedMagazines,weaponDrops,assistUsed,killedEnemyIndices,smokeCharges,mountedWeapons,fieldCollectedIds,pacingElapsed,taskDecisions};
   const clean=validateChapterCheckpoint(candidate,{...context,chapter});
   if(!clean)throw new TypeError('Cannot capture invalid chapter checkpoint data.');
   return clean;
@@ -110,6 +123,6 @@ export function captureChapterCheckpoint({chapter,campaign,taskIndex,player,stow
 export function applyChapterCheckpoint(campaign,value,context){
   const clean=validateChapterCheckpoint(value,context);
   if(!clean||!campaign||campaign.completed||campaign.chapter!==clean.chapterId-1)return null;
-  campaign.resources={...clean.resources};campaign.fieldCheckpoint=clone(clean);
+  campaign.resources={...clean.resources};campaign.ammoReserves={...clean.ammoReserves};campaign.fieldCheckpoint=clone(clean);
   return clone(clean);
 }

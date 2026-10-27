@@ -54,7 +54,7 @@ function connect(a,b,r,mat,segments=8){
 
 // Root-space two-bone IK keeps boot soles planted while the pelvis lowers.
 // No actor scaling is used for stance changes, and the director owns root motion.
-function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
+export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate, sampleGround = () => root.position.y) {
   const civilian = kind === 'civilian', bones = {};
   model.traverse(b => { if (b.isBone) bones[b.name.replace(/:/g, '')] = b; });
   const get = (mixamo, human) => rawBones['mixamorig' + mixamo] || bones[human];
@@ -76,7 +76,7 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
     l.palmFactor=civilian?.6:l.side==='Left'?.72:.80;
     l.palm=localPoint(l.hand);if(l.knuckle)l.palm.lerp(localPoint(l.knuckle),l.palmFactor);
     l.palmOffset=l.palm.clone().sub(localPoint(l.hand));
-    l.upperLeg=localPoint(l.thigh).distanceTo(localPoint(l.knee));l.lowerLeg=localPoint(l.knee).distanceTo(l.ankle);
+    l.hipRest=localPoint(l.thigh);l.upperLeg=localPoint(l.thigh).distanceTo(localPoint(l.knee));l.lowerLeg=localPoint(l.knee).distanceTo(l.ankle);
     l.upperArm=localPoint(l.arm).distanceTo(localPoint(l.elbow));l.lowerArm=localPoint(l.elbow).distanceTo(localPoint(l.hand));
     // MPFB exports foot bones under the armature, outside the thigh/calf chain.
     // A hidden endpoint rotates the calf while the exported foot is positioned
@@ -116,9 +116,12 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
   }
   const baseHead=localPoint(rig.head);
   const phase=(Math.abs(root.position.x*1.73+root.position.z*.71)%6.283), state={stance:'stand',motion:0,lowering:0,aimYaw:0,aimPitch:0,recoil:0,headHeight:baseHead.y,hipHeight:localPoint(rig.hips).y,gripError:0,footError:0};
-  let time=phase,gait=Math.PI*.53,motion=0,drop=0,kneel=0,treat=0,low=0,alert=.25,yaw=0,pitch=-.12,recoil=0,talk=0,lean=0,hit=0,wasStepping=false;
+  let time=phase,gait=.31*Math.PI*2,gaitCycles=.31,motion=0,drop=0,kneel=0,treat=0,low=0,alert=.25,yaw=0,pitch=-.12,recoil=0,talk=0,lean=0,hit=0,wasStepping=false;
+  let runBlend=0,strideLength=1.05,pelvisLower=0,travelled=0,previousSpeed=0,acceleration=0;
+  const groundAt=(x,z)=>{const y=sampleGround(x,z);return Number.isFinite(y)?y:root.position.y;};
+  const worldUp=new THREE.Vector3(0,1,0),footAxis=new THREE.Vector3(1,0,0);
   const lastPosition=root.position.clone(),travel=new THREE.Vector3(0,0,1);let lastYaw=root.rotation.y;
-  for(const l of limbs){l.plant=root.localToWorld(l.ankle.clone());l.liftStart=l.plant.clone();l.swinging=false;l.plantQ=root.getWorldQuaternion(new THREE.Quaternion()).multiply(l.footQ);}
+  for(const l of limbs){l.plant=root.localToWorld(l.ankle.clone());l.liftStart=l.plant.clone();l.landing=l.plant.clone();l.worldFoot=l.plant.clone();l.swinging=false;l.settling=0;l.initialized=false;l.firstStep=true;l.plantBodyQ=root.getWorldQuaternion(new THREE.Quaternion());l.plantQ=l.plantBodyQ.clone().multiply(l.footQ);}
   const damp=(a,b,dt,rate=10)=>THREE.MathUtils.lerp(a,b,1-Math.exp(-dt*rate));
   const clamp=THREE.MathUtils.clamp;
   function orient(bone,q){const parent=bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert(),world=root.getWorldQuaternion(new THREE.Quaternion()).multiply(q);bone.quaternion.copy(parent.multiply(world));bone.updateWorldMatrix(false,true);}
@@ -155,23 +158,28 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
   const referenceAim=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI,0,'YXZ'));
   const handAim=limbs.map(l=>referenceAim.clone().invert().multiply(l.gripHandQ||l.handQ));
   root.userData.poseState=state;
-  root.userData.getPoseState=()=>({...state,head:localPoint(rig.head).toArray(),hips:localPoint(rig.hips).toArray(),limbs:limbs.map(l=>({side:l.side,knee:localPoint(l.knee).toArray(),ankle:localPoint(l.foot).toArray(),hand:localPoint(l.hand).toArray()}))});
+  root.userData.getPoseState=()=>({...state,head:localPoint(rig.head).toArray(),hips:localPoint(rig.hips).toArray(),limbs:limbs.map(l=>({side:l.side,knee:localPoint(l.knee).toArray(),ankle:localPoint(l.foot).toArray(),hand:localPoint(l.hand).toArray(),ankleWorld:l.foot.getWorldPosition(new THREE.Vector3()).toArray(),plant:l.plant.toArray(),swinging:l.swinging,settling:l.settling>0,footRoll:l.roll||0,supportError:l.supportError||0}))});
   root.userData.animate=(speed=0,dt=0,pose={})=>{
     if(root.userData.disposed)return;
     dt=clamp(Number.isFinite(dt)?dt:0,0,.1);time+=dt;
-    const stance=['stand','crouch','kneel','treat','low'].includes(pose.stance)?pose.stance:'stand',amount=Math.abs(Number.isFinite(speed)?speed:0);
+    const stance=['stand','crouch','kneel','treat','low'].includes(pose.stance)?pose.stance:'stand',commanded=Math.abs(Number.isFinite(speed)?speed:0);
     const dead=clamp(Number(pose.dead||0),0,1),collapse=THREE.MathUtils.smoothstep(dead,.05,.9),aliveWeight=1-collapse,deadSide=pose.deadSide===-1?-1:1;
     const delta=root.position.clone().sub(lastPosition),distanceMoved=Math.hypot(delta.x,delta.z),yawDelta=Math.atan2(Math.sin(root.rotation.y-lastYaw),Math.cos(root.rotation.y-lastYaw));
-    const turnSpeed=dt>0?Math.min(4,Math.abs(yawDelta)/dt):0;
-    const realTravel=distanceMoved>.00001&&distanceMoved<Math.max(.5,amount*dt*3);
-    if(realTravel){const c=Math.cos(root.rotation.y),s=Math.sin(root.rotation.y);const direction=new THREE.Vector3(delta.x*c-delta.z*s,0,delta.x*s+delta.z*c).normalize();if(!wasStepping||travel.dot(direction)<-.9)travel.copy(direction);else{const angle=Math.atan2(travel.x,travel.z),target=Math.atan2(direction.x,direction.z),difference=Math.atan2(Math.sin(target-angle),Math.cos(target-angle)),next=angle+difference*(1-Math.exp(-dt*16));travel.set(Math.sin(next),0,Math.cos(next));}}
+    // Actual distance drives the cycle. Collided actors do not march in place;
+    // chapter/preview repositioning does not become a giant animation step.
+    const relocated=distanceMoved>Math.max(.7,commanded*dt*4+.1),realTravel=!relocated&&dt>0&&distanceMoved>.000001;
+    const amount=realTravel?distanceMoved/dt:pose.inPlace?commanded:0,turnSpeed=dt>0&&!relocated?Math.abs(yawDelta)/dt:0;
+    if(realTravel){const c=Math.cos(root.rotation.y),s=Math.sin(root.rotation.y);travel.set(delta.x*c-delta.z*s,0,delta.x*s+delta.z*c).normalize();}
     lastPosition.copy(root.position);lastYaw=root.rotation.y;
-    motion=damp(motion,Math.min(amount/2.6,1.35)*aliveWeight,dt,8);
-    const turnStep=('stance' in pose)&&turnSpeed>.35,stepping=dead<.05&&(amount>.08||turnStep);
-    const stepRate=1.12+Math.min(amount,3.5)*.43+(turnStep?.25:0);
-    if(stepping&&!wasStepping)gait=Math.PI*.53;
-    if(stepping)gait+=dt*stepRate*Math.PI*2;
-    wasStepping=stepping;
+    acceleration=damp(acceleration,dt>0?clamp((amount-previousSpeed)/dt,-5,5):0,dt,7);previousSpeed=amount;
+    const moving=dead<.05&&amount>.035,turning=dead<.05&&turnSpeed>.12;
+    motion=damp(motion,Math.min(amount/1.7,1.25)*aliveWeight,dt,10);
+    runBlend=damp(runBlend,stance==='stand'?THREE.MathUtils.smoothstep(amount,2.0,2.9):0,dt,7);
+    const wantedStride=stance==='crouch'||stance==='low'?clamp(.48+amount*.27,.55,.96):THREE.MathUtils.lerp(clamp(.76+amount*.27,.85,1.36),clamp(1.40+(amount-2.1)*.22,1.4,2.1),runBlend);
+    strideLength=wasStepping?damp(strideLength,wantedStride,dt,10):wantedStride;
+    const contact=stance==='crouch'||stance==='low'?.68:THREE.MathUtils.lerp(.62,.42,runBlend);
+    if(dead<.05&&!relocated){gaitCycles+=(realTravel?distanceMoved:pose.inPlace?amount*dt:0)/strideLength;gaitCycles+=Math.abs(yawDelta)/Math.PI*1.55*(1-clamp(amount/.65,0,1));}
+    gait=gaitCycles*Math.PI*2;travelled+=realTravel?distanceMoved:0;wasStepping=moving||turning;
     lean=damp(lean,clamp(Number(pose.peek||0),-1,1),dt,7);
     const reloadPhase=clamp(Number(pose.reload||0),0,1)*aliveWeight,reloadWeight=reloadPhase>0?THREE.MathUtils.smoothstep(reloadPhase,0,.14)*(1-THREE.MathUtils.smoothstep(reloadPhase,.85,1)):0;
     const targetDrop=({stand:0,crouch:.37,low:.51,kneel:.48,treat:.54})[stance]*aliveWeight;
@@ -180,67 +188,99 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
     let targetYaw=Number(pose.aimYaw||0),targetPitch=Number(pose.aimPitch??(-.12+.08*alert));
     if(pose.aimTarget){const p=pose.aimTarget,worldTarget=new THREE.Vector3(p.x??p[0],p.y??p[1]??1.4,p.z??p[2]);root.worldToLocal(worldTarget);const chest=localPoint(rig.chest),dx=worldTarget.x-chest.x,dz=worldTarget.z-chest.z;targetYaw=Math.atan2(dx,dz);targetPitch=Math.atan2(worldTarget.y-chest.y,Math.hypot(dx,dz));}
     yaw=damp(yaw,clamp(targetYaw,-.9,.9),dt,8);pitch=damp(pitch,clamp(targetPitch,-.55,.5),dt,8);
-    const impulse=clamp(Number(pose.recoil||0),0,1);recoil=Math.max(impulse,recoil*Math.exp(-dt*13));
-    hit=Math.max(clamp(Number(pose.hit||0),0,1),hit*Math.exp(-dt*9));
-    if(civilian && root.userData.nativeLocomotion && drop<.006 && stance==='stand'&&dead===0){
-      model.position.copy(modelBase);nativeAnimate?.(speed,dt);root.updateMatrixWorld(true);
-      Object.assign(state,{stance,motion,lowering:drop,headHeight:localPoint(rig.head).y,hipHeight:localPoint(rig.hips).y,aimYaw:yaw,aimPitch:pitch,recoil,gripError:0,footError:0});return;
-    }
+    const impulse=clamp(Number(pose.recoil||0),0,1);recoil=Math.max(impulse,recoil*Math.exp(-dt*13));hit=Math.max(clamp(Number(pose.hit||0),0,1),hit*Math.exp(-dt*11));
     for(const[bone,r]of rest){bone.quaternion.copy(r.q);bone.position.copy(r.position);}
-    const crouch=clamp(drop/.37,0,1),breath=Math.sin(time*1.85)*.004*aliveWeight;
-    model.position.copy(modelBase);model.position.y-=drop+.11*motion+Math.abs(Math.sin(gait*2))*.014*motion;model.position.z-=crouch*.105+low*.025;model.position.x+=Math.sin(gait)*.017*motion+Math.sin(time*.71)*.007*Math.max(0,1-motion)*aliveWeight+lean*.055*aliveWeight;
-    root.updateMatrixWorld(true);
-    rotate(rig.spine,.10*crouch+.08*low+.16*treat+.075*motion+breath-.085*hit-.035*collapse, yaw*.26,Math.sin(gait)*.015*motion-lean*.10+.045*hit-deadSide*.22*collapse);
-    rotate(rig.chest,.045*alert+.07*crouch+.12*treat+.035*motion-recoil*.025-.10*hit-.02*collapse,yaw*.32+.04*hit,-lean*.06+deadSide*.10*collapse);
-    rotate(rig.neck,-.035*crouch-.02*treat,0,deadSide*.70*collapse);
-    const scan=Math.sin(time*.62)*(.06+.075*alert)*(1-treat)*(pose.aimTarget?0:1)*aliveWeight;
-    rotate(rig.head,(-pitch*.45-.04*crouch+.02*treat+Math.sin(time*7)*.015*talk-.055*hit)*aliveWeight-.10*collapse,yaw*.30*aliveWeight+scan-deadSide*.30*collapse,Math.sin(time*3)*.012*talk*aliveWeight+.035*hit);
-    let footError=0;
-    const rootQ=root.getWorldQuaternion(new THREE.Quaternion());
+    const crouch=clamp(drop/.37,0,1),breath=Math.sin(time*1.85)*.003*aliveWeight,rootQ=root.getWorldQuaternion(new THREE.Quaternion());
+    const travelWorld=travel.clone().applyQuaternion(rootQ),stepActive=moving&&kneel<.15&&collapse<.01;
+    const neutralOffset=l=>{const p=l.ankle.clone();p.x=l.sign*(civilian?.118:.135)+l.sign*.045*crouch;return Math.hypot(l.plant.x-root.localToWorld(p).x,l.plant.z-p.z);};
+    const farthest=limbs.reduce((a,b)=>neutralOffset(a)>=neutralOffset(b)?a:b);
+    let footError=0,requiredLower=0,supportError=0;
+    // Plan feet in world space before solving the pelvis. Support holds a sole
+    // pivot; swing anticipates root travel instead of sliding the planted boot.
     for(let i=0;i<limbs.length;i++){
-      const l=limbs[i],cycle=((gait/(Math.PI*2)+i*.5)%1+1)%1,contact=.53;
-      const target=l.ankle.clone();target.x+=l.sign*.055*crouch;target.z+=kneel*(i?.27:-.38);target.y+=kneel*(i?0:.08);
-      // As the root falls, release the planted stance into a loose, asymmetric
-      // extension instead of retaining a bent knee behind the torso.
-      if(collapse>0){const bottom=l.sign===-deadSide,relaxed=new THREE.Vector3(-deadSide*(bottom?.14:.10),bottom?.125:.22,bottom?-.04:.26);target.lerp(relaxed,collapse);}
-      const stanceQ=rootQ.clone().multiply(l.footQ);let footQ=stanceQ.clone();
-      if(stepping&&kneel<.15){
-        const swing=cycle>=contact,progress=clamp((cycle-contact)/(1-contact),0,1);
-        const reach=Math.min(.37,amount/stepRate*.29)*(1-crouch*.12);
-        const landing=target.clone().addScaledVector(travel,reach);
-        if(turnStep)landing.x+=l.sign*.035;
-        const landingWorld=root.localToWorld(landing);
+      const l=limbs[i],cycle=((gaitCycles+i*.5)%1+1)%1,neutral=l.ankle.clone();
+      neutral.x=l.sign*(civilian?.118:.135)+l.sign*.045*crouch;neutral.z+=kneel*(i?.27:-.38);neutral.y+=kneel*(i?0:.08);
+      const neutralWorld=root.localToWorld(neutral.clone());neutralWorld.y=groundAt(neutralWorld.x,neutralWorld.z)+neutral.y;
+      if(!l.initialized||relocated){l.plant.copy(neutralWorld);l.worldFoot.copy(neutralWorld);l.landing.copy(neutralWorld);l.plantBodyQ.copy(rootQ);l.initialized=true;l.swinging=false;l.settling=0;}
+      let baseWorld=l.plant.clone(),bodyQ=l.plantBodyQ.clone(),roll=0,commitLanding=false;
+      const offset=Math.hypot(l.plant.x-neutralWorld.x,l.plant.z-neutralWorld.z);
+      // Release an overextended stance before reversing root motion can pull
+      // it past the real leg workspace. The anchor itself never gets projected.
+      if(stepActive&&!l.swinging&&!l.settling&&offset>.42){l.liftStart.copy(l.worldFoot);l.startQ=l.plantBodyQ.clone();l.landing.copy(neutralWorld);l.settling=.001;l.settleDuration=.14;l.swinging=false;}
+      if(l.settling){
+        // A recovery is a transaction: resuming movement or turning cannot
+        // cancel it and resurrect the old support anchor halfway through.
+        const duration=l.settleDuration||.18,remaining=Math.max(0,duration*(1-l.settling));
+        const destination=neutralWorld.clone().addScaledVector(travelWorld,moving?amount*remaining+.12:0);destination.y=groundAt(destination.x,destination.z)+neutral.y;
+        l.landing.lerp(destination,1-Math.exp(-dt*20));l.settling=Math.min(1,l.settling+dt/duration);
+        const t=THREE.MathUtils.smoothstep(l.settling,0,1);baseWorld.copy(l.liftStart).lerp(l.landing,t);baseWorld.y+=Math.sin(l.settling*Math.PI)*.055;bodyQ.copy(l.startQ).slerp(rootQ,t);l.swinging=false;
+        if(l.settling>=1){l.settling=0;commitLanding=true;}
+      }else if(stepActive){
+        const swing=cycle>=contact||(l.swinging&&l.startupDuration>0&&l.swingElapsed<l.startupDuration);let progress=clamp((cycle-contact)/(1-contact),0,1);
         if(swing){
-          if(!l.swinging){l.liftStart.copy(l.plant);l.startQ=l.plantQ.clone();}
-          const t=THREE.MathUtils.smoothstep(progress,0,1);
-          const worldFoot=l.liftStart.clone().lerp(landingWorld,t);
-          worldFoot.y+=Math.sin(progress*Math.PI)*(.07+.055*Math.min(motion,1))*(1-crouch*.18);
-          target.copy(root.worldToLocal(worldFoot));
-          footQ.copy(l.startQ||l.plantQ).slerp(stanceQ,t);
-          l.plant.copy(landingWorld);l.plantQ.copy(stanceQ);
+          if(!l.swinging){l.liftStart.copy(l.worldFoot);l.startQ=l.plantBodyQ.clone();l.swingStartPhase=cycle;l.swingElapsed=0;l.startupDuration=l.firstStep?Math.max(.16,(1-cycle)*strideLength/Math.max(amount,.3)):0;}
+          l.swingElapsed+=dt;progress=l.startupDuration>0?clamp(l.swingElapsed/l.startupDuration,0,1):clamp((cycle-l.swingStartPhase)/(1-l.swingStartPhase),0,1);
+          const lead=amount>.035?strideLength*contact*.48:0,remaining=l.startupDuration>0?Math.max(0,l.startupDuration-l.swingElapsed):amount>.035?(1-cycle)*strideLength/amount:0;
+          const forecast=neutralWorld.clone().addScaledVector(travelWorld,lead+amount*remaining);forecast.y=groundAt(forecast.x,forecast.z)+neutral.y;
+          if(!l.swinging)l.landing.copy(forecast);else l.landing.lerp(forecast,1-Math.exp(-dt*16));
+          const t=THREE.MathUtils.smoothstep(progress,0,1);baseWorld.copy(l.liftStart).lerp(l.landing,t);baseWorld.y+=Math.sin(progress*Math.PI)*THREE.MathUtils.lerp(.078,.13,runBlend)*(1-crouch*.32);
+          bodyQ.copy(l.startQ).slerp(rootQ,t);roll=-.14*Math.sin(progress*Math.PI);
         }else{
-          target.copy(root.worldToLocal(l.plant.clone()));footQ.copy(l.plantQ);
-          // Pose previews have no director root motion; keep a readable in-place gait.
-          if(!realTravel&&amount>.08){target.copy(l.ankle).addScaledVector(travel,(.5-cycle/contact)*reach*2);target.x+=l.sign*.055*crouch;}
+          if(l.swinging){baseWorld.copy(l.worldFoot);baseWorld.y=groundAt(baseWorld.x,baseWorld.z)+neutral.y;bodyQ.copy(rootQ);l.firstStep=false;commitLanding=true;}
+          else{baseWorld.copy(l.plant);bodyQ.copy(l.plantBodyQ);}const support=cycle/contact;
+          roll=-.10*(1-THREE.MathUtils.smoothstep(support,0,.16))+THREE.MathUtils.lerp(.23,.34,runBlend)*THREE.MathUtils.smoothstep(support,.72,1);
+        }l.swinging=swing;
+      }else if(kneel<.15&&collapse<.01){
+        const otherAirborne=limbs.some(other=>other!==l&&(other.swinging||other.settling>0));
+        const needsTurn=turning&&l.plantBodyQ.angleTo(rootQ)>.34;
+        const recovery=!otherAirborne&&l===farthest&&(offset>(turning?.12:.27)||needsTurn);
+        if((l.swinging&&!limbs.some(other=>other!==l&&other.settling>0))||recovery){
+          l.liftStart.copy(l.worldFoot);l.landing.copy(neutralWorld);l.startQ=l.plantBodyQ.clone();l.settling=.001;l.settleDuration=.18;l.swinging=false;baseWorld.copy(l.worldFoot);bodyQ.copy(l.startQ);
         }
-        l.swinging=swing;
-      }else{
-        l.plant.copy(root.localToWorld(target.clone()));l.plantQ.copy(stanceQ);l.swinging=false;
+      }else{baseWorld.copy(neutralWorld);bodyQ.copy(rootQ);l.plant.copy(baseWorld);l.plantBodyQ.copy(rootQ);l.swinging=false;l.settling=0;}
+      if(collapse>0){const bottom=l.sign===-deadSide,relaxed=new THREE.Vector3(-deadSide*(bottom?.14:.10),bottom?.125:.22,bottom?-.04:.26);baseWorld.lerp(root.localToWorld(relaxed),collapse);}
+      if((l.swinging||l.settling||commitLanding)&&kneel<.15&&collapse<.01){
+        // A free foot can shorten its airborne path. Use the anatomical leg
+        // lengths and a bounded pelvis drop, never scale bones or slide support.
+        const local=root.worldToLocal(baseWorld.clone()),hip=l.hipRest.clone();hip.y-=drop+.16;hip.z-=crouch*.105+low*.025;
+        const reach=(l.upperLeg+l.lowerLeg)*.955,vertical=hip.y-local.y,maxHorizontal=Math.sqrt(Math.max(.015,reach*reach-vertical*vertical)),dx=local.x-hip.x,dz=local.z-hip.z,horizontal=Math.hypot(dx,dz);
+        if(horizontal>maxHorizontal){const clearance=baseWorld.y-groundAt(baseWorld.x,baseWorld.z);local.x=hip.x+dx/horizontal*maxHorizontal;local.z=hip.z+dz/horizontal*maxHorizontal;baseWorld.copy(root.localToWorld(local));baseWorld.y=groundAt(baseWorld.x,baseWorld.z)+clearance;}
       }
-      const pole=new THREE.Vector3(l.sign*(.15+crouch*.06),.45,1.0);
-      solve(l.thigh,l.knee,l.legEnd||l.foot,target,pole,l.upperLeg,l.lowerLeg);
-      if(l.legEnd){l.foot.position.copy(l.foot.parent.worldToLocal(root.localToWorld(target.clone())));l.foot.updateWorldMatrix(false,true);}
-      if(kneel>.01)footQ.copy(rootQ).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-kneel*(i?0:.75))).multiply(l.footQ);
-      if(collapse>0){const direction=new THREE.Vector3(0,-.45,1).normalize(),relaxed=new THREE.Quaternion().setFromUnitVectors(l.toeDirection,direction).multiply(l.footQ);footQ.slerp(rootQ.clone().multiply(relaxed),collapse);}
-      orient(l.foot,rootQ.clone().invert().multiply(footQ));
-      footError=Math.max(footError,localPoint(l.foot).distanceTo(target));
+      if(commitLanding){baseWorld.y=groundAt(baseWorld.x,baseWorld.z)+neutral.y;l.plant.copy(baseWorld);l.plantBodyQ.copy(bodyQ);}
+      l.worldFoot.copy(baseWorld);l.roll=roll;
+      const groundNormal=new THREE.Vector3((groundAt(baseWorld.x-.12,baseWorld.z)-groundAt(baseWorld.x+.12,baseWorld.z))/.24,1,(groundAt(baseWorld.x,baseWorld.z-.12)-groundAt(baseWorld.x,baseWorld.z+.12))/.24).normalize();
+      const groundQ=new THREE.Quaternion().setFromUnitVectors(worldUp,groundNormal).multiply(bodyQ),rollQ=new THREE.Quaternion().setFromAxisAngle(footAxis,roll);
+      const pivot=new THREE.Vector3(0,-l.ankle.y+.014,roll>0?.16:-.075),rollOffset=pivot.clone().sub(pivot.clone().applyQuaternion(rollQ)).applyQuaternion(groundQ);
+      l.target=root.worldToLocal(baseWorld.clone().add(rollOffset));l.targetQ=groundQ.clone().multiply(rollQ).multiply(l.footQ);l.pivotWorld=baseWorld.clone().add(pivot.clone().applyQuaternion(groundQ));l.pivotLocal=pivot.clone().applyQuaternion(l.footQ.clone().invert());
+      if(kneel>.01)l.targetQ.copy(rootQ).multiply(new THREE.Quaternion().setFromAxisAngle(footAxis,-kneel*(i?0:.75))).multiply(l.footQ);
+      if(collapse>0){const relaxed=new THREE.Quaternion().setFromUnitVectors(l.toeDirection,new THREE.Vector3(0,-.45,1).normalize()).multiply(l.footQ);l.targetQ.slerp(rootQ.clone().multiply(relaxed),collapse);}
     }
-    const chest=localPoint(rig.chest),aimQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch+recoil*.035-.11*motion-.20*reloadWeight,Math.PI+yaw,.22*reloadWeight,'YXZ'));
+    model.position.copy(modelBase);model.position.y-=drop;model.position.y+=Math.sin(gait*2)*.016*runBlend;model.position.z-=crouch*.105+low*.025;
+    model.position.x+=-Math.sin(gait)*.022*Math.min(motion,1)+Math.sin(time*.71)*.003*Math.max(0,1-motion)*aliveWeight+lean*.055*aliveWeight;root.updateMatrixWorld(true);
+    // Pelvis height follows the reach of the two real legs, so the body rises
+    // in mid-stance instead of keeping the same lowered squat while walking.
+    if(kneel<.15&&collapse<.01)for(const l of limbs){const hip=localPoint(l.thigh),horizontal=Math.hypot(hip.x-l.target.x,hip.z-l.target.z),reach=(l.upperLeg+l.lowerLeg)*.985;requiredLower=Math.max(requiredLower,hip.y-l.target.y-Math.sqrt(Math.max(.04,reach*reach-horizontal*horizontal)));}
+    pelvisLower=Math.max(clamp(requiredLower,0,.19),damp(pelvisLower,clamp(requiredLower,0,.19),dt,10));model.position.y-=pelvisLower*aliveWeight;root.updateMatrixWorld(true);
+    const hitVector=root.userData.hitDirection?new THREE.Vector3(root.userData.hitDirection.x||0,root.userData.hitDirection.y||0,root.userData.hitDirection.z||0).applyQuaternion(rootQ.clone().invert()).normalize():new THREE.Vector3(0,0,-1);
+    const weightShift=-Math.sin(gait)*.018*Math.min(motion,1),forwardLean=.035*motion+.065*runBlend+acceleration*.009;
+    rotate(rig.hips,0,Math.sin(gait)*.035*motion,weightShift*.35);
+    rotate(rig.spine,.10*crouch+.08*low+.16*treat+forwardLean+breath+hitVector.z*.11*hit-.035*collapse,yaw*.26-Math.sin(gait)*.026*motion,-weightShift-lean*.10-hitVector.x*.10*hit-deadSide*.22*collapse);
+    rotate(rig.chest,.045*alert+.07*crouch+.12*treat+.025*motion-recoil*.025+hitVector.z*.08*hit-.02*collapse,yaw*.32+hitVector.x*.07*hit,-lean*.06+deadSide*.10*collapse);
+    rotate(rig.neck,-.035*crouch-.02*treat,0,deadSide*.70*collapse);
+    const scan=Math.sin(time*.62)*(.045+.045*alert)*(1-treat)*(pose.aimTarget?0:1)*aliveWeight;
+    rotate(rig.head,(-pitch*.45-.04*crouch+.02*treat+Math.sin(time*7)*.012*talk-.04*hit)*aliveWeight-.10*collapse,yaw*.30*aliveWeight+scan-deadSide*.30*collapse,Math.sin(time*3)*.009*talk*aliveWeight);
+    for(const l of limbs){
+      const pole=new THREE.Vector3(l.sign*(.14+crouch*.06)+travel.x*.16,.45,.85+travel.z*.12);solve(l.thigh,l.knee,l.legEnd||l.foot,l.target,pole,l.upperLeg,l.lowerLeg);
+      if(l.legEnd){l.foot.position.copy(l.foot.parent.worldToLocal(root.localToWorld(l.target.clone())));l.foot.updateWorldMatrix(false,true);}
+      orient(l.foot,rootQ.clone().invert().multiply(l.targetQ));footError=Math.max(footError,localPoint(l.foot).distanceTo(l.target));
+      const actualPivot=l.pivotLocal.clone().applyQuaternion(l.foot.getWorldQuaternion(new THREE.Quaternion())).add(l.foot.getWorldPosition(new THREE.Vector3()));l.supportError=!l.swinging&&!l.settling?actualPivot.distanceTo(l.pivotWorld):0;supportError=Math.max(supportError,l.supportError);
+    }
+    const chest=localPoint(rig.chest),aimQ=new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch+recoil*.035-.035*motion-.09*runBlend-.20*reloadWeight,Math.PI+yaw,.22*reloadWeight,'YXZ'));
     if(collapse>0)aimQ.slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.32,Math.PI+.15,-.12,'YXZ')),collapse);
     let gripError=0;
     if(rifle){
       const carryWeight=clamp(Number(pose.carry??(['carry','handover'].includes(pose.gesture)?1:0)),0,1)*aliveWeight,ropeGrip=pose.gesture==='fast-rope'?aliveWeight:0;
-      rifle.visible=treat<.55&&carryWeight<.4&&ropeGrip<.4;
+      rifle.visible=!root.userData.weaponDropped&&treat<.55&&carryWeight<.4&&ropeGrip<.4;
       const right=chest.clone().add(new THREE.Vector3(-.10,.025+alert*.025,.20-recoil*.04-hit*.035).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
       right.lerp(chest.clone().add(new THREE.Vector3(deadSide===1?-.10:-.05,deadSide===1?.06:-.23,deadSide===1?.20:.25)),collapse);
       const left=new THREE.Vector3(...grips.left).sub(new THREE.Vector3(...grips.right)).applyQuaternion(aimQ).add(right);
@@ -304,16 +344,16 @@ function installActorPoses(root, model, rawBones, rifle, kind, nativeAnimate) {
     }else{
       const head=localPoint(rig.head);
       for(let i=0;i<limbs.length;i++){
-        const l=limbs[i],swing=Math.sin(gait+i*Math.PI)*.16*Math.min(motion,1);
-        const relaxed=chest.clone().add(new THREE.Vector3(l.sign*.23,-.49,.035+swing));
+        const l=limbs[i],swing=-Math.cos(gait+i*Math.PI)*(.14+.13*runBlend)*Math.min(motion,1);
+        const relaxed=chest.clone().add(new THREE.Vector3(l.sign*(.22+.025*runBlend),-.53+.17*runBlend,.035+swing));
         const protective=head.clone().add(new THREE.Vector3(l.sign*.135,.08,.025));
-        const target=relaxed.lerp(protective,crouch*aliveWeight);
+        const target=relaxed.lerp(protective,crouch*aliveWeight*(1-.5*Math.min(motion,1)));
         solve(l.arm,l.elbow,l.hand,target,new THREE.Vector3(l.sign*.44,chest.y-.28,.20),l.upperArm,l.lowerArm);orient(l.hand,l.handQ);
         if(crouch>.5&&l.knuckle)point(l.hand,l.knuckle,head.clone().add(new THREE.Vector3(l.sign*.02,.13,.025)));
       }
     }
     root.updateMatrixWorld(true);
-    Object.assign(state,{stance,motion,lowering:drop,headHeight:localPoint(rig.head).y,hipHeight:localPoint(rig.hips).y,aimYaw:yaw,aimPitch:pitch,recoil,hit,dead,reload:reloadPhase,lean,moveDirection:travel.toArray(),gripError:rifle?.visible?gripError:0,footError,gripSpan});
+    Object.assign(state,{stance,motion,lowering:drop,headHeight:localPoint(rig.head).y,hipHeight:localPoint(rig.hips).y,aimYaw:yaw,aimPitch:pitch,recoil,hit,dead,reload:reloadPhase,lean,moveDirection:travel.toArray(),gripError:rifle?.visible?gripError:0,footError,gripSpan,gaitPhase:gaitCycles%1,gaitCycles,strideLength,contactFraction:contact,locomotion:stance==='crouch'||stance==='low'?'crouch':runBlend>.5?'run':amount>.035?'walk':turning?'turn':'idle',distanceTravelled:travelled,actualSpeed:amount,turnSpeed,pelvisLower,supportError,acceleration});
   };
   root.userData.animate(0,0,{});
 }
@@ -642,8 +682,8 @@ export async function createWorld(renderer) {
     }else model=proceduralPerson(civilian?'civilian':kind);
     root.add(model);
     if(!civilian&&(kind==='soldier'||kind==='enemy')){
-      const weaponId=kind==='enemy'?'ak':name==='掩护队员'?'m249':PLAYER_WEAPON_IDS[0];
-      const rifle=carriedRifle(weaponId);root.userData.weaponId=weaponId;actorRifle=rifle;rifle.scale.setScalar(1);root.add(rifle);
+      const weaponId=kind==='enemy'?(options.weaponId||'ak'):name==='掩护队员'?'m249':PLAYER_WEAPON_IDS[0];
+      const rifle=carriedRifle(weaponId);root.userData.weaponId=weaponId;actorRifle=rifle;root.userData.carriedWeapon=rifle;rifle.scale.setScalar(1);root.add(rifle);
     }
     if(!civilian&&(kind==='soldier'||kind==='wounded')){
       const helmet=fittedHelmet();
@@ -653,7 +693,7 @@ export async function createWorld(renderer) {
       model.rotation.x=-PI/2;model.position.set(0,.31,.89);
       root.add(box(.9,.045,2.0,cloth,0,.12,0));
     }
-    if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,civilian?'civilian':kind,root.userData.animate);
+    if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,civilian?'civilian':kind,root.userData.animate,sampleHeight);
     root.userData.kind=kind;root.userData.civilianAppearance=civilian;root.userData.model=model;dynamic.add(root);dynamicActors.push(root);return root;
   }
   function createProp(kind,position,options={}){

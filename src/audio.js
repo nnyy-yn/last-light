@@ -1,10 +1,12 @@
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(v)?v:a));
-// Frequency / pressure decay / crack mix / bolt resonance / bolt delay.
-// The heavy mount has a longer low pressure body, not a louder master bus.
-const GUNS={m16a2:[138,.038,.70,2350,.036],m4a1:[154,.032,.78,2760,.031],m249:[112,.049,.67,1840,.045],ak:[98,.052,.62,2110,.047],mp5:[186,.024,.46,3100,.025],m1911:[121,.044,.57,1650,.041],'mounted-m2':[72,.078,.71,890,.068]};
+// Fixed pressure modes / decay / crack / action Hz + timing / attack decay /
+// pressure bandwidth / muzzle-front gap / first reflection. No falling tone.
+// The .50 has a wider pressure envelope, never an increased master ceiling.
+const GUNS={m16a2:[135,.025,.88,2500,.032,.0017,1100,.0011,.028],m4a1:[160,.022,1,3100,.028,.0015,1450,.0008,.025],m249:[108,.039,.88,1710,.045,.0022,820,.0014,.034],ak:[95,.043,.76,1300,.043,.0025,720,.0015,.038],mp5:[202,.016,.55,3800,.021,.0012,1600,.00055,.019],m1911:[104,.029,.66,1450,.037,.0020,610,.0012,.026],'mounted-m2':[63,.065,.95,780,.065,.0032,420,.0022,.044]};
 const gunId=id=>id==='akm'?'ak':Object.hasOwn(GUNS,id)?id:'m4a1';
-const impactMaterial=value=>/metal|steel|vehicle|car/i.test(value)?'metal':/wood|timber/i.test(value)?'wood':/sand|soil|dirt|cloth|ground/i.test(value)?'sand':'masonry';
+const impactMaterial=value=>/metal|steel|vehicle|car|armor/i.test(value)?'metal':/wood|timber/i.test(value)?'wood':/sand|soil|dirt|cloth|ground/i.test(value)?'sand':/glass|window/i.test(value)?'glass':'masonry';
+const hitRegion=value=>['head','torso','limb','armor'].includes(value)?value:'torso';
 export const AIRCRAFT_SAMPLE='audio/rotor-loop.wav';
 export const AUDIO_VOICE_LIMIT=48;
 function randomStream(seed=1){let s=seed>>>0;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
@@ -13,28 +15,32 @@ function highpass(data,hz,sr){const low=lowpass(data,hz,sr),out=new Float32Array
 function normalize(channels,peak=.88){let max=0;for(const ch of channels)for(const v of ch)max=Math.max(max,Math.abs(v));const scale=max?peak/max:1;for(const ch of channels)for(let i=0;i<ch.length;i++)ch[i]*=scale;return channels;}
 
 /** Original deterministic PCM; live playback and offline exports use the same synthesis. */
-export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gunType,distant=false,material='masonry',killed=false}={}){
-  weaponId=gunId(gunType||weaponId);material=impactMaterial(material);
-  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?(weaponId==='mounted-m2'?.78:.58):kind==='bullet-impact'?.24:kind==='hit-confirm'?.11:kind==='debris'?.75:.5;
+export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gunType,distant=false,material='masonry',killed=false,hitZone='torso'}={}){
+  weaponId=gunId(gunType||weaponId);material=impactMaterial(material);hitZone=hitRegion(hitZone);
+  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?(weaponId==='mounted-m2'?.78:.58):kind==='bullet-impact'?.24:kind==='hit-confirm'?.09:kind==='actor-impact'?.18:kind==='debris'?.75:.5;
   const n=Math.ceil(duration*sampleRate),raw=new Float32Array(n),p=GUNS[weaponId];let low=0,mid=0,phase=0,pressureNoise=0;
   for(let i=0;i<n;i++){
     const t=i/sampleRate,w=rng()*2-1;low+=.008*(w-low);mid+=.18*(w-mid);
     if(kind==='shot'){
-      const attack=1-Math.exp(-t*13000),body=Math.exp(-t/p[1]),heavy=weaponId==='mounted-m2';
-      pressureNoise+=(1-Math.exp(-TAU*(heavy?310:620)/sampleRate))*(w-pressureNoise);
-      phase+=TAU*((heavy?37:54)+p[0]*Math.exp(-t*31))/sampleRate;
-      // Separate sharp muzzle crack, irregular pressure body and late action.
-      // No continuous high-frequency hiss between automatic shots.
-      const crack=(w-mid)*Math.exp(-t/(heavy?.0048:.0032))*p[2];
-      const pressure=(pressureNoise*2.3+Math.sin(phase)*.46+Math.sin(phase*1.93+.4)*.09)*body;
-      const boltTime=t-p[4],bolt=boltTime>=0?((w-mid)*.25+Math.sin(TAU*p[3]*boltTime)*.16)*Math.exp(-boltTime/.0065)*(1-Math.exp(-boltTime*9000)):0;
-      const returnTime=t-p[4]-.016,closing=returnTime>=0?(w-mid)*Math.exp(-returnTime/.003)*.075:0;
-      raw[i]=attack*(crack+pressure)+bolt+closing;
+      const attack=1-Math.exp(-t*18000),body=Math.exp(-t/p[1]),heavy=weaponId==='mounted-m2';
+      pressureNoise+=(1-Math.exp(-TAU*p[6]/sampleRate))*(w-pressureNoise);
+      const crack=(w-mid)*Math.exp(-t/p[5])*p[2];
+      // Two asymmetric pressure fronts, followed by noisy low-frequency mass.
+      // The old exponential frequency sweep read as a synthetic water/laser pop.
+      const front=(Math.exp(-t/.00042)-.58*Math.exp(-Math.abs(t-p[7])/.00060))*.42;
+      const pressure=(pressureNoise*3.6+Math.sin(TAU*p[0]*t)*.17+Math.sin(TAU*p[0]*1.71*t+.4)*.065)*body;
+      const boltTime=t-p[4],bolt=boltTime>=0?((w-mid)*.32+Math.sin(TAU*p[3]*boltTime)*.10)*Math.exp(-boltTime/.0048)*(1-Math.exp(-boltTime*12000)):0;
+      const returnTime=t-p[4]-.014,closing=returnTime>=0?((w-mid)*.14+mid*.22)*Math.exp(-returnTime/.0028):0;
+      raw[i]=attack*(crack+front+pressure)+bolt+closing;
     }else if(kind==='bullet-impact'){
       const attack=Math.min(1,t/.0004),heavy=weaponId==='mounted-m2',u=t/(heavy?1.22:1);
       if(material==='metal'){
         raw[i]=attack*(w-mid)*Math.exp(-u/.0023)*.72;
         for(const[f,level,decay]of[[1730,.19,.036],[2910,.15,.052],[4280,.09,.022]])raw[i]+=attack*Math.sin(TAU*f*u)*Math.exp(-u/decay)*level;
+      }else if(material==='glass'){
+        raw[i]=attack*(w-mid)*Math.exp(-u/.0014)*.7;
+        for(const[f,level]of[[3320,.14],[4960,.10],[7190,.065]])raw[i]+=attack*Math.sin(TAU*f*u)*Math.exp(-u/.012)*level;
+        for(const at of[.021,.046,.073])if(t>=at)raw[i]+=(w-mid)*Math.exp(-(t-at)/.002)*.05;
       }else if(material==='sand')raw[i]=attack*(mid*1.2+low*.3)*Math.exp(-u/.027);
       else{
         raw[i]=attack*((w-mid)*Math.exp(-u/.0028)*.60+mid*Math.exp(-u/(material==='wood'?.021:.012))*1.3);
@@ -42,10 +48,18 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gun
         for(const at of[.013,.033,.061])if(t>=at)raw[i]+=(w-mid)*Math.exp(-(t-at)/.0035)*(.095-at*.7);
       }
     }else if(kind==='hit-confirm'){
-      // Short equipment/fabric knock, deliberately free of musical UI tones.
-      const attack=Math.min(1,t/.0007);
-      raw[i]=attack*((w-mid)*Math.exp(-t/.003)*.38+mid*Math.exp(-t/.010)*.85+Math.sin(TAU*155*t)*Math.exp(-t/.014)*.16);
-      if(killed&&t>.024)raw[i]+=(w-mid)*Math.exp(-(t-.024)/.004)*.12;
+      // Dry confirmation is distinct from the spatial body impact. It is not
+      // a pitched UI chime and must be triggered only after a confirmed hit.
+      const attack=Math.min(1,t/.00025),armor=hitZone==='armor';
+      raw[i]=attack*((w-mid)*Math.exp(-t/(armor?.002:.0011))*.52+mid*Math.exp(-t/.006)*1.2);
+      if(killed&&t>.021)raw[i]+=(w-mid)*Math.exp(-(t-.021)/.0024)*.16;
+    }else if(kind==='actor-impact'){
+      const armor=hitZone==='armor',limb=hitZone==='limb',attack=Math.min(1,t/.00045),heavy=weaponId==='mounted-m2';
+      const bodyDecay=(limb?.010:.018)*(heavy?1.18:1);
+      raw[i]=attack*(mid*Math.exp(-t/bodyDecay)*1.8+low*Math.exp(-t/.025)*1.4+(w-mid)*Math.exp(-t/.0019)*(armor?.44:.23));
+      if(armor)raw[i]+=attack*Math.sin(TAU*1920*t)*Math.exp(-t/.009)*.15;
+      if(!limb)raw[i]+=attack*Math.sin(TAU*(hitZone==='head'?190:118)*t)*Math.exp(-t/.013)*.13;
+      const fabric=t-.014;if(fabric>0)raw[i]+=(mid-low)*Math.exp(-fabric/.009)*.20;
     }else if(kind==='explosion'){
       const pressure=Math.sin(TAU*(43*t+.34*(1-Math.exp(-t*17))))*Math.exp(-t/.32);
       raw[i]=Math.min(1,t/.0018)*(w*Math.exp(-t/.022)*.75+mid*Math.exp(-t/.14)*1.5+pressure*.43+low*Math.exp(-t/.85)*3.3);
@@ -73,7 +87,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gun
   const channels=[signal.slice(),signal.slice()];
   if(['shot','explosion'].includes(kind)){
     const reflection=lowpass(signal,kind==='explosion'?750:distant?720:1700,sampleRate);
-    const taps=kind==='explosion'?[[.095,.28,.70],[.22,.22,-.65],[.43,.14,.35],[.78,.09,-.35]]:[[.057,distant?.26:.10,-.55],[.113,.075,.60],[.186,.035,-.18]];
+    const taps=kind==='explosion'?[[.095,.28,.70],[.22,.22,-.65],[.43,.14,.35],[.78,.09,-.35]]:[[p[8],distant?.24:.17,-.40],[p[8]+.037,distant?.13:.075,.55],[p[8]+.084,.028,-.18]];
     for(const [delay,level,pan]of taps){const offset=Math.round(delay*sampleRate),l=Math.sqrt((1-pan)/2),r=Math.sqrt((1+pan)/2);for(let i=0;i<n-offset;i++){channels[0][i+offset]+=reflection[i]*level*l;channels[1][i+offset]+=reflection[i]*level*r;}}
   }
   return{sampleRate,channels:normalize(channels,kind==='shot'&&distant?.60:.88),duration};
@@ -82,7 +96,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gun
 export class Soundscape{
   constructor(options={}){
     this.ctx=options.context||null;this.ownsContext=!options.context;this.autoLoadSamples=options.autoLoadSamples!==false;
-    this.volume=.48;this.mix={aircraft:1,battle:1};this.enabled=true;this.paused=true;this.nodes=[];this.voices=new Set();this.events={};this.buffers=new Map();this.stepClock=0;
+    this.volume=.48;this.mix={aircraft:1,battle:1};this.enabled=true;this.paused=true;this.nodes=[];this.voices=new Set();this.events={};this.buffers=new Map();this.stepClock=0;this.lastImpact=null;this.lastActorImpact=null;this.lastConfirmation=null;
     this.maxVoices=AUDIO_VOICE_LIMIT;this.droppedVoices=0;this.resetCount=0;this.disposed=false;
     this.aircraftState={distance:500,gain:0,pan:0,rate:1,radialVelocity:0,active:false,sampleLoaded:false,sampleState:'not-requested',sampleURL:null,sampleError:null};
     this.fireState={distance:500,gain:0,pan:0};this.vehicleState={count:0,distance:500,gain:0,pan:0,speed:0};this.aircraftHistory=null;
@@ -194,12 +208,27 @@ export class Soundscape{
   }
   shot(id='m4a1'){if(!this._canPlay())return;id=gunId(id);this._event('shots');this._event(`shot_${id}`);const variant=(this.events.shots-1)%3;this._voice(this._buffer('shot',{weaponId:id,seed:107+variant*71}),{level:id==='m249'?.74:id==='mp5'?.66:id==='mounted-m2'?.86:.83,rate:.987+Math.random()*.026,priority:2});}
   shotAt(distance=20,pan=0,id='m4a1',occluded=false){
-    if(!this._canPlay())return;id=gunId(id);distance=clamp(distance,0,2000);this._event('remoteShots');if(occluded)this._event('occludedShots');
+    if(!this._canPlay())return;id=gunId(id);distance=clamp(distance,0,2000);this._event('remoteShots');this._event('remoteShot_'+id);if(occluded)this._event('occludedShots');
     const level=.74/(1+Math.pow(distance/(id==='mounted-m2'?27:19),1.35))*(occluded?.56:1),far=distance>40;
-    this._voice(this._buffer('shot',{weaponId:id,seed:107,distant:far}),{level,pan,delay:clamp(distance/343,0,1.5),lowpassHz:occluded?720:850+11000/(1+distance/13),rate:.97+Math.random()*.06,priority:1});
+    this._voice(this._buffer('shot',{weaponId:id,seed:107+((this.events.remoteShots-1)%3)*71,distant:far}),{level,pan,delay:clamp(distance/343,0,1.5),lowpassHz:occluded?720:850+11000/(1+distance/13),rate:.97+Math.random()*.06,priority:1});
   }
-  bulletImpact(distance,pan,material='masonry',{gunType='m4a1',power=1}={}){if(!this._canPlay())return;this._event('bulletImpacts');material=impactMaterial(material);gunType=gunId(gunType);distance=clamp(distance,0,2000);const level=.45/(1+Math.pow(distance/10,1.5))*Math.sqrt(clamp(power,.25,2));this._voice(this._buffer('bullet-impact',{seed:58+(this.events.bulletImpacts%3)*47,material,weaponId:gunType==='mounted-m2'?gunType:'m4a1'}),{level,pan,delay:distance/343,lowpassHz:750+9500/(1+distance/18),priority:1});}
-  confirmHit(killed=false){if(!this._canPlay())return;this._event('hitConfirmations');if(killed)this._event('killConfirmations');this._voice(this._buffer('hit-confirm',{seed:86,killed:Boolean(killed)}),{level:killed?.23:.18,priority:2});}
+  bulletImpact(distance=0,pan=0,material='masonry',{weaponId='m4a1',gunType,power=1}={}){
+    if(!this._canPlay())return;this._event('bulletImpacts');material=impactMaterial(material);weaponId=gunId(gunType||weaponId);distance=clamp(distance,0,2000);
+    const level=.45/(1+Math.pow(distance/10,1.5))*Math.sqrt(clamp(power,.25,2));
+    this._voice(this._buffer('bullet-impact',{seed:58+(this.events.bulletImpacts%3)*47,material,weaponId}),{level,pan,delay:distance/343,lowpassHz:750+9500/(1+distance/18),priority:1});
+    this.lastImpact={material,weaponId,distance,pan:clamp(pan,-1,1),level};
+  }
+  actorImpact(distance=0,pan=0,{weaponId='m4a1',gunType,hitZone='torso',killed=false}={}){
+    if(!this._canPlay())return;weaponId=gunId(gunType||weaponId);hitZone=hitRegion(hitZone);distance=clamp(distance,0,2000);this._event('actorImpacts');this._event('actorImpact_'+hitZone);
+    const level=(hitZone==='limb'?.28:.38)/(1+Math.pow(distance/17,1.25));
+    this._voice(this._buffer('actor-impact',{seed:131+(this.events.actorImpacts%3)*37,weaponId,hitZone}),{level,pan,delay:distance/343,lowpassHz:1200+6500/(1+distance/20),priority:2});
+    this.lastActorImpact={weaponId,hitZone,killed:Boolean(killed),distance,pan:clamp(pan,-1,1),level};
+  }
+  confirmHit(killed=false,{weaponId='m4a1',gunType,hitZone='torso'}={}){
+    if(!this._canPlay())return;weaponId=gunId(gunType||weaponId);hitZone=hitRegion(hitZone);this._event('hitConfirmations');if(killed)this._event('killConfirmations');
+    this._voice(this._buffer('hit-confirm',{seed:86,killed:Boolean(killed),hitZone}),{level:killed?.21:.16,priority:3});
+    this.lastConfirmation={weaponId,hitZone,killed:Boolean(killed)};
+  }
   smoke(){if(!this._canPlay())return;this._event('smoke');this.spatialBurst(.055,.22,1800);this.spatialBurst(.48,.11,2600,0,.18);}
   nearMiss(distance,pan){if(!this._canPlay())return;this._event('nearMisses');const level=Math.max(.03,1-distance/3);this.spatialBurst(.024,level*.30,5200,pan);this.spatialBurst(.10,level*.09,1800,-pan*.3,.014);}
   hit(){if(!this._canPlay())return;this._event('hits');this.burst(.16,.35,95);this.tone(66,.24,.12,'sine',31);}
@@ -214,9 +243,9 @@ export class Soundscape{
     for(const layer of[this.aircraft.rotor,this.aircraft.turbine,this.aircraft.air,this.aircraft.sample])if(layer){layer.source.playbackRate.cancelScheduledValues(now);layer.source.playbackRate.setValueAtTime(1,now);}
     Object.assign(this.aircraftState,{gain:0,pan:0,rate:1,radialVelocity:0,active:false});this.fireState.gain=0;if(this.vehicleState){this.vehicleState.gain=0;this.vehicleState.count=0;}this.aircraftHistory=null;
   }
-  reset(){for(const v of[...this.voices])this._retire(v);this._quietContinuous();this.reloadProgress=0;this.crackleAt=.1;this.resetCount++;}
+  reset(){for(const v of[...this.voices])this._retire(v);this._quietContinuous();this.reloadProgress=0;this.crackleAt=.1;this.lastImpact=this.lastActorImpact=this.lastConfirmation=null;this.resetCount++;}
   pause(value){this.paused=Boolean(value);if(!this.ctx)return;if(this.paused){this.reset();this.ctx.suspend()?.catch?.(()=>{});}else if(!this.disposed)this.ctx.resume()?.catch?.(()=>{});}
-  inspect(){const time=this.ctx?.currentTime||0,queued=[...this.voices].filter(v=>v.start>time).length;return{contextState:this.ctx?.state||'not-started',currentTime:time,volume:this.volume,mix:{...this.mix},paused:this.paused,activeVoices:this.voices.size-queued,queuedVoices:queued,maxVoices:this.maxVoices,persistentSources:this.nodes.length,droppedVoices:this.droppedVoices,events:{...this.events},aircraft:{...this.aircraftState,rawGain:this.aircraftState.gain,gain:this.aircraftState.gain*this.mix.aircraft},vehicles:{...this.vehicleState},fire:{...this.fireState,rawGain:this.fireState.gain,gain:this.fireState.gain*this.mix.battle},resetCount:this.resetCount,disposed:this.disposed};}
+  inspect(){const time=this.ctx?.currentTime||0,queued=[...this.voices].filter(v=>v.start>time).length;return{contextState:this.ctx?.state||'not-started',currentTime:time,volume:this.volume,mix:{...this.mix},paused:this.paused,activeVoices:this.voices.size-queued,queuedVoices:queued,maxVoices:this.maxVoices,persistentSources:this.nodes.length,droppedVoices:this.droppedVoices,events:{...this.events},lastImpact:this.lastImpact&&{...this.lastImpact},lastActorImpact:this.lastActorImpact&&{...this.lastActorImpact},lastConfirmation:this.lastConfirmation&&{...this.lastConfirmation},aircraft:{...this.aircraftState,rawGain:this.aircraftState.gain,gain:this.aircraftState.gain*this.mix.aircraft},vehicles:{...this.vehicleState},fire:{...this.fireState,rawGain:this.fireState.gain,gain:this.fireState.gain*this.mix.battle},resetCount:this.resetCount,disposed:this.disposed};}
   dispose(){
     if(this.disposed)return;this.reset();this.disposed=true;this.paused=true;for(const n of this.nodes)try{n.stop();n.disconnect();}catch{}this.nodes.length=0;
     for(const layer of[this.aircraft?.rotor,this.aircraft?.turbine,this.aircraft?.air,this.aircraft?.sample,this.fireBed?.loop,this.vehicleBed?.loop,this.vehicleBed?.rattle])if(layer){layer.filter.disconnect();layer.gain.disconnect();}

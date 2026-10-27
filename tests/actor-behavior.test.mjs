@@ -411,3 +411,33 @@ test('outlying residents stay local until a nearby threat then use their own she
   run(director,7,{player:{x:0,z:0},combatAllowed:true});assert.notEqual(director.inspect()[0].behavior,'evacuate');assert(resident.position.z<3);
   director.notifyThreat({kind:'shot',source:[108,0],position:[110,0],radius:2.8,faction:'enemy'});run(director,14,{player:{x:0,z:0},combatAllowed:true});assert.equal(director.inspect()[0].behavior,'shelter');assert(resident.position.z>7,'a brief quiet interval must not make a civilian walk back into the exposed street');
 });
+
+test('AI magazine and finite reserve remain conserved through final partial reload and exhaustion',()=>{
+ const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),enemy=actor(0,0,'enemy');enemy.userData.weaponId='m16a2';
+ const record=director.add(enemy,{kind:'enemy',encounter:{lookAt:[0,12]}});record.mag=2;record.reserve=3;
+ run(director,55,{player:{x:0,z:12,health:100},combatAllowed:true});const exhausted=director.inspect()[0];
+ assert.equal(shots.length,5);assert.equal(exhausted.mag,0);assert.equal(exhausted.reserve,0);assert.equal(exhausted.reloads,1);assert.equal(exhausted.reloading,false);assert.equal(exhausted.weaponId,'m16a2');
+ assert.deepEqual(enemy.userData.weaponAmmo,{mag:0,reserve:0,capacity:exhausted.magSize,weaponId:'m16a2'});assert.ok(shots.every(s=>s.weaponId==='m16a2'&&s.reserve>=0));
+ run(director,20,{player:{x:8,z:12,health:100},combatAllowed:true});assert.equal(shots.length,5);assert.equal(director.inspect()[0].reloads,1);assert.equal(director.inspect()[0].reloading,false);
+});
+
+test('turning has bounded angular velocity and motion inputs match actual root displacement',()=>{
+ const poses=[],director=createActorDirector(),friend=actor(0,-12);friend.userData.animate=(speed,dt,pose)=>poses.push({speed,dt,pose});director.add(friend,{role:'story',follow:true});
+ let before={...friend.position},yaw=friend.rotation.y,moved=0;run(director,8,{player:{x:0,z:0,yaw:0},combatAllowed:false},()=>{const actual=Math.hypot(friend.position.x-before.x,friend.position.z-before.z),motion=friend.userData.motion;assert.ok(Math.abs(actual-motion.distance)<1e-9);assert.ok(Math.abs(Math.hypot(motion.velocity.x,motion.velocity.z)*.05-actual)<1e-9);assert.ok(Math.abs(Math.atan2(Math.sin(friend.rotation.y-yaw),Math.cos(friend.rotation.y-yaw)))<=3.1*.05+1e-9);moved+=actual;before={...friend.position};yaw=friend.rotation.y;});
+ assert.ok(moved>10);assert.ok(poses.some(p=>p.pose.moveDistance>0));assert.ok(Math.hypot(friend.position.x,friend.position.z)<3.1,'bounded turning does not slow escort root travel');
+});
+
+test('a hit briefly interrupts firing but repeated impulses cannot create permanent stun lock',()=>{
+ const shots=[],director=createActorDirector({onFire:e=>shots.push(e)}),enemy=actor(0,0,'enemy'),record=director.add(enemy,{kind:'enemy',encounter:{lookAt:[0,12]}}),context={player:{x:0,z:12,health:100},combatAllowed:true};
+ run(director,3,context);const before=shots.length,at=director.inspect()[0].time;record.fireAt=0;record.shotAt=0;record.burstRemaining=0;enemy.userData.hitImpulse=1;
+ run(director,.15,context);assert.equal(shots.length,before);run(director,4,context);assert.ok(shots.length>before,'a sustained hit signal must still leave bounded recovery windows');assert.ok(shots.slice(before).every(s=>s.time>=at+.16));
+});
+
+test('peaceful civilians remain upright through repeated patrol cycles but still duck at a nearby blast',()=>{
+ const director=createActorDirector(),civilian=actor(0,0,'civilian');director.add(civilian,{role:'civilian',tether:2});
+ const peaceful={player:{x:8,z:8,yaw:0},combatAllowed:false};let moved=false;
+ run(director,25,peaceful,()=>{const state=director.inspect()[0];assert.equal(state.stance,'stand','peaceful patrol must not periodically become a protective crouch');moved ||= state.speed>.05;});
+ assert.equal(moved,true,'the civilian must actually patrol during this check');
+ director.notifyThreat({kind:'explosion',position:[civilian.position.x+1,civilian.position.z],source:[civilian.position.x+1,civilian.position.z],radius:5,intensity:.7});
+ director.update(.05,peaceful);assert.equal(director.inspect()[0].stance,'crouch','an actual nearby threat retains the protective reaction');
+});

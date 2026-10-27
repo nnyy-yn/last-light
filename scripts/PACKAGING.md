@@ -1,6 +1,6 @@
 # Windows 打包
 
-源码版本 0.8.0 是有限规模的战争叙事游戏原型。本文描述构建方式与输出范围；生成文件的版本、大小和哈希以 `release/release-manifest.json` 为准，公开下载验收见相应GitHub版本发布说明。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
+源码版本 0.9.0 是有限规模的战争叙事游戏原型。本文描述构建方式与输出范围；生成文件的版本、大小和哈希以 `release/release-manifest.json` 为准，公开下载验收见相应GitHub版本发布说明。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
 
 ## 一键构建
 
@@ -23,6 +23,7 @@ Vite 配置使用默认的 `public/` 复制行为；`pnpm build` 会把本地资
 | 当前新增文件 | 构建与打包位置 |
 | --- | --- |
 | `public/assets/mounted-makehuman-hands.glb` | 构建后为 `dist/assets/mounted-makehuman-hands.glb`，再随运行资源复制；可编辑源副本也在 `source/public/assets/` |
+| `src/ammunition.js`、`src/weapon-pickups.js`、`src/weapon-recoil.js` | 运行时进入Vite构建；原始文件随整个 `src/` 复制 |
 | `src/chapter-mission-plans.js`、`src/campaign-tasks.js` | 进入 Vite JavaScript 构建；原始文件随整个 `src/` 复制到 `source/src/` |
 | `src/chapter-checkpoints.js`、`src/chapter-transition.js`、`src/chapter-boundary.js`、`src/mounted-gunner-pose.js` | 同上，运行时构建和原始源码均保留 |
 | `scripts/makehuman/export-mounted-hands.py` 与新增 QA 脚本 | 整个 `scripts/` 递归复制到 `source/scripts/` |
@@ -36,7 +37,7 @@ Vite 配置使用默认的 `public/` 复制行为；`pnpm build` 会把本地资
 ## 产物
 
 - `release/归途-LastLight/归途.exe`：直接启动版，需要保留同级运行库和 resources 目录。
-- `release/归途-LastLight-v0.8.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
+- `release/归途-LastLight-v0.9.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
 - `release/归途-LastLight/manifest.sha256.json`：目录内文件大小及 SHA-256 校验值（不含 manifest 自身）。
 - `release/release-manifest.json`：版本、runtime 版本、目录体积、便携 EXE 体积及 SHA-256。
 - 发布目录内的 `source` 保留可编辑工程和项目文档，排除 node_modules、测试截图和缓存。Electron、Chromium、Three.js 许可随包分发。

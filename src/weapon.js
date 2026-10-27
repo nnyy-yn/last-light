@@ -6,12 +6,12 @@ import { STATIC_WEAPON_ASSETS } from './weapon-variants.js';
 import { createAnimatedHands } from './first-person-hands.js';
 
 export const WEAPON_DEFINITIONS = Object.freeze({
-  m16a2: Object.freeze({ id: 'm16a2', name: 'M16A2 步枪', shortName: 'M16A2', category: 'rifle', fireMode: 'burst', burstCount: 3, damage: 39, recoil: .92, magSize: 30, fireInterval: .22, reloadTime: 2.05 }),
-  m4a1: Object.freeze({ id: 'm4a1', name: 'M4A1 卡宾枪', shortName: 'M4A1', category: 'carbine', fireMode: 'auto', damage: 34, recoil: .80, magSize: 30, fireInterval: .20, reloadTime: 1.7 }),
-  m249: Object.freeze({ id: 'm249', name: 'M249 支援机枪', shortName: 'M249', category: 'machinegun', fireMode: 'auto', damage: 31, recoil: .65, magSize: 100, fireInterval: .105, reloadTime: 4.2 }),
-  ak: Object.freeze({ id: 'ak', name: 'AKM 突击步枪', shortName: 'AKM', category: 'rifle', fireMode: 'auto', damage: 41, recoil: 1.20, magSize: 30, fireInterval: .18, reloadTime: 2.4 }),
-  mp5: Object.freeze({ id: 'mp5', name: 'MP5 冲锋枪', shortName: 'MP5', category: 'smg', fireMode: 'auto', damage: 24, recoil: .48, magSize: 30, fireInterval: .09, reloadTime: 1.9 }),
-  m1911: Object.freeze({ id: 'm1911', name: 'M1911 手枪', shortName: 'M1911', category: 'pistol', fireMode: 'semi', damage: 46, recoil: 1.35, magSize: 7, fireInterval: .30, reloadTime: 1.65 }),
+  m16a2: Object.freeze({ id: 'm16a2', name: 'M16A2 步枪', shortName: 'M16A2', category: 'rifle', fireMode: 'burst', burstCount: 3, damage: 39, recoil: .92, magSize: 30, fireInterval: .085, reloadTime: 2.05 }),
+  m4a1: Object.freeze({ id: 'm4a1', name: 'M4A1 卡宾枪', shortName: 'M4A1', category: 'carbine', fireMode: 'auto', damage: 34, recoil: .80, magSize: 30, fireInterval: .09, reloadTime: 1.7 }),
+  m249: Object.freeze({ id: 'm249', name: 'M249 支援机枪', shortName: 'M249', category: 'machinegun', fireMode: 'auto', damage: 31, recoil: .65, magSize: 100, fireInterval: .08, reloadTime: 4.2 }),
+  ak: Object.freeze({ id: 'ak', name: 'AKM 突击步枪', shortName: 'AKM', category: 'rifle', fireMode: 'auto', damage: 41, recoil: 1.20, magSize: 30, fireInterval: .11, reloadTime: 2.4 }),
+  mp5: Object.freeze({ id: 'mp5', name: 'MP5 冲锋枪', shortName: 'MP5', category: 'smg', fireMode: 'auto', damage: 24, recoil: .48, magSize: 30, fireInterval: .075, reloadTime: 1.9 }),
+  m1911: Object.freeze({ id: 'm1911', name: 'M1911 手枪', shortName: 'M1911', category: 'pistol', fireMode: 'semi', damage: 46, recoil: 1.35, magSize: 7, fireInterval: .20, reloadTime: 1.65 }),
 });
 export const PLAYER_WEAPON_IDS = Object.freeze(['m16a2', 'm249', 'ak', 'mp5', 'm1911', 'm4a1']);
 
@@ -232,6 +232,38 @@ export function createRifle(id = 'm4a1') {
   return markShared(rifle);
 }
 
+// Only separated source parts with a verified firing role are animated.
+// The M1911 source calls its full upper slide ChargingHandle; its 0.19m
+// geometry is the slide. M4/MP5 handles do not cycle during firing, and the
+// M249 asset has no separated bolt, so those models keep their authored mesh.
+export const WEAPON_FIRE_PARTS=Object.freeze({
+  m16a2:Object.freeze({name:'BoltCarrier',role:'bolt',stroke:.018,attack:.010,hold:.008,duration:.085}),
+  ak:Object.freeze({name:'ChargingHandle',role:'reciprocating-handle',stroke:.026,attack:.013,hold:.009,duration:.105}),
+  m1911:Object.freeze({name:'ChargingHandle',role:'slide',stroke:.023,attack:.012,hold:.012,duration:.110}),
+});
+function createFireMechanism(view,id){
+  const spec=WEAPON_FIRE_PARTS[id],part=spec?view.getObjectByName(spec.name):null;
+  // createAnimatedHands already owns the reload pivot in view-local metres.
+  // Apply the firing offset after its baseline reset, never reparent it again.
+  const pivot=part?.parent?.name==='bolt animation pivot'?part.parent:null;
+  let elapsed=Infinity,cycles=0,offset=0;
+  const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t);};
+  const inspect=()=>({supported:Boolean(pivot),part:part?.name||null,role:pivot?spec.role:null,cycles,offset,active:Boolean(pivot&&elapsed<spec.duration)});
+  return {
+    fire(){if(pivot){elapsed=0;cycles++;}},
+    reset(){elapsed=Infinity;cycles=0;offset=0;},
+    update({dt=0,reload=0}={}){
+      offset=0;if(!pivot)return;
+      if(reload>0&&reload<1){elapsed=Infinity;return;}
+      if(Number.isFinite(dt)&&dt>0)elapsed+=dt;
+      if(elapsed>=spec.duration)return;
+      const pulse=elapsed<spec.attack?smooth(elapsed/spec.attack):elapsed<spec.attack+spec.hold?1:1-smooth((elapsed-spec.attack-spec.hold)/(spec.duration-spec.attack-spec.hold));
+      offset=spec.stroke*pulse;pivot.position.z+=offset;
+      view.updateWorldMatrix(true,true);
+    },inspect,
+  };
+}
+
 /** Same rifle and textures as NPCs, with authored hands instead of primitive tubes. */
 export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
   if (!firstPersonTemplate) throw new Error('Call prepareWeapon() before createWeapon().');
@@ -240,7 +272,7 @@ export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
   group.position.set(.23, -.24, -.32);
   group.userData = metadata();
   let rig = cloneSkeleton(firstPersonTemplate);
-  let hands, pendingShot=false;
+  let hands, mechanism, pendingShot=false;
   const liveViews=new Map();
   group.add(rig);
   markShared(rig, { firstPerson: true });
@@ -271,9 +303,9 @@ export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
     if(!live){
       const view=cloneSkeleton(template);view.userData=structuredClone(template.userData);
       const animation=createAnimatedHands({...armSources.get(id),weapon:view,rifle:view.children[0],id});
-      live={rig:view,hands:animation};liveViews.set(id,live);
+      live={rig:view,hands:animation,mechanism:createFireMechanism(view,id)};liveViews.set(id,live);
     }
-    rig=live.rig;hands=live.hands;pendingShot=false;hands.update({reload:0});
+    rig=live.rig;hands=live.hands;mechanism=live.mechanism;pendingShot=false;mechanism.reset();hands.update({reload:0,dt:1});
     markShared(rig, { firstPerson: true });
     group.add(rig);
     group.name = `first-person-${id}`;
@@ -286,6 +318,8 @@ export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
   };
   setWeapon(initialId);
   return { group, flash, muzzle, sight, setWeapon, getMuzzlePosition, definitions: WEAPON_DEFINITIONS,
-    update(pose){hands.update({...pose,shot:pendingShot});pendingShot=false;},
-    fire(){pendingShot=true;},inspectHands(){return hands.inspect();} };
+    // The main loop owns the complete rig recoil; only hands and separated
+    // mechanisms move here. This leaves the grip relationship intact.
+    update(pose={}){hands.update({...pose,shot:pendingShot});mechanism.update(pose);pendingShot=false;},
+    fire(){pendingShot=true;mechanism.fire();},inspectHands(){return {...hands.inspect(),mechanism:mechanism.inspect()};} };
 }

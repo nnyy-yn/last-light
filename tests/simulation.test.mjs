@@ -7,6 +7,7 @@ import {
 } from '../src/simulation.js';
 import { CHAPTERS, INITIAL_RESOURCES, getEpilogue } from '../src/story.js';
 import { getChapterLayout } from '../src/chapter-layouts.js';
+import {createAmmoReserves,ammoTotal} from '../src/ammunition.js';
 
 function memoryStorage() {
   const values = new Map();
@@ -349,4 +350,25 @@ test('shooting requires an armed active player, ammunition and a completed coold
   for (const chapter of CHAPTERS.filter(chapter => !chapter.armed)) {
     assert.equal(canFire('playing', chapter.armed, 30, 0, 0), false);
   }
+});
+
+test('typed ammunition saves are strict while campaigns and old checkpoints without pools remain compatible',()=>{
+  const state=newCampaign(INITIAL_RESOURCES);assert.equal(Object.hasOwn(state,'ammoReserves'),false);
+  state.resources.ammo=720;state.ammoReserves=createAmmoReserves(720);checkpoint(state,0);
+  const storage=memoryStorage();assert(saveCampaign(storage,state));assert.deepEqual(readCampaign(storage),state);
+  for(const mutate of[s=>s.ammoReserves['556']--,s=>s.ammoReserves['762']=-1,s=>s.ammoReserves['45']=1.5,s=>s.ammoReserves.extra=0,s=>delete s.ammoReserves['9mm'],s=>s.ammoReserves=null,s=>s.resources.ammo=721,s=>s.checkpoints[0].ammoReserves['556']--]){const bad=snapshot(state);mutate(bad);assert.equal(validateSave(bad),null);}
+  const legacy=newCampaign(INITIAL_RESOURCES);checkpoint(legacy,0);legacy.ammoReserves=createAmmoReserves(300);legacy.resources.ammo=300;
+  assert(restoreChapter(legacy,0));assert.equal(Object.hasOwn(legacy,'ammoReserves'),false);assert.equal(legacy.resources.ammo,INITIAL_RESOURCES.ammo);assert(validateSave(legacy));
+});
+
+test('chapter choices reconcile caliber pools and chapter replay restores a detached exact composition',()=>{
+  const state=newCampaign(INITIAL_RESOURCES);state.resources.ammo=90;state.ammoReserves={'556':40,'762':30,'9mm':13,'45':7};checkpoint(state,0);
+  const atStart=snapshot(state),cost={id:1,title:'Supply handover',role:'Liaison',choice:{options:[{label:'Share',response:'Confirmed',effects:{ammo:-17}}]}};
+  choose(state,cost,cost.choice.options[0]);assert.equal(state.resources.ammo,73);assert.equal(ammoTotal(state.ammoReserves),73);assert.deepEqual(state.ammoReserves,{'556':23,'762':30,'9mm':13,'45':7});
+  checkpoint(state,1);state.ammoReserves['762']=0;state.resources.ammo-=30;
+  assert(restoreChapter(state,0));assert.deepEqual(state.ammoReserves,atStart.ammoReserves);state.ammoReserves['556']--;state.resources.ammo--;
+  assert.deepEqual(state.checkpoints[0].ammoReserves,atStart.ammoReserves,'Replay must not alias its saved pool');
+  assert(restoreChapter(state,0));choose(state,cost,cost.choice.options[0]);assert.equal(ammoTotal(state.ammoReserves),73);
+  const before=snapshot(state);state.checkpoints[0].ammoReserves['45']++;const invalid=snapshot(state);assert.equal(restoreChapter(state,0),false);assert.deepEqual(state,invalid);
+  state.checkpoints[0]=before.checkpoints[0];state.ammoReserves['556']++;assert.throws(()=>checkpoint(state,2));assert.equal(state.checkpoints[2],undefined);
 });

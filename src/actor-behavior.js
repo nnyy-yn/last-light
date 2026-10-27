@@ -124,13 +124,15 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     const r = { id: options.id ?? `actor-${++nextId}`, actor, entity: options.entity, kind, role, index: actors.length,
       x: actor.position.x, z: actor.position.z, anchor: point(options.anchor || actor.position), tether: options.tether ?? 2,
       follow: Boolean(options.follow), behavior: kind === 'wounded' ? 'wounded' : 'alert', stance: 'stand', speed: 0,
+      velocityX:0,velocityZ:0,moveDistance:0,turnVelocity:0,acceleration:0,hitReactUntil:0,nextHitReact:0,
+      weaponId:actor.userData.weaponId||(kind==='enemy'?'ak':'m16a2'),
       goal: null, path: [], pathVersion: -1, replanAt: 0, thinkAt: 0, actionUntil: 0, fireAt: Number.isFinite(encounter.fireDelay)?Math.max(2.1,encounter.fireDelay):2.1 + random(),
       encounter,route:Array.isArray(encounter.patrol)?encounter.patrol.map(point):[],shelter:options.shelter?point(options.shelter):null,residentWait:options.wait??0,localThreatOnly:options.localThreatOnly??actor.userData.resident?.localThreatOnly??false,firstContactAt:null,openingUntil:0,
       tacticalRole:kind==='enemy'?(encounter.tacticalRole||['support','flank-left','flank-right'][enemyIndex%3]):null,reserveActive:!encounter.reserve,reserveActivatedAt:null,
       maneuver:null,maneuverUntil:0,maneuverAt:0,holdUntil:0,aimTime:0,trackingTarget:null,searchStep:0,searchGoal:null,searchAt:0,lastSharedAt:-Infinity,
       lastSeen: -Infinity, lastKnown: null, heardUntil: 0, visible: false, suppression: 0, suppressedUntil: 0, threat: null,
       cover: null, peek: null, coverUntil: 0, target: null, aimTarget: null, recoil: 0, alert: 0,
-      shotsFired: 0, shotsBlocked: 0, magSize:18+(actors.length%3)*3,mag:18+(actors.length%3)*3,burstRemaining:0,shotAt:0,reloadStart:0,reloadUntil:0,reloadProgress:0,reloads:0,
+      shotsFired: 0, shotsBlocked: 0, magSize:18+(actors.length%3)*3,mag:18+(actors.length%3)*3,reserve:(18+(actors.length%3)*3)*3,burstRemaining:0,shotAt:0,reloadStart:0,reloadUntil:0,reloadProgress:0,reloads:0,
       stuckCount: 0, stuckTime: 0, patrol: 0, nextCallout: 0, scanAt: .2, scanYaw: actor.rotation.y || 0 };
     if(!navigator.valid(r)){
       const extent=navigator.bounds,corrected=navigator.nearest({x:clamp(r.x,extent.minX+.5,extent.maxX-.5),z:clamp(r.z,extent.minZ+.5,extent.maxZ-.5)},null,14);
@@ -154,6 +156,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     if (r.entity) { r.entity.x = r.x; r.entity.z = r.z; }
     r.anchor = { x: r.x, z: r.z }; r.goal = null; r.path = [];
     r.pathVersion = -1; r.replanAt = 0; r.thinkAt = 0; r.speed = 0; r.stuckTime = 0;
+    r.velocityX=r.velocityZ=r.moveDistance=r.turnVelocity=r.acceleration=0;
     r.cover = null; r.peek = null; r.maneuver = null;
     // Restoration changes location only. Do not publish a pose, tick time,
     // refill a magazine, or reset entity health/death and action timers.
@@ -275,7 +278,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
   function guard(r) {
     if (!r.goal || distance(r, r.goal) < .18 || now >= r.actionUntil) {
       r.patrol++; const angle = r.index * 2.39 + r.patrol * 1.9, radius = Math.min(r.tether - .2, .95 + (r.index % 3) * .25);
-      destination(r, { x: r.anchor.x + Math.cos(angle) * radius, z: r.anchor.z + Math.sin(angle) * radius }, 'watch', r.patrol % 3 === 0 ? 'crouch' : 'stand');
+      destination(r, { x: r.anchor.x + Math.cos(angle) * radius, z: r.anchor.z + Math.sin(angle) * radius }, 'watch', r.kind !== 'civilian' && r.patrol % 3 === 0 ? 'crouch' : 'stand');
       r.actionUntil = now + 4.0 + (r.index % 3) * .7;
     }
   }
@@ -522,14 +525,16 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     r.speed=Math.max(r.speed,adjustment/Math.max(dt,.001));r.actor.position.x=r.x;r.actor.position.z=r.z;
     if(r.entity){r.entity.x=r.x;r.entity.z=r.z;}
   }
+  function publishAmmo(r){r.actor.userData.weaponAmmo={mag:r.mag,reserve:r.reserve,capacity:r.magSize,weaponId:r.weaponId};}
   function beginReload(r){
+    if(r.reserve<=0||r.mag>=r.magSize||now<r.reloadUntil)return false;
     r.reloadStart=now;r.reloadUntil=now+2.5+random()*.5;r.reloadProgress=0;r.burstRemaining=0;r.thinkAt=0;
     const threat=r.lastKnown||r.threat||r.target;
     if(threat&&!r.cover)r.cover=findCover(r,threat);
-    destination(r,r.cover?.position,'reload','crouch');callout(r,'换弹，帮我看住前面！');
+    destination(r,r.cover?.position,'reload','crouch');callout(r,'换弹，帮我看住前面！');return true;
   }
   function fire(r) {
-    if(r.kind==='civilian'||r.kind==='wounded'||context.combatAllowed===false||now<r.reloadUntil)return;
+    if(r.kind==='civilian'||r.kind==='wounded'||context.combatAllowed===false||now<r.reloadUntil||now<r.hitReactUntil)return;
     if(r.mag<=0){beginReload(r);return;}
     if(now<r.suppressedUntil){r.burstRemaining=0;r.fireAt=Math.max(r.fireAt,now+.55);return;}
     if(!r.target){r.burstRemaining=0;return;}
@@ -541,21 +546,27 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     if(r.burstRemaining===0){if(now<r.fireAt)return;r.burstRemaining=random()<.5?2:3;r.shotAt=now;}
     if(now<r.shotAt)return;
     if (sightBlocked(r,target) || smokeBlocked(r,target)) { r.shotsBlocked++;r.burstRemaining=0; r.fireAt = now + .4; return; }
-    r.mag--;r.burstRemaining--;r.shotsFired++;r.recoil=1;r.shotAt=now+.15+random()*.07;
+    r.mag--;r.burstRemaining--;r.shotsFired++;publishAmmo(r);r.recoil=1;r.shotAt=now+.15+random()*.07;
     if(r.burstRemaining===0)r.fireAt=now+(r.kind==='enemy'?(context.difficulty==='easy'?3.5+random()*2:context.difficulty==='hard'?2.2+random()*1.2:2.6+random()*1.5):5.0+random()*2);
     const targetCrouched=r.target.player?context.player.crouched:target.stance==='crouch';
     const rangeFactor=clamp(1.12-distance(r,target)*.012,.58,1),aimFactor=.30+Math.min(3,r.aimTime)*.045;
     const accuracy=r.kind==='enemy'?clamp(aimFactor*rangeFactor*(r.speed>.2?.64:1)*(1-r.suppression*.58)*(targetCrouched?.66:1)*(context.difficulty==='easy'?.72:context.difficulty==='hard'?1.12:1),.08,.49):.22;
-    onFire({ id: r.id, actor: r.actor, faction: r.kind === 'enemy' ? 'enemy' : 'ally', targetActor: target.actor || null,
+    onFire({ id: r.id, actor: r.actor, weaponId:r.weaponId,reserve:r.reserve,capacity:r.magSize,faction: r.kind === 'enemy' ? 'enemy' : 'ally', targetActor: target.actor || null,
       origin: { x: r.x, y: (r.actor?.position?.y||0)+(r.stance === 'crouch' ? .94 : 1.35), z: r.z }, aim: { x: target.x, y: r.target.player ? (context.player.y || 1.5) : (target.actor?.position?.y||0)+1.2, z: target.z },time:now,mag:r.mag,accuracy,tacticalRole:r.tacticalRole });
     if(r.mag===0)beginReload(r);
   }
   function publish(r, dt) {
-    const data = r.actor.userData; data.behavior = r.behavior; data.stance = r.stance; data.speed = r.speed; data.aimTarget = r.aimTarget;data.reload=r.reloadProgress;
-    const facing = r.aimTarget ? Math.atan2(r.aimTarget.x - r.x, r.aimTarget.z - r.z) : r.scanYaw;
-    const difference = Math.atan2(Math.sin(facing - r.actor.rotation.y), Math.cos(facing - r.actor.rotation.y));
-    r.actor.rotation.y += difference * Math.min(1, dt * 4.0);
-    data.animate?.(r.speed, dt, { stance: r.stance, aimTarget: r.aimTarget, alert: r.alert, recoil: r.recoil,reload:r.reloadProgress,hit:data.hitImpulse||0 });
+    const data=r.actor.userData;data.behavior=r.behavior;data.stance=r.stance;data.speed=r.speed;data.aimTarget=r.aimTarget;data.reload=r.reloadProgress;publishAmmo(r);
+    const look=r.aimTarget?Math.atan2(r.aimTarget.x-r.x,r.aimTarget.z-r.z):r.scanYaw;
+    const travel=r.speed>.035?Math.atan2(r.velocityX,r.velocityZ):look;
+    const faceTravel=r.speed>.035&&(!r.aimTarget||r.kind==='civilian'||r.speed>2.1&&['bound','flank','evacuate'].includes(r.behavior));
+    const facing=faceTravel?travel:look,difference=Math.atan2(Math.sin(facing-r.actor.rotation.y),Math.cos(facing-r.actor.rotation.y));
+    const maxTurn=r.kind==='civilian'?2.15:r.speed>2.1?2.7:3.1,targetRate=clamp(difference*5,-maxTurn,maxTurn);
+    r.turnVelocity+=clamp(targetRate-r.turnVelocity,-dt*11,dt*11);
+    let turn=r.turnVelocity*dt;if(turn*difference>0&&Math.abs(turn)>Math.abs(difference)){turn=difference;r.turnVelocity=dt>0?turn/dt:0;}
+    r.actor.rotation.y+=turn;
+    data.motion={velocity:{x:r.velocityX,z:r.velocityZ},distance:r.moveDistance,turnRate:r.turnVelocity,acceleration:r.acceleration,gait:r.stance==='crouch'?'crouch':r.speed>2.15?'run':r.speed>.035?'walk':'idle'};
+    data.animate?.(r.speed,dt,{stance:r.stance,aimTarget:r.aimTarget,alert:r.alert,recoil:r.recoil,reload:r.reloadProgress,hit:data.hitImpulse||0,velocity:data.motion.velocity,moveDistance:r.moveDistance,turnRate:r.turnVelocity,acceleration:r.acceleration});
   }
   function update(dt, next = {}) {
     if (!Number.isFinite(dt) || dt <= 0) return;
@@ -567,14 +578,16 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
       if(suppressionOrder&&now>=suppressionOrder.until){suppressionOrder=null;for(const r of actors)if(r.role==='companion'){r.thinkAt=0;r.goal=null;r.path=[];r.cover=null;}}
       for (const r of actors) {
         if (!live(r) || r.kind === 'wounded' || r.actor.userData.carried) continue;
+        if((r.actor.userData.hitImpulse||0)>.55&&now>=r.nextHitReact){r.hitReactUntil=now+.16;r.nextHitReact=now+.75;r.burstRemaining=0;}
         r.recoil = Math.max(0, r.recoil - step * 7); r.suppression = Math.max(0, r.suppression - step * .10);
         if(r.reloadUntil>0){
           r.reloadProgress=clamp((now-r.reloadStart)/(r.reloadUntil-r.reloadStart),0,1);
-          if(now>=r.reloadUntil){r.mag=r.magSize;r.reloadUntil=0;r.reloadProgress=0;r.reloads++;r.fireAt=now+.45;r.thinkAt=0;r.cover=null;}
+          if(now>=r.reloadUntil){const count=Math.min(r.magSize-r.mag,r.reserve);r.mag+=count;r.reserve-=count;r.reloadUntil=0;r.reloadProgress=0;if(count>0)r.reloads++;r.fireAt=now+.45;r.thinkAt=0;r.cover=null;publishAmmo(r);}
         }
         if (now >= r.scanAt && !r.aimTarget && r.speed < .05) { r.scanYaw += (r.patrol % 2 ? -1 : 1) * (.35 + random() * .55); r.scanAt = now + 1.6 + random(); }
         if (now >= r.thinkAt) { r.thinkAt = now + .28 + r.index % 3 * .035;if(now<r.reloadUntil){r.aimTarget=null;destination(r,r.cover?.position,'reload','crouch');}else if (r.kind === 'enemy') enemyThink(r, context.player); else alliedThink(r, context.player); }
-        move(r, step);personalSpace(r,step);
+        const beforeMove=copy(r),previousSpeed=r.speed;move(r, step);personalSpace(r,step);
+        r.velocityX=(r.x-beforeMove.x)/step;r.velocityZ=(r.z-beforeMove.z)/step;r.moveDistance=distance(r,beforeMove);r.speed=r.moveDistance/step;r.acceleration=clamp((r.speed-previousSpeed)/step,-8,8);
         const tracking=r.target?(r.target.player?'player':r.target.id):null;
         if(tracking&&tracking===r.trackingTarget&&r.visible)r.aimTime=Math.min(4,r.aimTime+step);else r.aimTime=0;
         r.trackingTarget=tracking;fire(r);publish(r, step);
@@ -582,7 +595,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     }
   }
   function inspect() { return actors.map(r => ({ id: r.id, kind: r.kind, role: r.role, x: r.x, z: r.z, anchor: copy(r.anchor), tether: r.tether, follow: r.follow,
-    behavior: r.behavior, stance: r.stance, speed: r.speed, goal: copy(r.goal), lastKnown: copy(r.lastKnown), lastSeen: Number.isFinite(r.lastSeen) ? r.lastSeen : null,
-    visible: r.visible, targetId:r.target?.player?'player':r.target?.id||null,firstContactAt:r.firstContactAt,openingUntil:r.openingUntil,suppression: r.suppression, cover: copy(r.cover?.position),peek:copy(r.cover?.peek), shotsFired: r.shotsFired, shotsBlocked: r.shotsBlocked,mag:r.mag,magSize:r.magSize,burstRemaining:r.burstRemaining,reload:r.reloadProgress,reloading:now<r.reloadUntil,reloads:r.reloads,reloadStart:r.reloadStart,reloadUntil:r.reloadUntil,stuckCount: r.stuckCount, pathRemaining: r.path.length, alive: live(r), startCorrected:Boolean(r.startCorrected),tacticalRole:r.tacticalRole,reserveActive:r.reserveActive,reserveActivatedAt:r.reserveActivatedAt,maneuver:copy(r.maneuver),aimTime:r.aimTime,suppressionOrder:r.role==='companion'?getSuppressionOrder():null, time: now })); }
+    behavior: r.behavior, stance: r.stance, speed: r.speed,velocity:{x:r.velocityX,z:r.velocityZ},turnRate:r.turnVelocity,moveDistance:r.moveDistance, goal: copy(r.goal), lastKnown: copy(r.lastKnown), lastSeen: Number.isFinite(r.lastSeen) ? r.lastSeen : null,
+    visible: r.visible, targetId:r.target?.player?'player':r.target?.id||null,firstContactAt:r.firstContactAt,openingUntil:r.openingUntil,suppression: r.suppression, cover: copy(r.cover?.position),peek:copy(r.cover?.peek), shotsFired: r.shotsFired, shotsBlocked: r.shotsBlocked,mag:r.mag,reserve:r.reserve,weaponId:r.weaponId,magSize:r.magSize,burstRemaining:r.burstRemaining,reload:r.reloadProgress,reloading:now<r.reloadUntil,reloads:r.reloads,reloadStart:r.reloadStart,reloadUntil:r.reloadUntil,stuckCount: r.stuckCount, pathRemaining: r.path.length, alive: live(r), startCorrected:Boolean(r.startCorrected),tacticalRole:r.tacticalRole,reserveActive:r.reserveActive,reserveActivatedAt:r.reserveActivatedAt,maneuver:copy(r.maneuver),aimTime:r.aimTime,suppressionOrder:r.role==='companion'?getSuppressionOrder():null, time: now })); }
   sync(); return { reset, setContext, add, remove, update, notifyThreat, setFollow, restoreActorPosition, setSquadOrder,setSuppressionTarget,getSuppressionOrder, inspect, navigator };
 }

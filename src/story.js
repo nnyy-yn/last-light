@@ -1,7 +1,7 @@
 // 影片事件构成战役骨架；阿米娜、里德与米勒及选择分支均为原创。
 // 坐标使用 [x, z]；角色朝向 0 时面向 -z。
 export const INITIAL_RESOURCES = {
-  trust: 2, medicine: 3, ammo: 90, civilians: 0, fatigue: 0, cohesion: 2,
+  trust: 2, medicine: 3, ammo: 360, civilians: 0, fatigue: 0, cohesion: 2,
 };
 
 const line = (speaker, text, channel = 'local') => ({ speaker, text, channel });

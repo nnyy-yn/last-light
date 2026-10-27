@@ -110,29 +110,32 @@ export function createFieldInteractions(scene,{colliders=[],groundHeight=()=>0,o
       }
       if(!candidates.length)continue; // Omit a blocked point instead of spawning inside masonry.
       const{p,approach}=candidates[0],visual=createCase(kind);visual.root.position.set(p.x,groundHeight(p.x,p.z)+.018,p.z);visual.root.rotation.y=horizontal?(p.z>spawn.z?Math.PI:0):(p.x>spawn.x?-Math.PI/2:Math.PI/2);group.add(visual.root);
-      items.push({id:`field-${chapter.id}-${kind}`,kind,amount:kind==='ammo'?24:1,x:p.x,z:p.z,approach,used:false,progress:0,open:0,visual});
+      items.push({id:`field-${chapter.id}-${kind}`,kind,amount:kind==='ammo'?90:1,x:p.x,z:p.z,approach,used:false,progress:0,open:0,visual});
     }
     return inspect();
   }
   function cancel(){for(const item of items)item.progress=0;active=null;}
-  function update(dt,{player,camera,held=false,blocked=false}={}){
-    if(disposed)return NONE();dt=Number.isFinite(dt)?THREE.MathUtils.clamp(dt,0,.1):0;
-    for(const item of items){if(item.used){item.open=THREE.MathUtils.damp(item.open,1,7,dt);item.visual.lid.rotation.x=-item.open*1.48;}}
-    if(blocked||!player||!camera){cancel();return NONE();}
+  function candidate({player,camera,blocked=false}={}){
+    if(disposed||blocked||!player||!camera)return null;
     camera.updateWorldMatrix(true,false);const origin=camera.getWorldPosition(new THREE.Vector3()),forward=camera.getWorldDirection(new THREE.Vector3()),obstacles=boxes()||[];
     let selected=null,distance=Infinity;
     for(const item of items){
       if(item.used)continue;const dist=Math.hypot(player.x-item.x,player.z-item.z);if(dist>RANGE)continue;
-      const to=new THREE.Vector3(item.x,.29,item.z).sub(origin);if(to.lengthSq()<1e-8||forward.dot(to.normalize())<=.65)continue;
-      // The owner may include these cases in player/AI movement obstacles.
-      // A ray ending inside its own case must still allow opening that case.
+      const to=new THREE.Vector3(item.x,groundHeight(item.x,item.z)+.29,item.z).sub(origin);if(to.lengthSq()<1e-8||forward.dot(to.normalize())<=.65)continue;
       if(lineBlocked({x:player.x,z:player.z},{x:item.x,z:item.z},obstacles.filter(b=>b.fieldId!==item.id)))continue;
       if(dist<distance){selected=item;distance=dist;}
     }
+    return selected;
+  }
+  function update(dt,{player,camera,held=false,blocked=false}={}){
+    if(disposed)return NONE();dt=Number.isFinite(dt)?THREE.MathUtils.clamp(dt,0,.1):0;
+    for(const item of items){if(item.used){item.open=THREE.MathUtils.damp(item.open,1,7,dt);item.visual.lid.rotation.x=-item.open*1.48;}}
+    if(blocked||!player||!camera){cancel();return NONE();}
+    const selected=candidate({player,camera});
     if(!selected){cancel();return NONE();}
     if(active!==selected){cancel();active=selected;}
     if(held)selected.progress=Math.min(1,selected.progress+dt/HOLD_SECONDS);else selected.progress=0;
-    const result={id:selected.id,label:selected.kind==='ammo'?'取出备用弹药':'取出急救用品',detail:selected.kind==='ammo'?'按住 E · 备用弹药 +24':'按住 E · 医疗物资 +1',progress:selected.progress,near:true};
+    const result={id:selected.id,label:selected.kind==='ammo'?'取出备用弹药':'取出急救用品',detail:selected.kind==='ammo'?'按住 E · 当前武器口径弹药 +90':'按住 E · 医疗物资 +1',progress:selected.progress,near:true};
     if(selected.progress>=1){
       selected.used=true;selected.progress=0;active=null;result.progress=1;result.detail='已取用';
       // Mark first so re-entrant owner callbacks cannot award the same case twice.
@@ -153,5 +156,5 @@ export function createFieldInteractions(scene,{colliders=[],groundHeight=()=>0,o
     return{minX:item.x-hx,maxX:item.x+hx,minZ:item.z-hz,maxZ:item.z+hz,minY:groundHeight(item.x,item.z)+.02,maxY:groundHeight(item.x,item.z)+.4,material:'metal',fieldId:item.id};
   });}
   function dispose(){clear();for(const m of materials.values())m.dispose();for(const t of textures)t.dispose();group.removeFromParent();disposed=true;}
-  return{reset,update,cancel,inspect,restoreUsed,getColliders,clear,dispose};
+  return{reset,update,candidate,cancel,inspect,restoreUsed,getColliders,clear,dispose};
 }

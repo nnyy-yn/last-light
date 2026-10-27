@@ -73,3 +73,30 @@ test('convoy audio attenuates with distance, follows stereo position and mutes o
   audio.updateVehicles([{distance:5,pan:0,speed:8}],false);
   assert.equal(audio.inspect().vehicles.count,0);assert.equal(audio.vehicleBed.gain.gain.value,0);
 });
+
+
+test('spatial actor impact is separate from local confirmation and keeps actual hit identity',()=>{
+  const calls=[],audio=new Soundscape({autoLoadSamples:false});audio.ctx={state:'running',currentTime:1};audio.master={};audio.paused=false;audio._buffer=(kind,options)=>({duration:.2,kind,options});audio._voice=(buffer,options)=>calls.push({buffer,options});
+  audio.actorImpact(24,-.6,{weaponId:'akm',hitZone:'armor'});audio.confirmHit(false,{weaponId:'akm',hitZone:'armor'});
+  assert.equal(calls[0].buffer.kind,'actor-impact');assert.equal(calls[0].buffer.options.weaponId,'ak');assert.equal(calls[0].buffer.options.hitZone,'armor');assert.ok(calls[0].options.delay>0);assert.equal(calls[0].options.pan,-.6);
+  assert.equal(calls[1].buffer.kind,'hit-confirm');assert.equal(calls[1].options.delay,undefined,'Confirmation is immediate, impact sound travels from the target');
+  assert.equal(audio.inspect().lastActorImpact.distance,24);assert.equal(audio.inspect().lastConfirmation.weaponId,'ak');
+  const near=calls[0].options.level;audio.actorImpact(80,.5,{weaponId:'ak',hitZone:'armor'});assert.ok(calls[2].options.level<near);
+  audio.paused=true;audio.actorImpact(1,0);audio.confirmHit();assert.equal(calls.length,3,'Paused confirmed events cannot leak audio');
+});
+
+test('glass and hit-region sounds remain finite, short and below the shared PCM ceiling',()=>{
+  const options=[{kind:'bullet-impact',material:'glass'},{kind:'actor-impact',hitZone:'armor'},{kind:'actor-impact',hitZone:'limb'},{kind:'actor-impact',hitZone:'torso'},{kind:'actor-impact',hitZone:'head'}];
+  const sounds=options.map(({kind,...opt})=>renderSoundPCM(kind,{...opt,sampleRate:24000,seed:113}));
+  for(const p of sounds){assert.ok(p.duration<=.25);assert.ok(Math.max(...p.channels[0].map(Math.abs))<=.881);assert.ok(rms(p.channels[0],Math.floor(.14*p.sampleRate))<.002);}
+  assert.notDeepEqual(sounds[1].channels[0],sounds[2].channels[0]);assert.notDeepEqual(sounds[2].channels[0],sounds[3].channels[0]);
+});
+
+
+test('all seven gun profiles retain timing or spectral differences after amplitude normalization',()=>{
+  const ids=['m16a2','m4a1','m249','ak','mp5','m1911','mounted-m2'],signals=ids.map(weaponId=>renderSoundPCM('shot',{weaponId,sampleRate:24000,seed:107}).channels[0]);
+  for(let i=0;i<signals.length;i++)for(let j=i+1;j<signals.length;j++){
+    let dot=0,a=0,b=0;for(let k=0;k<2400;k++){dot+=signals[i][k]*signals[j][k];a+=signals[i][k]**2;b+=signals[j][k]**2;}
+    assert.ok(dot/Math.sqrt(a*b)<.985,ids[i]+' and '+ids[j]+' must not be mere gain variants');
+  }
+});

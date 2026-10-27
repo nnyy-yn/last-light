@@ -317,7 +317,7 @@ test('all 48 authored tasks can complete in order through their explicit conditi
 });
 
 test('choices, resource dimensions and fixed ending structure remain available', () => {
-  assert.deepEqual(INITIAL_RESOURCES, { trust: 2, medicine: 3, ammo: 90, civilians: 0, fatigue: 0, cohesion: 2 });
+  assert.deepEqual(INITIAL_RESOURCES, { trust: 2, medicine: 3, ammo: 360, civilians: 0, fatigue: 0, cohesion: 2 });
   const flags = CHAPTERS.flatMap(chapter => chapter.choice.options.map(option => option.flag));
   assert.equal(flags.length, 32); assert.equal(new Set(flags).size, 32);
   assert.ok(CHAPTERS.every(chapter => chapter.choice.options.length === 2));
