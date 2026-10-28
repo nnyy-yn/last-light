@@ -1,0 +1,19 @@
+{
+  "id": "dshk-support",
+  "file": "public\\assets\\dshk-support.glb",
+  "bytes": 299340,
+  "sha256": "be3d3a8045b6524b6b89dba3636c3727a59984184964a445b1fd2fa506740346",
+  "triangles": 5012,
+  "meshCount": 11,
+  "materialCount": 6,
+  "source": "weapon-sources\\v0.11\\dshk-support-source.blend",
+  "weaponId": "dshk",
+  "lengthMetres": 1.6,
+  "mountedOnly": true,
+  "lod": {
+    "file": "public\\assets\\dshk-support-lod.glb",
+    "bytes": 163592,
+    "triangles": 2304,
+    "sha256": "6261107c5bce5b409829062ce0a7f1b164053e578ec01d5de877d4ee6aaed32e"
+  }
+}

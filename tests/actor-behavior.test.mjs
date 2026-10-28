@@ -441,3 +441,14 @@ test('peaceful civilians remain upright through repeated patrol cycles but still
  director.notifyThreat({kind:'explosion',position:[civilian.position.x+1,civilian.position.z],source:[civilian.position.x+1,civilian.position.z],radius:5,intensity:.7});
  director.update(.05,peaceful);assert.equal(director.inspect()[0].stance,'crouch','an actual nearby threat retains the protective reaction');
 });
+
+test('peaceful task speakers do not crouch, circle their feet or aim their firearm at a conversation partner',()=>{
+ const poses=[],director=createActorDirector(),speaker=actor(3,4,'soldier');speaker.userData.animate=(speed,dt,pose)=>poses.push({speed,pose});director.add(speaker,{id:'story-speaker',role:'story',anchor:[3,4],tether:.5});
+ run(director,24,{player:{x:3,z:7,y:1.68},combatAllowed:false});assert.deepEqual({x:speaker.position.x,z:speaker.position.z},{x:3,z:4});assert.ok(poses.every(p=>p.pose.stance==='stand'&&p.pose.weaponReady===false));
+ run(director,2,{player:{x:4,z:6,y:1.68},interactionActor:speaker,combatAllowed:false});const latest=poses.at(-1).pose;assert.equal(latest.stance,'stand');assert.equal(latest.aimTarget,null);assert.deepEqual(latest.lookTarget,{x:4,z:6,y:1.68});assert.equal(latest.weaponReady,false);assert.equal(latest.talking,true);
+});
+
+test('a peaceful sentry pauses naturally after a short move and still raises the rifle for a seen hostile',()=>{
+ const director=createActorDirector(),guard=actor(0,0);director.add(guard,{role:'guard',tether:3});let moving=0,still=0;run(director,18,{player:{x:30,z:30,health:100},combatAllowed:false},()=>{const s=director.inspect()[0];assert.equal(s.stance,'stand');assert.equal(s.weaponReady,false);if(s.speed>.1)moving++;else still++;});assert.ok(moving>5&&still>moving,'A guard should settle between changes of vantage point');
+ const enemy=actor(0,10,'enemy');director.add(enemy,{kind:'enemy'});run(director,1.5,{player:{x:30,z:30,health:100},combatAllowed:true});assert.equal(director.inspect()[0].weaponReady,true);
+});

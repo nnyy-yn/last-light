@@ -1,0 +1,19 @@
+{
+  "id": "m134-door-support",
+  "file": "public\\assets\\m134-door-support.glb",
+  "bytes": 104916,
+  "sha256": "76b692d73e77f6e96b0ccba4051103027d01e0e5b84b7b19e9ba8274d8b14498",
+  "triangles": 1816,
+  "meshCount": 5,
+  "materialCount": 3,
+  "source": "weapon-sources\\v0.11\\m134-door-support-source.blend",
+  "weaponId": "m134",
+  "lengthMetres": 0.96,
+  "mountedOnly": true,
+  "lod": {
+    "file": "public\\assets\\m134-door-support-lod.glb",
+    "bytes": 51236,
+    "triangles": 828,
+    "sha256": "33da0f3992d9f3f37c5282f636995cd60d9a5df9feac935909991e23abc675fb"
+  }
+}

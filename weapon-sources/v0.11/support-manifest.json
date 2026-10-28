@@ -1,0 +1,186 @@
+[
+  {
+    "id": "rpk-support",
+    "file": "public\\assets\\rpk-support.glb",
+    "bytes": 149284,
+    "sha256": "958a62c63ed5ecebac3b3896ce98a256aefefd67afd0236767eab4a2db225ab4",
+    "triangles": 2192,
+    "meshCount": 8,
+    "materialCount": 4,
+    "source": "weapon-sources\\v0.11\\rpk-support-source.blend",
+    "weaponId": "rpk",
+    "sockets": {
+      "GripRight": [
+        0,
+        -0.055,
+        0.005
+      ],
+      "GripLeft": [
+        0,
+        -0.011,
+        -0.33
+      ],
+      "Muzzle": [
+        0,
+        0.042,
+        -0.713
+      ],
+      "RearSight": [
+        0,
+        0.127,
+        -0.107
+      ],
+      "FrontSight": [
+        0,
+        0.127,
+        -0.626
+      ],
+      "MagazineGrip": [
+        -0.065,
+        -0.14,
+        -0.128
+      ]
+    },
+    "lengthMetres": 1.113,
+    "reloadPart": "Magazine",
+    "lod": {
+      "file": "public\\assets\\rpk-support-lod.glb",
+      "bytes": 84396,
+      "triangles": 1066,
+      "sha256": "4a11b64c8c12a7259bdaaa81c5135136984681a85166a20e024941359372cc61"
+    }
+  },
+  {
+    "id": "rpg7-support",
+    "file": "public\\assets\\rpg7-support.glb",
+    "bytes": 185376,
+    "sha256": "b11c70260273aecff22a126f654e8930a741268f5e6195400dd3fc0230d743f9",
+    "triangles": 2916,
+    "meshCount": 11,
+    "materialCount": 7,
+    "source": "weapon-sources\\v0.11\\rpg7-support-source.blend",
+    "weaponId": "rpg7",
+    "sockets": {
+      "GripRight": [
+        0,
+        -0.055,
+        0.005
+      ],
+      "GripLeft": [
+        0,
+        -0.055,
+        -0.23
+      ],
+      "Muzzle": [
+        0,
+        0.11,
+        -0.36
+      ],
+      "ProjectileTip": [
+        0,
+        0.11,
+        -0.92
+      ],
+      "Backblast": [
+        0,
+        0.11,
+        0.7
+      ],
+      "RearSight": [
+        -0.1,
+        0.205,
+        0.156
+      ],
+      "FrontSight": [
+        -0.1,
+        0.205,
+        -0.085
+      ],
+      "MagazineGrip": [
+        -0.047,
+        0.1,
+        -0.61
+      ]
+    },
+    "launchTubeMetres": 0.95,
+    "reloadPart": "Magazine",
+    "frontLoaded": true,
+    "lod": {
+      "file": "public\\assets\\rpg7-support-lod.glb",
+      "bytes": 98456,
+      "triangles": 1348,
+      "sha256": "3b6a33ceda8514e8f40eab20c40bcfed45eed14e2a178f9ed0f20304f0ab3623"
+    }
+  },
+  {
+    "id": "dshk-support",
+    "file": "public\\assets\\dshk-support.glb",
+    "bytes": 299340,
+    "sha256": "be3d3a8045b6524b6b89dba3636c3727a59984184964a445b1fd2fa506740346",
+    "triangles": 5012,
+    "meshCount": 11,
+    "materialCount": 6,
+    "source": "weapon-sources\\v0.11\\dshk-support-source.blend",
+    "weaponId": "dshk",
+    "lengthMetres": 1.6,
+    "mountedOnly": true,
+    "lod": {
+      "file": "public\\assets\\dshk-support-lod.glb",
+      "bytes": 163592,
+      "triangles": 2304,
+      "sha256": "6261107c5bce5b409829062ce0a7f1b164053e578ec01d5de877d4ee6aaed32e"
+    }
+  },
+  {
+    "id": "m134-door-support",
+    "file": "public\\assets\\m134-door-support.glb",
+    "bytes": 104916,
+    "sha256": "76b692d73e77f6e96b0ccba4051103027d01e0e5b84b7b19e9ba8274d8b14498",
+    "triangles": 1816,
+    "meshCount": 5,
+    "materialCount": 3,
+    "source": "weapon-sources\\v0.11\\m134-door-support-source.blend",
+    "weaponId": "m134",
+    "lengthMetres": 0.96,
+    "mountedOnly": true,
+    "lod": {
+      "file": "public\\assets\\m134-door-support-lod.glb",
+      "bytes": 51236,
+      "triangles": 828,
+      "sha256": "33da0f3992d9f3f37c5282f636995cd60d9a5df9feac935909991e23abc675fb"
+    }
+  },
+  {
+    "id": "technical-pickup-support",
+    "file": "public\\assets\\technical-pickup-support.glb",
+    "bytes": 529148,
+    "sha256": "d957e30b94451e16385651961dd8a91d053971774a1c7c054ddd67ed4115a982",
+    "triangles": 7408,
+    "meshCount": 15,
+    "materialCount": 7,
+    "source": "weapon-sources\\v0.11\\technical-pickup-support-source.blend",
+    "dimensions": {
+      "width": 2.05,
+      "length": 4.92,
+      "height": 2.22
+    },
+    "openBed": true,
+    "collisionBoxes": [
+      {
+        "minX": -1.025,
+        "maxX": 1.025,
+        "minZ": -2.42,
+        "maxZ": 2.5,
+        "minY": 0,
+        "maxY": 1.94
+      }
+    ],
+    "gunnerFloor": 0.96,
+    "lod": {
+      "file": "public\\assets\\technical-pickup-support-lod.glb",
+      "bytes": 236644,
+      "triangles": 3356,
+      "sha256": "8b2ae6ba9f677bd357ef985422d3bb4d0413095d6e9d30731831f8e6824116d7"
+    }
+  }
+]

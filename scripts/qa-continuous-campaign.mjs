@@ -14,6 +14,8 @@ import {blocked,lineBlocked,applyEffects,SETTINGS_KEY,SAVE_KEY} from '../src/sim
 const root=fileURLToPath(new URL('../',import.meta.url)),args=process.argv.slice(2);
 const arg=name=>args.includes(name)?args[args.indexOf(name)+1]:null;
 const baseURL=args.find(v=>/^https?:/.test(v))||'http://127.0.0.1:46171/';
+const viewport={width:Number(arg('--width')||1280),height:Number(arg('--height')||800)};
+assert(Number.isInteger(viewport.width)&&viewport.width>=640&&viewport.width<=3840&&Number.isInteger(viewport.height)&&viewport.height>=480&&viewport.height<=2160,'Use a bounded explicit QA viewport');
 const allCampaign=CHAPTERS.map(campaignChapter),chapterArgument=arg('--chapters'),targeted=args.includes('--chapters');
 if(targeted)assert.match(chapterArgument||'',/^\d+(,\d+)*$/,'--chapters needs a comma-separated list such as 1,6,15');
 const selectedChapterIds=targeted?chapterArgument.split(',').map(Number):allCampaign.map(c=>c.id);
@@ -42,16 +44,17 @@ if(resumeReport){
   assert.equal(resumeReport.optionalPolicy,optionalPolicy,'Resume must preserve the same optional-branch coverage');
   assert.ok(!resumeReport.failureState?.state?.saved?.fieldCheckpoint?.taskIndex,'A report resume requires a chapter boundary; do not combine a partial chapter with an unverified saved prefix');
 }
-const output=path.join(root,targeted?'artifacts/rebuild-v0.9/targeted-chapters':'artifacts/rebuild-v0.9/campaign',expectedBuild.replace(/\.js$/,'')+'-'+new Date().toISOString().replace(/[:.]/g,'-'));
+const output=path.join(root,targeted?'artifacts/story-v0.10/targeted-chapters':'artifacts/story-v0.10/campaign',expectedBuild.replace(/\.js$/,'')+'-'+new Date().toISOString().replace(/[:.]/g,'-'));
 await fs.mkdir(output,{recursive:true});
 const artifact=name=>path.join(output,name),sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const require=createRequire(import.meta.url),{chromium}=require('C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const report={passed:false,started:new Date().toISOString(),baseURL,expectedBuild,expectedSha256,optionalPolicy,authoredScope,coverage:targeted?'targeted-chapters':'full-campaign',selectedChapterIds,fullCampaignVerified:false,normalPlaytimeVerified:false,headless:true,input:'DOM KeyboardEvent/MouseEvent and element.click only; no OS input or pointer lock',testMethods:{travel:'QA teleport only to legal interaction approaches; escorted actors move through their actual AI navigation while the player walks using synthetic WASD. This isolated-flow test is not evidence of a 20–25 minute normal first play.',combat:'Confirmed enemy damage through the existing damageHostile debug hook is disclosed per chapter; narrative progress, resources and simulation time are never modified',cinematics:targeted?'Explicit UI skip for selected chapter opening/task/closing animations; outgoing handoffs are outside this targeted scope':'Explicit UI skip for task/opening/closing animations; chapter transitions run on real frame time with automatic next opening, no next/play button between chapters',choices:'Authored field decisions are selected using visible enabled buttons; optional support uses the real decline UI according to --optional, and both outcomes are recorded',checkpoints:'Real midchapter reload restores schema 3 task IDs, decisions, caliber pools, loaded magazines, defeated-enemy weapon records and positions, assistance state, and pacing; no restore callbacks may award resources',entry:targeted?'Each selected chapter starts a fresh campaign through the real New UI; chapter >1 then uses the existing QA loadChapter entry, without writing resources, saves, task indices or choices':'One new campaign follows all chapters continuously'},chapters:[],errors:[],httpErrors:[],consoleErrors:[],requestFailures:[],checks:[]};
+const report={passed:false,started:new Date().toISOString(),baseURL,expectedBuild,expectedSha256,optionalPolicy,authoredScope,coverage:targeted?'targeted-chapters':'full-campaign',selectedChapterIds,fullCampaignVerified:false,normalPlaytimeVerified:false,headless:true,input:'DOM KeyboardEvent/MouseEvent and element.click only; no OS input or pointer lock',testMethods:{travel:'QA teleport only to legal interaction approaches; escorted actors move through their actual AI navigation while the player walks using synthetic WASD. This isolated-flow test is not evidence of a 20–25 minute normal first play.',combat:'Confirmed enemy damage through the existing damageHostile debug hook is disclosed per chapter; narrative progress, resources and simulation time are never modified',cinematics:targeted?'Explicit UI skip for selected chapter opening/task/closing animations; outgoing handoffs are outside this targeted scope':'Explicit UI skip for task/opening/closing animations; chapter transitions run on real frame time with automatic next opening, no next/play button between chapters',choices:'Authored field decisions are selected using visible enabled buttons; optional support uses the real decline UI according to --optional, and both outcomes are recorded',checkpoints:'Real midchapter reload restores schema 5 task IDs, decisions, caliber pools, loaded magazines, defeated-enemy weapon records and positions, assistance state, and pacing; no restore callbacks may award resources',entry:targeted?'Each selected chapter starts a fresh campaign through the real New UI; chapter >1 then uses the existing QA loadChapter entry, without writing resources, saves, task indices or choices':'One new campaign follows all chapters continuously'},chapters:[],errors:[],httpErrors:[],consoleErrors:[],requestFailures:[],checks:[]};
 report.expectedTotals=expectedTotals;
 if(resumeReport){report.resumedFrom=path.resolve(root,resumePath);report.chapters=resumeReport.chapters.filter(c=>c.history===c.id).map(c=>({...c,artifactDir:c.artifactDir||path.dirname(report.resumedFrom)}));}
 const firstArrivalChapter=report.chapters.length+1;
 const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--enable-unsafe-swiftshader','--mute-audio','--autoplay-policy=no-user-gesture-required','--no-sandbox']});
-const page=await browser.newPage({viewport:{width:1280,height:800}});
+report.viewport=viewport;
+const page=await browser.newPage({viewport});
 page.setDefaultTimeout(90000);
 page.on('pageerror',e=>report.errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error')report.consoleErrors.push(m.text());});
@@ -86,6 +89,9 @@ async function fieldDecision(spec,index,record){
   const before=await waitFor(s=>s.inspect.narrative.phase==='decision','field decision '+spec.id);
   assert.equal(before.state.task,index);assert.equal(before.inspect.tasks[index].done,false);assert.deepEqual(before.inspect.narrative.decision,spec.decision);
   const panel=page.locator('#task-decision');await panel.waitFor({state:'visible'});assert.ok((await panel.textContent()).includes(spec.decision.prompt));
+  const optionBounds=await panel.locator('button').evaluateAll(buttons=>buttons.map(button=>{const r=button.getBoundingClientRect();return {label:button.textContent,x:r.x,y:r.y,right:r.right,bottom:r.bottom};}));
+  assert(optionBounds.every(r=>r.x>=0&&r.y>=0&&r.right<=viewport.width+1&&r.bottom<=viewport.height+1),'Every field choice must fit the tested viewport');
+  await page.screenshot({path:artifact(`chapter-${record.id}-field-choice-${index}.png`)});
   if(record.id===1&&!record.decisionPause)record.decisionPause=await pauseResume('field decision',s=>({phase:s.inspect.narrative.phase,task:s.state.task,resources:s.state.resources,choices:s.inspect.pacing.taskDecisions,pacing:s.inspect.pacing.activeSeconds}));
   const preferred=spec.decision.options[(record.id+index)%spec.decision.options.length];
   let chosen=page.locator(`[data-action="task-decision"][data-value="${preferred.id}"]`);
@@ -97,32 +103,36 @@ async function fieldDecision(spec,index,record){
   assert.deepEqual(after.state.resources,applyEffects(before.state.resources,option.effects),'A field decision applies its bounded resources exactly once');
   const entries=after.inspect.pacing.taskDecisions.filter(d=>d.taskId===spec.id);assert.deepEqual(entries,[{taskId:spec.id,optionId}]);
   const events=after.inspect.storyEvents.filter(e=>e.type==='decision-made'&&e.taskId===spec.id);assert.equal(events.length,1);
-  record.fieldChoices.push({taskId:spec.id,optionId,label:option.label,response:option.response,before:before.state.resources,after:after.state.resources,event:events[0]});
+  record.fieldChoices.push({taskId:spec.id,optionId,label:option.label,response:option.response,before:before.state.resources,after:after.state.resources,event:events[0],optionBounds});
 }
-function dropsFromRuntime(snapshot){return snapshot.inspect.weaponDrops.map(({enemyIndex,weaponId,mag,reserve,taken,position})=>({enemyIndex,weaponId,mag,reserve,taken,position:[...position]})).sort((a,b)=>a.enemyIndex-b.enemyIndex);}
+function dropsFromRuntime(snapshot){return snapshot.inspect.weaponDrops.map(({dropId,source,enemyIndex,weaponId,mag,reserve,taken,position,elevation})=>({dropId,source,...(source==='enemy'?{enemyIndex}:{}),weaponId,mag,reserve,taken,position:[...position],elevation})).sort((a,b)=>a.dropId.localeCompare(b.dropId,'en',{numeric:true}));}
 function inventoryTotal(state){return ammoTotal(state.ammoReserves)+state.player.mag+Object.values(state.stowedMagazines).reduce((sum,count)=>sum+count,0);}
 function assertAmmoState(state,label){assert.deepEqual(Object.keys(state.ammoReserves).sort(),[...AMMO_TYPES].sort(),label);assert(validateAmmoReserves(state.ammoReserves,state.resources.ammo),label+' must keep every caliber and reserve total consistent');}
 async function checkpointRoundTrip(record){
-  const before=await snapshot(),saved=before.state.saved.fieldCheckpoint;assert(saved,'Completed operation must save an in-chapter checkpoint');
-  assert.equal(saved.version,CHAPTER_CHECKPOINT_VERSION);assert.equal(saved.version,3);
+  // Reload can dispatch blur and legitimately save a newer active timestamp.
+  // Freeze through the real pause control before taking the saved baseline.
+  await tap('Escape');
+  const before=await waitFor(s=>s.state.mode==='paused','freeze and save the actual checkpoint before reload'),saved=before.state.saved.fieldCheckpoint;assert(saved,'Completed operation must save an in-chapter checkpoint');
+  assert.equal(saved.version,CHAPTER_CHECKPOINT_VERSION);assert.equal(saved.version,5);
   assert.equal(saved.chapterId,record.id);assert.equal(saved.taskIndex,before.state.task);
   assertAmmoState(before.state,'before reload');assert.deepEqual(saved.ammoReserves,before.state.ammoReserves);assert.deepEqual(saved.stowedMagazines,before.state.stowedMagazines);assert.equal(saved.player.weaponId,before.state.player.weaponId);assert.equal(saved.player.mag,before.state.player.mag);
-  assert.deepEqual(saved.weaponDrops,dropsFromRuntime(before));assert.deepEqual(saved.weaponDrops.map(d=>d.enemyIndex),saved.killedEnemyIndices);const ammunitionBefore=inventoryTotal(before.state);
+  assert.deepEqual(saved.weaponDrops,dropsFromRuntime(before));assert.deepEqual(saved.weaponDrops.filter(d=>d.source==='enemy').map(d=>d.enemyIndex).sort((a,b)=>a-b),saved.killedEnemyIndices);const ammunitionBefore=inventoryTotal(before.state);
   assert.deepEqual(saved.completedTaskIds,before.inspect.tasks.slice(0,before.state.task).map(t=>t.id));
   assert.deepEqual(saved.taskDecisions,before.inspect.pacing.taskDecisions);
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__game&&window.__game.getState().mode==='menu',undefined,{timeout:180000});
-  await click('[data-action="continue"]');
-  const after=await waitFor(s=>s.state.mode==='playing'&&s.state.chapter===record.id,'midchapter continuation',180000);
+  await page.locator('[data-action="continue"]').first().evaluate(button=>{button.click();window.dispatchEvent(new KeyboardEvent('keydown',{code:'Escape',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'Escape',bubbles:true}));});
+  const after=await waitFor(s=>s.state.mode==='paused'&&s.state.chapter===record.id,'midchapter continuation and immediate real Escape pause',180000);
   assert.equal(after.state.task,saved.taskIndex);assert.equal(after.inspect.narrative.phase,'idle');assert.deepEqual(after.state.resources,saved.resources);
   assert.deepEqual(after.inspect.pacing.taskDecisions,saved.taskDecisions);
   assert.deepEqual(after.inspect.tasks.filter(t=>t.done).map(t=>t.id),saved.completedTaskIds);
   assert.deepEqual(after.inspect.enemies.flatMap((e,i)=>e.alive?[]:[i]),saved.killedEnemyIndices);
   assertAmmoState(after.state,'after reload');assert.deepEqual(after.state.ammoReserves,saved.ammoReserves);assert.deepEqual(after.state.stowedMagazines,saved.stowedMagazines);assert.equal(after.state.player.weaponId,saved.player.weaponId);assert.equal(after.state.player.mag,saved.player.mag);assert.equal(inventoryTotal(after.state),ammunitionBefore);
   assert.deepEqual(dropsFromRuntime(after),saved.weaponDrops);assert.equal(after.state.saved.fieldCheckpoint.assistUsed,saved.assistUsed);
-  for(const drop of saved.weaponDrops){const live=after.inspect.weaponDrops.find(d=>d.enemyIndex===drop.enemyIndex),enemy=after.inspect.enemies[drop.enemyIndex];assert.equal(live.visible,!drop.taken);assert.deepEqual([enemy.actualPosition[0],enemy.actualPosition[2]],drop.position,'A defeated enemy and its gun stay at the saved fall location');}
-  assert(after.inspect.pacing.activeSeconds>=saved.pacingElapsed&&after.inspect.pacing.activeSeconds-saved.pacingElapsed<5,'Pacing restores from saved elapsed time without inventing minutes');
+  for(const drop of saved.weaponDrops.filter(d=>d.source==='enemy')){const live=after.inspect.weaponDrops.find(d=>d.dropId===drop.dropId),enemy=after.inspect.enemies[drop.enemyIndex];assert.equal(live.visible,!drop.taken);assert.deepEqual([enemy.actualPosition[0],enemy.actualPosition[2]],drop.position,'A defeated enemy and its gun stay at the saved fall location');}
+  assert.equal(after.inspect.pacing.activeSeconds,saved.pacingElapsed,'Immediate real pause observes exact restored activity time before another active frame');
   assert.equal(after.inspect.storyEvents.some(e=>e.type==='task-complete'||e.type==='decision-made'),false,'Restoration cannot replay task rewards or decisions');
-  record.checkpointRoundTrip={schemaVersion:saved.version,ammoReserves:saved.ammoReserves,stowedMagazines:saved.stowedMagazines,weaponDrops:saved.weaponDrops,takenDropCount:saved.weaponDrops.filter(d=>d.taken).length,ammunitionTotal:ammunitionBefore,assistUsed:saved.assistUsed,taskIndex:saved.taskIndex,taskDecisions:saved.taskDecisions,resources:saved.resources,completedTaskIds:saved.completedTaskIds,beforeSeconds:saved.pacingElapsed,afterSeconds:after.inspect.pacing.activeSeconds,method:'Actual page reload and Continue UI; no progress writes'};
+  record.checkpointRoundTrip={schemaVersion:saved.version,ammoReserves:saved.ammoReserves,stowedMagazines:saved.stowedMagazines,weaponDrops:saved.weaponDrops,takenDropCount:saved.weaponDrops.filter(d=>d.taken).length,ammunitionTotal:ammunitionBefore,assistUsed:saved.assistUsed,taskIndex:saved.taskIndex,taskDecisions:saved.taskDecisions,resources:saved.resources,completedTaskIds:saved.completedTaskIds,beforeSeconds:saved.pacingElapsed,afterSeconds:after.inspect.pacing.activeSeconds,method:'Real pause freezes and saves the baseline, then actual page reload and Continue UI with immediate DOM Escape before another active frame; no clock/progress writes'};
+  assert.deepEqual(after.state.carriedLoadout,saved.carriedLoadout);await click('[data-action="resume"]');await waitFor(s=>s.state.mode==='playing','continue after exact checkpoint inspection');
 }
 function clearSegment(a,b,boxes,radius=.47){const d=Math.hypot(a.x-b.x,a.z-b.z),steps=Math.ceil(d/.25);for(let i=0;i<=steps;i++){const t=steps?i/steps:0;if(blocked(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,boxes,radius))return false;}return true;}
 function walkPath(start,end,boxes,bounds){assert.ok(bounds&&Object.values(bounds).every(Number.isFinite),'Expanded scene bounds must be exposed');const nav=createNavigator({cellSize:.75,radius:.47});nav.setBounds(bounds);nav.setColliders(boxes);assert.deepEqual(nav.bounds,bounds);const route=nav.findPath(start,end,120000);assert.ok(route.length,'Escort must have an actual collision-safe route');let previous=start;for(const p of route){assert.ok(inside(p,bounds));assert.ok(clearSegment(previous,p,boxes),'Each escort leg must fit a whole person, not only a centre ray');previous=p;}return route;}
@@ -169,7 +179,15 @@ try{
     const record={id:chapter.id,title:chapter.title,artifactDir:output,tasks:[],fieldChoices:[],escorts:[],defences:[],cinematics:[]};report.chapters.push(record);
     const intro=await waitFor(s=>s.state.chapter===chapter.id&&['intro','cinematic'].includes(s.state.mode),'chapter arrival');assert.equal(intro.state.chapter,chapter.id);record.scene=intro.inspect.scene;record.colliderSignature=sha(JSON.stringify(intro.inspect.staticColliders));assert.ok(record.scene?.id);assert.equal(intro.state.task,0);assert.equal(intro.inspect.narrative.phase,'idle');
     if(!targeted&&chapter.id!==firstArrivalChapter)assert.equal(intro.state.mode,'cinematic','An automatic handoff may not stop at another intro');
-    if(intro.state.mode==='intro')await click('[data-action="play"]');record.cinematics.push(await cinematic('opening',chapter.opening,chapter.id===1));await waitFor(s=>s.state.mode==='playing','chapter gameplay');
+    if(intro.state.mode==='intro')await click('[data-action="play"]');
+    const beforeOpening=await snapshot();
+    if(beforeOpening.inspect.cinematic.phase==='briefing'){
+      assert.equal(beforeOpening.state.mode,'cinematic');assert(beforeOpening.inspect.cinematic.active);
+      await click('[data-action="skip-cinematic"]');
+      const entry=await waitFor(s=>s.state.mode==='cinematic'&&s.inspect.cinematic.phase==='opening','briefing hands off to actual entry animation');
+      record.cinematics.push({phase:'briefing',id:beforeOpening.inspect.cinematic.sequenceId,before:beforeOpening.inspect.cinematic,method:'explicit UI skip; distinct opening remains active',nextSequence:entry.inspect.cinematic.sequenceId});
+    }
+    record.cinematics.push(await cinematic('opening',chapter.opening,chapter.id===1));await waitFor(s=>s.state.mode==='playing','chapter gameplay');
     const materialized=await snapshot();assertAmmoState(materialized.state,'chapter entry');assert.deepEqual(materialized.inspect.tasks.map(t=>t.id),chapter.tasks.map(t=>t.id),'Runtime must preserve the full interleaved authored chain');
     record.reachableOperations=[];
     if(!chapter.movementLocked){const nav=createNavigator({cellSize:.75,radius:.36});nav.setBounds(materialized.inspect.scene.bounds);nav.setColliders(materialized.inspect.colliders);
@@ -200,12 +218,16 @@ try{
       const finished=await waitFor(s=>s.state.task===index+1,`task completes ${spec.id}`);assert.equal(finished.inspect.tasks[index].done,true);const completion=finished.inspect.storyEvents.filter(e=>e.type==='task-complete'&&e.taskId===spec.id);assert.equal(completion.length,1,'Each task completes exactly once');assert.equal(completion[0].sceneEvent,spec.sceneEvent);
       const taskRecord={id:spec.id,interaction:spec.interaction,optional:Boolean(spec.optional),skipped:false,dialogue:conversation.lines,completion:completion[0],actorPosition:finished.inspect.tasks[index].actorPosition};record.tasks.push(taskRecord);
       if(['escort','defend'].includes(spec.interaction))await page.screenshot({path:artifact(`chapter-${chapter.id}-${spec.interaction}-completed.png`)});
-      record.cinematics.push(await cinematic('event',spec.sceneEvent));console.log(`PASS task ${chapter.id}/${index+1}: ${spec.id} (${spec.interaction})`);
+      if(spec.coreIndex!=null||spec.dramaticCinematic)record.cinematics.push(await cinematic('event',spec.sceneEvent));
+      else{assert.equal(finished.inspect.cinematic.active,false,'An ordinary local task must keep the player in the scene');assert.equal(finished.state.mode,index===chapter.tasks.length-1?'choice':'playing');}
+      console.log(`PASS task ${chapter.id}/${index+1}: ${spec.id} (${spec.interaction})`);
       assert.equal(await mode(),index===chapter.tasks.length-1?'choice':'playing');
       const checkpoint=(await snapshot()).state.saved.fieldCheckpoint;assert.equal(checkpoint?.taskIndex,index+1,'Every completed operation is saved at the actual expanded cursor');assert.deepEqual(checkpoint.taskDecisions,record.fieldChoices.map(({taskId,optionId})=>({taskId,optionId})));
       if((targeted||chapter.id===6)&&record.fieldChoices.length===1&&!record.checkpointRoundTrip)await checkpointRoundTrip(record);
     }
-    const atChoice=await snapshot();record.pacing={...atChoice.inspect.pacing,normalPlaytimeVerified:false};assert(Number.isFinite(record.pacing.activeSeconds)&&record.pacing.activeSeconds>0);assert.equal(record.fieldChoices.length,chapter.tasks.filter(t=>t.decision).length);
+    const atChoice=await snapshot();await page.screenshot({path:artifact(`chapter-${chapter.id}-final-choice.png`)});record.pacing={...atChoice.inspect.pacing,normalPlaytimeVerified:false};assert(Number.isFinite(record.pacing.activeSeconds)&&record.pacing.activeSeconds>0);assert.equal(record.fieldChoices.length,chapter.tasks.filter(t=>t.decision).length);
+    record.choiceBounds=await page.locator('[data-action="choose"]').evaluateAll(buttons=>buttons.map(button=>{const r=button.getBoundingClientRect();return {label:button.textContent,x:r.x,y:r.y,right:r.right,bottom:r.bottom};}));
+    assert(record.choiceBounds.every(r=>r.x>=0&&r.y>=0&&r.right<=viewport.width+1&&r.bottom<=viewport.height+1),'Every chapter choice must fit the tested viewport');
     const choiceButtons=page.locator('[data-action="choose"]:enabled'),preferred=page.locator(`[data-action="choose"][data-value="${chapter.id%2}"]`);const chosen=await preferred.isEnabled()?preferred:choiceButtons.first();record.chosen=await chosen.getAttribute('data-value');record.choiceClock=await chosen.evaluate(button=>{const activeSeconds=window.__game.inspect().pacing.activeSeconds;button.click();return {activeSeconds};});
     let completed;
     if(targeted){
@@ -236,7 +258,7 @@ try{
   if(!targeted)await page.screenshot({path:artifact('ending.png')});
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__game&&window.__game.getState().mode==='menu',undefined,{timeout:180000});assert.deepEqual((await snapshot()).state.saved.history,savedHistory);assert.deepEqual((await snapshot()).state.saved.chapterTimes,savedTimes);
   if(!targeted){await click('[data-action="continue"]');assert.equal(await mode(),'ending');}
-  report.checks.push(`${campaign.length} selected unique scene IDs and collision footprints`,`${expectedTotals.dialogue} actual E dialogue lines; ${expectedTotals.completedTasks} performed actions and ${expectedTotals.optionalSkipped} explicit optional declines`,`${expectedTotals.escorts} real actor escorts through navigation`,`${expectedTotals.defences} defences using actual frame time and confirmed chapter kill counters`,`${expectedTotals.fieldChoices} field choices with response, resource effects, schema 3 checkpoint and journal persistence`,'Repeated named people reuse actor identity; complete task order matches materialized authored plans','Schema 3 restores exact caliber pools, six loaded magazines, defeated-enemy drops/taken flags/fall positions and consumed assistance without awarding resources','Pacing is telemetry only; no claim of verified 20–25 minute normal first play');
+  report.checks.push(`${campaign.length} selected unique scene IDs and collision footprints`,`${expectedTotals.dialogue} actual E dialogue lines; ${expectedTotals.completedTasks} performed actions and ${expectedTotals.optionalSkipped} explicit optional declines`,`${expectedTotals.escorts} real actor escorts through navigation`,`${expectedTotals.defences} defences using actual frame time and confirmed chapter kill counters`,`${expectedTotals.fieldChoices} field choices with response, resource effects, schema 5 checkpoint and journal persistence`,'Repeated named people reuse actor identity; complete task order matches materialized authored plans','Schema 5 restores exact caliber pools, two carried magazines, defeated-enemy drops/taken flags/fall positions and consumed assistance without awarding resources','Pacing is telemetry only; no claim of verified 20–25 minute normal first play');
   if(selectedChapterIds.includes(9))report.checks.push('Chapter 9 movement locked, no QA teleport, Gordon staged by durant-wait ID');
   if(targeted)report.checks.push('Selected chapters entered through real New UI plus QA loadChapter; outgoing handoffs and a full campaign ending are not covered');
   else report.checks.push(`${expectedTotals.handoffs} automatic covered transitions without an interchapter menu; complete campaign ending survives reload`);

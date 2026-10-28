@@ -200,3 +200,23 @@ Six original near-field ruined buildings now use thick pierced walls, floor laye
 ## 0.6 直升机声音素材
 
 新增 `public/audio/rotor-loop.wav`，由 ezwa 的公开领域实地直升机录音剪辑、去直流、滤波及循环交叉淡化生成，6秒/48kHz单声道。来源、作者许可、原始OGG、处理步骤与SHA-256完整列于 `AUDIO-SOURCES.md`，可编辑来源位于 `audio-sources/v0.6/`。该原录音未标明机型，不称作UH-60或1993年战斗现场录音；枪声、爆炸与其余增强层仍为本项目原创合成。
+
+## v0.11 original support equipment and vehicle models
+
+The following five assets were authored for Last Light in background **Blender 4.5.9** by `scripts/support-models/build-support.py`. They contain original project geometry and simple shared PBR materials; no third-party weapon mesh, manufacturer CAD, film still, skin scan or photograph texture was downloaded or embedded. Canonical firearm coordinates are metres, +Y up, muzzle toward -Z; the runtime DShK mounting wrapper rotates the gun into the vehicle's +Z forward convention. This is approximate game art, not a certified technical replica.
+
+| Local GLB | Main mesh triangles | Material count | Scope |
+| --- | ---: | ---: | --- |
+| `rpk-support.glb` | 2,192 | 4 | 1.11m authored RPK-style long heavy barrel, wooden furniture, folded bipod, separate 75-round drum and charging handle |
+| `rpg7-support.glb` | 2,916 | 7 | 0.95m nominal launch tube, open rear venturi, wood thermal cover, side optic and independently movable PG-7-style round |
+| `dshk-support.glb` | 5,012 | 6 | Approx.1.6m DShK-style cooling fins, muzzle brake, feed assembly, real rear grips, cover latch, belt segment and charging grip |
+| `m134-door-support.glb` | 1,816 | 3 | Approx.0.96m six-barrel door-gun assembly with independent rotating barrel cluster |
+| `technical-pickup-support.glb` | 7,408 | 7 | Approx.4.92m × 2.05m open-bed pickup with cabin shell, independent wheels, load floor and three-legged weapon pedestal |
+
+Editable `.blend` files, sockets, dimensions, full export hashes and triangle counts are in `weapon-sources/v0.11/`. Each asset also has a separately generated `*-lod.glb` (reduced geometry with retained named part hierarchy); these LOD files are prepared resources, **not automatically switched by the current runtime**. The runtime shares the primary GLB geometry/materials between instances and batches source parts by material without merging moving hinges into static bodies.
+
+RPK and RPG first-person views reuse the separately credited DJMaesen / Cransh / Firewarden3D arms and rig under their original CC BY 4.0 terms. Third-person figures and the DShK player hands retain the documented MakeHuman CC0 body and separately credited CC BY uniform. The new equipment does not relicense those assets. The existing helijah UH-60 airframe remains CC BY 4.0; adding original M134 door guns does not change that credit.
+
+Visual/historical sources are listed in `WEAPON-REFERENCE.md`. They informed proportions and equipment distinctions only; their images are not shipped as textures. This model set does not claim that every authored enemy, weapon assignment, pickup truck, rooftop position or air-support sequence matches a documented individual occurrence in October1993.
+
+The v0.11 airframe integration locally opens the two cabin side-door regions in the existing helijah derivative and retains the extracted panels shifted rearward with the surrounding frame. The source author and CC BY 4.0 credit above remain unchanged. `src/aircraft-door-geometry.js` defines the narrow clipping region and shared rope sockets; its CPU test checks triangle accounting and verifies that the cockpit, roof and floor are not broadly removed. This is a local game-art adaptation rather than a mechanically complete sliding-door simulation.

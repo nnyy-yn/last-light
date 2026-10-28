@@ -1,0 +1,51 @@
+{
+  "id": "rpk-support",
+  "file": "public\\assets\\rpk-support.glb",
+  "bytes": 149284,
+  "sha256": "958a62c63ed5ecebac3b3896ce98a256aefefd67afd0236767eab4a2db225ab4",
+  "triangles": 2192,
+  "meshCount": 8,
+  "materialCount": 4,
+  "source": "weapon-sources\\v0.11\\rpk-support-source.blend",
+  "weaponId": "rpk",
+  "sockets": {
+    "GripRight": [
+      0,
+      -0.055,
+      0.005
+    ],
+    "GripLeft": [
+      0,
+      -0.011,
+      -0.33
+    ],
+    "Muzzle": [
+      0,
+      0.042,
+      -0.713
+    ],
+    "RearSight": [
+      0,
+      0.127,
+      -0.107
+    ],
+    "FrontSight": [
+      0,
+      0.127,
+      -0.626
+    ],
+    "MagazineGrip": [
+      -0.065,
+      -0.14,
+      -0.128
+    ]
+  },
+  "lengthMetres": 1.113,
+  "reloadPart": "Magazine",
+  "lod": {
+    "file": "public\\assets\\rpk-support-lod.glb",
+    "bytes": 84396,
+    "triangles": 1066,
+    "sha256": "4a11b64c8c12a7259bdaaa81c5135136984681a85166a20e024941359372cc61"
+  }
+}

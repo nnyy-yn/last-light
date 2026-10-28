@@ -362,9 +362,9 @@ test('typed ammunition saves are strict while campaigns and old checkpoints with
 });
 
 test('chapter choices reconcile caliber pools and chapter replay restores a detached exact composition',()=>{
-  const state=newCampaign(INITIAL_RESOURCES);state.resources.ammo=90;state.ammoReserves={'556':40,'762':30,'9mm':13,'45':7};checkpoint(state,0);
+  const state=newCampaign(INITIAL_RESOURCES);state.resources.ammo=90;state.ammoReserves={'556':40,'762':30,'9mm':13,'45':7,rocket:0};checkpoint(state,0);
   const atStart=snapshot(state),cost={id:1,title:'Supply handover',role:'Liaison',choice:{options:[{label:'Share',response:'Confirmed',effects:{ammo:-17}}]}};
-  choose(state,cost,cost.choice.options[0]);assert.equal(state.resources.ammo,73);assert.equal(ammoTotal(state.ammoReserves),73);assert.deepEqual(state.ammoReserves,{'556':23,'762':30,'9mm':13,'45':7});
+  choose(state,cost,cost.choice.options[0]);assert.equal(state.resources.ammo,73);assert.equal(ammoTotal(state.ammoReserves),73);assert.deepEqual(state.ammoReserves,{'556':23,'762':30,'9mm':13,'45':7,rocket:0});
   checkpoint(state,1);state.ammoReserves['762']=0;state.resources.ammo-=30;
   assert(restoreChapter(state,0));assert.deepEqual(state.ammoReserves,atStart.ammoReserves);state.ammoReserves['556']--;state.resources.ammo--;
   assert.deepEqual(state.checkpoints[0].ammoReserves,atStart.ammoReserves,'Replay must not alias its saved pool');

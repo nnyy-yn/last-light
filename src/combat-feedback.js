@@ -4,8 +4,8 @@ import * as THREE from 'three';
 // Every emitter has a fixed ring pool. Six GPU batches, no per-shot lights/meshes.
 const LIMITS = Object.freeze({ flashes: 42, dust: 160, streaks: 160, debris: 96, casings: 72, decals: 96 });
 const UP = new THREE.Vector3(0, 1, 0), FORWARD = new THREE.Vector3(0, 0, 1);
-const HEAVY_GUN = 'mounted-m2';
-const PROFILES=Object.freeze({m16a2:{flash:.145,case:1,impact:1},m4a1:{flash:.16,case:1,impact:1},m249:{flash:.18,case:1,impact:1.08},ak:{flash:.175,case:1.12,impact:1.16},mp5:{flash:.09,case:.72,impact:.72},m1911:{flash:.105,case:.82,impact:.82},'mounted-m2':{flash:.31,case:2.35,impact:1.65}});
+const HEAVY_GUNS = new Set(['mounted-m2','dshk']);
+const PROFILES=Object.freeze({m16a2:{flash:.145,case:1,impact:1},m4a1:{flash:.16,case:1,impact:1},m249:{flash:.18,case:1,impact:1.08},ak:{flash:.175,case:1.12,impact:1.16},mp5:{flash:.09,case:.72,impact:.72},m1911:{flash:.105,case:.82,impact:.82},rpk:{flash:.18,case:1.12,impact:1.16},rpg7:{flash:.10,case:0,impact:2.0},m134:{flash:.16,case:1.1,impact:1.1},dshk:{flash:.32,case:2.4,impact:1.7},'mounted-m2':{flash:.31,case:2.35,impact:1.65}});
 const weaponName=id=>id==='akm'?'ak':Object.hasOwn(PROFILES,id)?id:'m4a1';
 const regionName=id=>['head','torso','limb','armor'].includes(id)?id:'torso';
 const NOISE = `
@@ -117,7 +117,7 @@ export function createCombatFeedback(scene, {groundHeight=()=>0} = {}) {
   }
   function shot({ from, to, faction = 'player', weaponId = 'm16a2', gunType } = {}) {
     if (disposed) return; events.shots++; const start = vec(from), end = vec(to, [0, 0, -30]), direction = end.clone().sub(start); const distance = direction.length();
-    if (distance < .001) return; weaponId=weaponName(gunType||weaponId);faction=['player','enemy','ally'].includes(faction)?faction:'player';const profile=PROFILES[weaponId];direction.multiplyScalar(1 / distance); const heavy=weaponId===HEAVY_GUN,support = weaponId === 'm249', pistol = weaponId === 'm1911';
+    if (distance < .001) return; weaponId=weaponName(gunType||weaponId);faction=['player','enemy','ally'].includes(faction)?faction:'player';const profile=PROFILES[weaponId];direction.multiplyScalar(1 / distance); const heavy=HEAVY_GUNS.has(weaponId),support = ['m249','rpk','m134'].includes(weaponId), pistol = weaponId === 'm1911';
     if(heavy)events.heavyShots++;
     for (let i = 0; i < 2; i++) {
       const p = pools.flashes.take(); p.p.copy(start).addScaledVector(direction, i * .055); p.v.set(0, 0, 0); p.size = profile.flash * (i === 0 ? .37 : 1); p.endSize = p.size * 1.18; p.life = (heavy?.028:.019) + i * .009; p.alpha = i === 0 ? .96 : .53; p.rotation = random() * 6; p.seed = random() * 8; p.c.setRGB(i === 0 ? 5.2 : 3.2, i === 0 ? 3.3 : 1.25, i === 0 ? 1.3 : .2);

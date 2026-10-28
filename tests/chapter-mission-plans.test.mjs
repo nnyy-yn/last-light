@@ -50,14 +50,12 @@ test('dependency chains and acts describe the actual interleaved story order wit
   assert(CHAPTER_MISSION_PLANS.some(p=>p.tasks.some(t=>t.insertAfterCore===2)));
 });
 
-test('time budgets remain explicit unverified estimates and do not introduce duration gates',()=>{
+test('playtime remains an unverified design target without manufactured estimates or duration gates',()=>{
   for(const p of CHAPTER_MISSION_PLANS){
     assert.deepEqual(p.targetMinutes,[20,25]);
-    assert(p.estimatedMinutes>=20&&p.estimatedMinutes+p.optionalEstimatedMinutes<=25);
-    assert.equal(p.acts.reduce((n,a)=>n+a.minutes,0),p.estimatedMinutes);
-    assert.equal(p.acts.reduce((n,a)=>n+(a.optionalMinutes||0),0),p.optionalEstimatedMinutes);
-    assert.equal(Object.values(p.timeBudget).reduce((n,v)=>n+v,0),p.estimatedMinutes);
-    assert.match(p.estimateNote,/设计估计.*尚未实测/);
+    assert.equal(p.estimatedMinutes,null);assert.equal(p.optionalEstimatedMinutes,null);
+    assert(p.acts.every(a=>a.minutes===undefined&&a.optionalMinutes===undefined));
+    assert.match(p.estimateNote,/设计目标.*尚未实测/);
     assert.match(p.budgetNote,/不能.*宣称/);
     for(const t of p.tasks){
       assert(t.seconds>=3&&t.seconds<=8);

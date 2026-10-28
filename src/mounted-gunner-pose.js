@@ -68,7 +68,7 @@ function handOperation(limb, parts, progress) {
   frames.cover.basis.premultiply(coverRoll); frames.cover.palm.applyQuaternion(coverRoll); frames.cover.bend.applyQuaternion(coverRoll);
   const coverTip = frames.cover.tip; frames.cover.tip = (thumb, i) => coverTip(thumb, i).applyQuaternion(coverRoll);
   let from = 'spade', to = 'spade', blend = 0;
-  const stages = sign < 0 ? [
+  const stages = (parts.profile?.kind==='dshk'?limb.side==='Left':sign<0) ? [
     [0, .045, 'spade', 'spade'], [.045, .10, 'spade', 'cover'], [.10, .235, 'cover', 'cover'],
     [.235, .33, 'cover', 'belt'], [.33, .64, 'belt', 'belt'], [.64, .70, 'belt', 'cover'],
     [.70, .83, 'cover', 'cover'], [.83, .98, 'cover', 'spade'], [.98, 1, 'spade', 'spade'],
@@ -199,7 +199,7 @@ function prepareFirstPersonArms(actor, armBones) {
 }
 
 export function createMountedGunnerPose({ world, vehicle }) {
-  const turret = vehicle?.userData?.turret;
+  const turret = vehicle?.userData?.turret,profile=vehicle?.userData?.mountedPoseProfile;
   if (!world?.createActor || !world?.destroyActor || !turret?.yaw || !turret?.pitch) throw new TypeError('Mounted gunner requires an actor factory and a yaw/pitch turret.');
   const operationParts = { gun: turret.pitch, cover: turret.pitch.getObjectByName('MountedCoverLatch'), belt: turret.pitch.getObjectByName('MountedBeltSegment'), charging: turret.pitch.getObjectByName('MountedChargingGrip') };
   const spades = ['Left', 'Right'].map(side => turret.pitch.getObjectByName('MountedSpadeGrip' + side));
@@ -230,7 +230,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
   const anchorInParent = turret.yaw.parent.worldToLocal(vehicle.localToWorld(new THREE.Vector3(...anchor).add(V(0, .20, 0))));
   // The AI may already have turned the ring before the player mounts it. Keep
   // this offset in the ring's neutral frame instead of baking that yaw in.
-  const hipInYaw = anchorInParent.sub(turret.yaw.position);
+  const hipInYaw = profile?.hipInYaw?V(...profile.hipInYaw):anchorInParent.sub(turret.yaw.position);
   const targeted = new Set(limbs.flatMap(l => [l.arm, l.elbow, l.hand]));
 
   // Recover open finger rotations from the same exported inverse bind matrices.
@@ -263,6 +263,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
       f.tip = last.worldToLocal(worldPoint(last).add(direction.multiplyScalar(.68)));
     }
   }
+  const beltHome=operationParts.belt.position.clone(),beltHomeQ=operationParts.belt.quaternion.clone();
   let disposed = false, last = { visible: true, gripError: Infinity, limbs: [], ...visibility };
   function update(dt = 0, reloadProgress = 0) {
     if (disposed || actor.userData.disposed) return;
@@ -272,8 +273,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
     // feed tray while the feeding hand is in contact throughout the movement.
     const feed = smooth((reloadProgress - .41) / .20);
     operationParts.belt.visible = !loading || reloadProgress >= .30;
-    operationParts.belt.position.set(loading ? -.19 + .115 * feed : -.075, .135 + (loading ? Math.sin(feed * Math.PI) * .045 : 0), loading ? -.015 + .030 * feed : .015);
-    operationParts.belt.rotation.z = loading ? -.12 * Math.sin(feed * Math.PI) : 0;
+    if(profile?.kind==='dshk'){operationParts.belt.position.copy(beltHome).add(V(loading?-.08*(1-feed):0,loading?Math.sin(feed*Math.PI)*.04:0,0));operationParts.belt.quaternion.copy(beltHomeQ);operationParts.cover.parent.rotation.x=loading?-Math.min(1,Math.max(0,(reloadProgress-.1)/.12))*Math.min(1,Math.max(0,(.83-reloadProgress)/.13))*1.05:0;}else{operationParts.belt.position.set(loading ? -.19 + .115 * feed : -.075, .135 + (loading ? Math.sin(feed * Math.PI) * .045 : 0), loading ? -.015 + .030 * feed : .015);operationParts.belt.rotation.z = loading ? -.12 * Math.sin(feed * Math.PI) : 0;}
     turret.yaw.updateWorldMatrix(true, true);
     for (const [b, q] of rest) b.quaternion.copy(q);
     // The pelvis turns with the ring, not with barrel elevation. Legs/torso
@@ -284,7 +284,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
     // Lean up into a downward-aimed gun only while its lid is raised. Leaving
     // the body permanently forward exposes the shoulder cut in the camera.
     const lean = loading ? smooth((reloadProgress - .08) / .12) * (1 - smooth((reloadProgress - .83) / .14)) * Math.max(0, turret.pitch.rotation.x) : 0;
-    const desiredHip = turret.yaw.localToWorld(hipInYaw.clone().add(V(0, lean * .24, lean * .15)));
+    const profileLean=loading&&profile?.reloadLean?smooth((reloadProgress-.04)/.18)*(1-smooth((reloadProgress-.82)/.18)):0;const desiredHip=turret.yaw.localToWorld(hipInYaw.clone().add(profile?.reloadLean?V(...profile.reloadLean).multiplyScalar(profileLean):V(0,lean*.24,lean*.15)));
     const offset = desiredHip.sub(worldPoint(hips));
     if (actor.parent) {
       const origin = actor.parent.worldToLocal(worldPoint(actor));
@@ -292,13 +292,28 @@ export function createMountedGunnerPose({ world, vehicle }) {
       actor.position.add(endpoint.sub(origin));
     } else actor.position.add(offset);
     actor.updateWorldMatrix(true, true);
+    // The technical's original third-person pelvis puts both shoulder cuts
+    // between the camera and receiver. Anchor the first-person shoulders below
+    // the camera instead; preserve real limb lengths and all gun contacts.
+    if (profile?.kind === 'dshk') {
+      const shoulderCenter = limbs.reduce((p, l) => p.add(worldPoint(l.arm)), V()).multiplyScalar(.5);
+      const desiredShoulders = turret.pitch.localToWorld(V(0, -.18, -.22));
+      const shift = desiredShoulders.sub(shoulderCenter);
+      if (actor.parent) {
+        const origin = actor.parent.worldToLocal(worldPoint(actor));
+        actor.position.add(actor.parent.worldToLocal(worldPoint(actor).add(shift)).sub(origin));
+      } else actor.position.add(shift);
+      actor.updateWorldMatrix(true, true);
+    }
     const readings = [];
     for (const l of limbs) {
-      const operation = handOperation(l, { ...operationParts, spade: spades[l.side === 'Left' ? 0 : 1] }, reloadProgress);
+      const operation = handOperation(l, { ...operationParts, profile, spade: spades[l.side === 'Left' ? 0 : 1] }, reloadProgress);
       const handQ = operation.handQ, palmContact = operation.contact;
       const handScale = l.hand.getWorldScale(V());
       const wristTarget = palmContact.clone().sub(l.palmOffset.clone().multiply(handScale).applyQuaternion(handQ));
-      const pole = turret.yaw.localToWorld(hipInYaw.clone().add(V(l.sign * .43, .10, -.16)));
+      const pole = profile?.kind === 'dshk'
+        ? turret.pitch.localToWorld(V(l.sign * .33, -.48, -.40))
+        : turret.yaw.localToWorld(hipInYaw.clone().add(V(l.sign * .43, .10, -.16)));
       const reachError = solveArm(l.arm, l.elbow, l.hand, wristTarget, pole);
       l.hand.quaternion.copy(l.hand.parent.getWorldQuaternion(Q()).invert().multiply(handQ)); l.hand.updateWorldMatrix(false, true);
 
@@ -339,7 +354,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
     for (const rifle of rifles) rifle.visible = false;
     for (const skeleton of skeletons) skeleton.update();
     last = { visible: actor.visible, reloadProgress, gripError: Math.max(...readings.map(r => r.error)), limbs: readings, headHidden: true, armsOnly: true, head: head ? worldPoint(head).toArray() : null,
-      camera: turret.pitch.localToWorld(V(0, .19, -.53)).toArray(), ...visibility };
+      camera: (profile?.camera?turret.pitch.localToWorld(V(...profile.camera)):turret.pitch.localToWorld(V(0,.19,-.53))).toArray(), ...visibility };
     actor.userData.mountedGripState = last;
   }
   update(0);
@@ -347,7 +362,7 @@ export function createMountedGunnerPose({ world, vehicle }) {
     update,
     inspect: () => ({ ...last, disposed }),
     dispose() { if (disposed) return; disposed = true; if (turret.crew) turret.crew.visible = originalCrewVisible;
-      operationParts.belt.visible = true; operationParts.belt.position.set(-.075, .135, .015); operationParts.belt.rotation.z = 0;
+      operationParts.belt.visible = true; if(profile){operationParts.belt.position.copy(beltHome);operationParts.belt.quaternion.copy(beltHomeQ);}else{operationParts.belt.position.set(-.075,.135,.015);operationParts.belt.rotation.z=0;}
       world.destroyActor(actor); },
   };
 }

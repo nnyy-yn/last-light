@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { createFire } from './fire.js';
+import {BLACKHAWK_ROPE_SOCKETS} from './aircraft-door-geometry.js';
+import {casualtyPose} from './casualty-motion.js';
+import {placeActorOnSurface} from './actor-bounds.js';
+import {createCinematicEffects} from './cinematic-effects.js';
 import { createConvoyPath, createConvoyMotion } from './convoy-motion.js';
 
 // Original, real-time staging of the campaign events. No video playback, wall
@@ -50,13 +54,18 @@ function addPlayerAction(plan) {
   return plan;
 }
 
-export function sampleCinematicTrack(keys, time) {
-  if (!keys?.length) return null;
-  const persistent = ['yaw', 'roll', 'pitch', 'fov', 'reload', 'dead', 'rotor', 'carry', 'unfold', 'stance', 'gesture', 'aimTarget', 'talk', 'alert'];
+function resolveCinematicTrack(keys){
+  if(!keys?.length)return [];
+  const persistent = ['yaw', 'roll', 'pitch', 'fov', 'reload', 'dead', 'rotor', 'carry', 'unfold', 'stance', 'gesture', 'aimTarget', 'talk', 'alert','ropePhase','ropeGrip','landing','injured','injuryPhase','ropeTarget','treatmentTarget'];
   const inherited = {}, resolved = keys.map(k => {
     for (const field of persistent) if (Object.hasOwn(k, field)) inherited[field] = k[field];
     return { ...inherited, ...k, hit: k.hit || 0 };
   });
+  return resolved;
+}
+export function sampleCinematicTrack(keys,time){return sampleResolvedTrack(resolveCinematicTrack(keys),time);}
+function sampleResolvedTrack(resolved,time){
+  if(!resolved.length)return null;
   let a = resolved[0], b = a;
   for (let i = 1; i < resolved.length; i++) {
     if (resolved[i].at > time) { b = resolved[i]; break; }
@@ -65,7 +74,7 @@ export function sampleCinematicTrack(keys, time) {
   const fraction = a === b ? 0 : clamp((time - a.at) / Math.max(.0001, b.at - a.at));
   const t = b.cut ? 0 : a.linear ? fraction : smooth(fraction);
   const result = { ...a, position: lerp3(a.position, b.position, t) };
-  for (const field of ['yaw', 'roll', 'pitch', 'fov', 'reload', 'dead', 'rotor', 'carry', 'unfold']) {
+  for (const field of ['yaw', 'roll', 'pitch', 'fov', 'reload', 'dead', 'rotor', 'carry', 'unfold','ropeGrip','landing','injured']) {
     if (Number.isFinite(a[field]) || Number.isFinite(b[field])) result[field] = mix(a[field] ?? (field === 'fov' ? 54 : field === 'rotor' ? 1 : 0), b[field] ?? a[field], t);
   }
   result.hit = (a.hit || 0) * Math.exp(-Math.max(0, time - a.at) * 9);
@@ -75,14 +84,18 @@ export function sampleCinematicTrack(keys, time) {
 }
 
 /** A serializable plan also allows the timing and geometry to be tested without WebGL. */
-export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', event } = {}) {
+export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', event,sceneState,groundHeight=()=>0 } = {}) {
   if (!chapter || !Number.isInteger(chapter.id) || chapter.id < 1 || chapter.id > 16) throw new RangeError('A cinematic needs chapter 1–16.');
   if (phase === 'event') return buildActionPlan(chapter, layout, event);
+  if(phase==='briefing')return buildBriefingPlan(chapter,layout);
   if (!['opening', 'closing'].includes(phase)) throw new RangeError('Unknown cinematic phase.');
   const id = chapter.id, closing = phase === 'closing', c = layout.cinematic || {};
   const anchor = chapter.id === 11 ? point(layout.taskPositions?.[1], point(chapter.tasks?.[1]?.pos))
     : chapter.id === 3 ? closing ? [27, 0, 0] : point(layout.taskPositions?.[0], [-35, 0, -9])
       : point(c.anchor, point(chapter.tasks?.[0]?.pos, point(chapter.spawn)));
+  // The authored market canopy covers the old insertion point. This street
+  // patch is verified against actual scene triangles, not only pole colliders.
+  if(id===4&&!closing)anchor[2]+=8;
   const heading = Number.isFinite(c.heading) ? c.heading : layout.facing ?? chapter.facing ?? 0;
   const local = (x = 0, y = 0, z = 0) => [anchor[0] + x * Math.cos(heading) - z * Math.sin(heading), anchor[1] + y, anchor[2] - x * Math.sin(heading) - z * Math.cos(heading)];
   const aim = (p, height = 1.2) => [p[0], p[1] + height, p[2]];
@@ -178,20 +191,38 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
         for (let i = 0; i < 3; i++) { walk(`briefing-listener-${i}`, 'soldier', local(i * 1.3 - 1.3, 0, -5), local(i * 1.3 - 1.3, 0, -1.7), 0, 2 + i * .4); plan.actors.at(-1).keys.forEach(k => k.carry = 1); }
         stage(0, 'briefing-assemble'); stage(4, 'route-discussed'); caption(.5, '指挥官（原创对白）', '目标完成后与车队会合。记住转角，也记住身边的人。'); cue(4, 'briefing-route'); break;
       case 4: {
-        plan.duration = 18;
-        const hover = local(0, 12, 2), approach = local(-5, 18, -35);
-        aircraft('insertion-aircraft', [key(0, approach, { linear: true, yaw: towards(approach, hover), rotor: 1 }), key(5, hover, { rotor: 1 }), key(13, hover, { rotor: 1 }), key(18, local(8, 20, 38), { rotor: 1 })]);
-        prop('fast-rope', 'rope', [key(4.8, [hover[0] + 1.4, 6.4, hover[2] + .3])], { visible: [4.8, 13], length: 12 });
-        prop('player-rope', 'rope', [key(4.8, [hover[0] - 1.4, 6.4, hover[2] + .3])], { visible: [4.8, 13], length: 12 });
-        actor('player-ranger', 'soldier', [key(5.3, [hover[0] - 1.4, 10.1, hover[2]], { linear: true, stance: 'crouch', gesture: 'fast-rope' }), key(12.4, [hover[0] - 1.4, 0, hover[2]], { stance: 'crouch', gesture: 'fast-rope' }), key(13, [hover[0] - 1.4, 0, hover[2]], { stance: 'stand', gesture: null })], { visible: [5.3, 19] });
-        actor('descending-ranger', 'soldier', [key(5.3, [hover[0] + 1.4, 10.1, hover[2]], { linear: true, stance: 'crouch', gesture: 'fast-rope' }), key(8.1, [hover[0] + 1.4, 5.2, hover[2]], { stance: 'crouch', gesture: 'fast-rope' }), key(8.8, [hover[0] + 1.9, .2, hover[2] + .4], { roll: -.55, hit: 1, gesture: null })], { visible: [5.3, 8.85] });
-        actor('blackburn', 'wounded', [key(8.85, [hover[0] + 1.9, 0, hover[2] + .4])], { visible: [8.85, 19] });
-        medic('responding-medic', [hover[0] + 1.9, 0, hover[2] + .4], local(-3, 0, -4), 8.8, 12.3);
-        guard('landing-security', local(-2.5, 0, 1), local(-4, 0, 14));
-        shot(0, local(4.8, 4, -9), aim(approach, 2)); shot(4.8, local(5.5, 3, -7), aim(hover, 1));
-        shot(7.7, local(5, 2.4, -5), [hover[0], 6, hover[2]], { cut: true }); shot(10, local(4.5, 1.4, -2), [hover[0] + 1.9, .6, hover[2]], { cut: true }); shot(18, local(4, 1.3, -1), [hover[0] + 1.9, .6, hover[2]]);
-        stage(0, 'roof-overflight'); stage(5, 'fast-rope-descent'); stage(8.1, 'rope-accident'); stage(8.85, 'ground-rescue'); cue(8.85, 'landing-accident', { position: [hover[0] + 1.9, .1, hover[2]], strength: .2 });
-        caption(.7, '机组（原创对白）', '索降准备。每个人保持间距。'); caption(8.8, '队员（原创对白）', '有人坠落！军医，过来！', 3.8); break;
+        plan.duration=20;
+        const hover=local(0,12,2),approach=local(-5,18,-35),hoverYaw=towards(approach,hover),rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),hoverYaw);
+        const door=side=>new THREE.Vector3(...BLACKHAWK_ROPE_SOCKETS.find(s=>s.side===side).position).applyQuaternion(rotation).add(new THREE.Vector3(...hover));
+        const playerTop=door(-1),rightTop=door(1),forward=new THREE.Vector3(0,0,1).applyQuaternion(rotation),side=new THREE.Vector3(1,0,0).applyQuaternion(rotation);
+        const playerRope={x:playerTop.x,z:playerTop.z},rightRope={x:rightTop.x,z:rightTop.z};
+        const atRope=(top,y)=>[top.x-forward.x*.30,y,top.z-forward.z*.30],playerAt=y=>atRope(playerTop,y),rightAt=y=>atRope(rightTop,y);
+        const playerX=playerAt(0)[0],rightX=rightAt(0)[0],ropeZ=rightAt(0)[2],patient=[rightX+side.x*.46+forward.x*.62,0,ropeZ+side.z*.46+forward.z*.62],startHeight=playerTop.y-1.80;
+        plan.insertion={aircraft:'insertion-aircraft',hover:[...hover],yaw:hoverYaw,doorAnchors:BLACKHAWK_ROPE_SOCKETS.map(s=>[...s.position]),ropeTops:[playerTop.toArray(),rightTop.toArray()]};
+        aircraft('insertion-aircraft',[key(0,approach,{linear:true,yaw:towards(approach,hover),rotor:1}),key(4.8,hover,{rotor:1}),key(16,hover,{rotor:1}),key(20,local(8,20,38),{rotor:1})]);
+        for(const [name,top,anchor]of[['player-rope',playerTop,plan.insertion.doorAnchors[0]],['fast-rope',rightTop,plan.insertion.doorAnchors[1]]]){const floor=groundHeight(top.x,top.z)||0;prop(name,'rope',[key(4.8,[top.x,(top.y+floor)/2,top.z])],{visible:[4.8,16.1],length:top.y-floor,aircraftAnchor:anchor,aircraft:'insertion-aircraft'});}
+        actor('player-ranger','soldier',[
+          key(5.3,playerAt(startHeight),{linear:true,stance:'stand',gesture:'fast-rope',ropePhase:'brake',ropeGrip:1,ropeTarget:playerRope}),
+          key(5.75,playerAt(startHeight-.5),{linear:true,ropePhase:'descend'}),key(11.8,playerAt(.55),{linear:true}),
+          key(12.4,playerAt(0),{stance:'stand',ropePhase:'land',landing:.5,ropeGrip:.75}),
+          key(12.85,playerAt(0),{ropePhase:'release',landing:1,ropeGrip:.2}),key(13.25,playerAt(0),{gesture:null,ropeGrip:0,landing:1}),
+          key(15.6,[playerX-2.1,0,ropeZ+3],{linear:true,stance:'stand',ropePhase:null}),key(20,[playerX-2.1,0,ropeZ+3],{stance:'crouch',alert:1})
+        ],{visible:[5.3,21],ropeActor:true});
+        actor('lead-ranger','soldier',[key(4.9,rightAt(startHeight),{linear:true,gesture:'fast-rope',ropePhase:'descend',ropeGrip:1,ropeTarget:rightRope}),key(7.9,rightAt(0),{ropePhase:'land',landing:.5,ropeGrip:.6}),key(8.35,rightAt(0),{ropePhase:'release',ropeGrip:0,landing:1,gesture:null}),key(9.6,[rightX+2.0,0,ropeZ+2.8],{linear:true,ropePhase:null,stance:'crouch',alert:1})],{visible:[4.9,21],ropeActor:true});
+        // One living character remains continuous through loss of grip and the
+        // fall; injury is a separate pose, never a dead actor or a root flip.
+        actor('blackburn','soldier',[key(6.8,rightAt(startHeight),{linear:true,gesture:'fast-rope',ropePhase:'descend',ropeGrip:1,ropeTarget:rightRope}),key(8.35,rightAt(5.4),{linear:true,ropePhase:'brake',ropeGrip:.85}),key(8.52,[rightX+.16,4.95,ropeZ+.12],{linear:true,gesture:null,ropeGrip:0,ropePhase:'release',injured:.20,injuryPhase:'fall',roll:.12}),key(9.12,patient,{stance:'low',injured:1,injuryPhase:'ground',ropePhase:null,roll:0}),key(20,patient,{stance:'low',injured:1,injuryPhase:'ground',alert:.2})],{visible:[6.8,21],ropeActor:true});
+        const bedside=new THREE.Vector3(.70,0,.20).applyQuaternion(rotation).add(new THREE.Vector3(...patient)),shoulder=new THREE.Vector3(.19,.72,.05).applyQuaternion(rotation).add(new THREE.Vector3(...patient));shoulder.y+=groundHeight(patient[0],patient[2])||0;
+        medic('responding-medic',patient,local(-3,0,-4),9.0,11.5);Object.assign(plan.actors.at(-1).keys.at(-1),{position:bedside.toArray(),yaw:towards(bedside.toArray(),shoulder.toArray()),aimTarget:shoulder.toArray(),treatmentTarget:shoulder.toArray()});
+        actor('casualty-assistant','soldier',[key(9.1,local(4,0,-3),{linear:true,carry:1}),key(12.4,[patient[0]+1.35,0,patient[2]+.4],{stance:'kneel',aimTarget:aim(patient,.3),carry:1}),key(20,[patient[0]+1.35,0,patient[2]+.4],{stance:'kneel',carry:1})],{visible:[9.1,21]});
+        prop('rescue-stretcher','stretcher',[key(10.2,[patient[0]+1.1,.16,patient[2]+1.6],{unfold:0}),key(13,[patient[0]+1.1,.16,patient[2]+1.6],{unfold:1})],{visible:[10.2,21]});
+        for(const a of plan.actors.filter(a=>a.ropeActor))for(const k of a.keys)k.yaw=hoverYaw;
+        guard('landing-security',local(-3,0,2),local(-4,0,14));
+        shot(0,local(4.8,4,-9),aim(approach,2),{fov:64});shot(4.8,local(5.5,3,-7),aim(hover,1),{fov:64});
+        shot(8.15,[rightX+4.5,4.2,ropeZ-4.5],[rightX,5,ropeZ],{cut:true,fov:60});shot(9.2,[patient[0]+3.7,1.3,patient[2]-3.4],aim(patient,.5),{fov:60});shot(20,[patient[0]+3.4,1.35,patient[2]-3],aim(patient,.6),{fov:60});
+        stage(0,'approach-and-rope-deploy');stage(5.3,'controlled-rope-descent');stage(8.35,'blackburn-loses-grip');stage(9.12,'blackburn-injured-not-dead');stage(11.5,'medic-check-and-stretcher');
+        cue(9.12,'landing-accident',{position:[patient[0],.12,patient[2]],strength:.15,injured:true,dead:false});cue(11.5,'medical-treatment',{target:'blackburn',alive:true});
+        caption(.7,'机组（原创对白）','抓稳，按口令下降。落地后让开绳下。');caption(8.5,'队员（原创对白）','手脱开了！下面的人让开！',2.5);caption(9.7,'军医（原创对白）','布莱克本，看着我。能听见吗？我们先稳住你。',4);break;
       }
       case 5:
         plan.duration = 18; convoy('main');
@@ -204,14 +235,31 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
         const name = cockpit ? 'super-64' : 'super-61', hitAt = cockpit ? 4.6 : 5.2, impactAt = cockpit ? 13.2 : 12.8;
         const start = relativeCrash(-30, cockpit ? 27 : 33, -52), hit = relativeCrash(-5, 24, -22), ground = relativeCrash(0, .10, 0);
         aircraft(name, [key(0, start, { linear: true, yaw: towards(start, hit), pitch: .025, rotor: 1 }), key(hitAt, hit, { yaw: .2, roll: 0, rotor: 1 }), key(hitAt + 2, relativeCrash(5, 19, -15), { yaw: 2.9, roll: .36, pitch: -.1, rotor: .83 }), key(impactAt - 2, relativeCrash(-2, 7, -5), { yaw: 7.7, roll: -.40, pitch: .13, rotor: .60 }), key(impactAt, ground, { yaw: 10.2, roll: -.23, pitch: .045, rotor: .10 })], { visible: [0, impactAt], crashedAt: impactAt });
+        plan.aircraft[0].keys.forEach(k=>k.linear=true);
         aircraft(`${name}-wreck`, [key(impactAt, ground, { yaw: 10.2, roll: -.23, pitch: .045, rotor: 0 })], { crashed: true, visible: [impactAt, plan.duration + 1] });
-        prop('rpg-tracer', 'projectile', [key(hitAt - .55, relativeCrash(25, 7, -28), { linear: true }), key(hitAt, [hit[0] - 1.95, hit[1] + 3.85, hit[2] - 9.6])], { visible: [hitAt - .55, hitAt] });
+        const launchAt=hitAt-.72,roof=selectCinematicRoof(sceneState,relativeCrash(23,5.5,-29)),shooterPosition=roof?.position||relativeCrash(23,5.5,-29),launchPoint=[shooterPosition[0],shooterPosition[1]+1.42,shooterPosition[2]],hitLocal=[.36,3.85,-9.79];
+        const hitPose=sampleCinematicTrack(plan.aircraft[0].keys,hitAt),hitTransform=new THREE.Matrix4().compose(new THREE.Vector3(...hitPose.position),new THREE.Quaternion().setFromEuler(new THREE.Euler(hitPose.pitch||0,hitPose.yaw||0,hitPose.roll||0,'YXZ')),new THREE.Vector3(1,1,1));
+        const contact=new THREE.Vector3(...hitLocal).applyMatrix4(hitTransform).toArray();const launchDirection=new THREE.Vector3(...contact).sub(new THREE.Vector3(...launchPoint)).normalize();for(let axis=0;axis<3;axis++)launchPoint[axis]+=launchDirection.getComponent(axis)*.55;
+        if(!sceneState)prop('rpg-roof-edge','roof-edge',[key(0,[shooterPosition[0],shooterPosition[1]-.15,shooterPosition[2]])]);
+        if(sceneState&&!roof)throw new Error('Crash cinematic needs an actual clear building roof.');plan.rooftop=roof?{id:roof.id,position:[...roof.position],bounds:roof.bounds}:null;
+        actor('rpg-shooter','enemy',[key(0,shooterPosition,{yaw:towards(shooterPosition,contact),stance:'stand',aimTarget:contact,alert:1}),key(launchAt+.12,shooterPosition,{stance:'crouch',hit:.25})],{visible:[0,hitAt+1.0],launcher:{launchAt,launchPoint,target:contact}});
+        prop('rpg-tracer','projectile',[key(launchAt,launchPoint,{linear:true}),key(hitAt,contact)],{visible:[launchAt,hitAt],trajectory:{from:launchPoint,to:contact}});
+        cue(launchAt,'rpg-launched',{position:launchPoint,to:contact,strength:.32});
+        cue(launchAt+.05,'projectile-flight',{from:launchPoint,to:contact,target:name});
+        stage(.7,'rooftop-launcher');stage(launchAt,'rpg-in-flight');
+
         cue(hitAt, 'aircraft-hit', { target: name, localPosition: [.36, 3.85, -9.79], strength: .7 });
         cue(hitAt + .1, 'tail-smoke', { target: name });
         cue(impactAt, 'aircraft-impact', { target: name, position: ground, strength: 1 });
         cue(impactAt + .08, 'wreck-fire', { position: relativeCrash(-.7, .4, -1.3), scale: cockpit ? 1.2 : 1.8 });
         stage(0, 'aircraft-approach'); stage(hitAt, 'tail-hit'); stage(hitAt + .4, 'uncontrolled-descent'); stage(impactAt, 'ground-impact'); stage(impactAt + 2, cockpit ? 'trapped-in-cockpit' : 'rescue-redirect');
-        shot(0, relativeCrash(18, 5, -7), aim(start, 2)); shot(4, relativeCrash(15, 6, 1), aim(hit, 1));
+        shot(0,relativeCrash(18,7,-7),aim(start,2),{fov:64});
+        shot(.7,[shooterPosition[0]-3.2,shooterPosition[1]+1.8,shooterPosition[2]+2.8],launchPoint,{cut:true,fov:50});
+        shot(launchAt-.12,[shooterPosition[0]-2.6,shooterPosition[1]+1.7,shooterPosition[2]+2.1],launchPoint,{fov:50});
+        const flightMid=new THREE.Vector3(...launchPoint).lerp(new THREE.Vector3(...contact),.5),flightDistance=new THREE.Vector3(...launchPoint).distanceTo(new THREE.Vector3(...contact)),flightSide=new THREE.Vector3(-launchDirection.z,.22,launchDirection.x).normalize();
+        shot(launchAt,flightMid.clone().addScaledVector(flightSide,Math.max(11,flightDistance*.72)).toArray(),flightMid.toArray(),{cut:true,fov:63});
+        shot(hitAt-.12,[contact[0]+4.0,contact[1]+1.4,contact[2]-3.5],contact,{cut:true,fov:51});
+        shot(hitAt+.38,[contact[0]+4.5,contact[1]+1.6,contact[2]-2.8],contact,{fov:53});
         if (cockpit) {
           shot(5.8, [0, 1.77, 2.7], [0, 0, 0], { cut: true, follow: name, lookOffset: [0, 1.72, 7], fov: 65 });
           shot(impactAt - .01, [0, 1.77, 2.7], [0, 0, 0], { follow: name, lookOffset: [0, 1.72, 7], fov: 65 });
@@ -221,7 +269,8 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
           shot(impactAt, cockpitSeat, cockpitLook, { cut: true, roll: -.12, fov: 65 });
           shot(plan.duration, cockpitSeat, cockpitLook, { roll: -.12, fov: 65 });
         } else {
-          shot(6.1, relativeCrash(19, 5.5, 4), relativeCrash(0, 16, -12), { cut: true }); shot(impactAt, relativeCrash(18, 2.3, 9), relativeCrash(0, 1.2, 0)); shot(plan.duration, relativeCrash(14, 1.8, 8), relativeCrash(0, 1.8, 0));
+          const impactView=relativeCrash(16.4544826719,4.8,9.5);
+          shot(6.1,impactView,relativeCrash(-2,8,-5),{cut:true,fov:64});shot(impactAt,impactView,relativeCrash(0,2.6,0),{fov:64});shot(plan.duration,impactView,relativeCrash(0,2.6,0),{fov:64});
           for (let i = 0; i < 2; i++) actor(`witness-${i}`, 'soldier', [key(0, relativeCrash(11 + i * 1.6, 0, 7), { stance: 'stand', yaw: -1.7 }), key(impactAt, relativeCrash(11 + i * 1.6, 0, 7), { stance: 'crouch', alert: 1 }), key(plan.duration, relativeCrash(8 + i * 1.6, 0, 4), { stance: 'crouch', linear: true })]);
         }
         caption(1, '空中频道（原创对白）', cockpit ? '超级六四，继续掩护地面。' : '超级六一，保持上空观察。');
@@ -306,12 +355,12 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
         stage(0, 'immobile-cockpit'); stage(7, 'rescuers-arrive'); cue(7, 'cockpit-rescue-contact'); break;
       case 10:
         plan.duration = 13;
-        for (let i = 0; i < 2; i++) actor(`sniper-${i}`, 'soldier', [key(0, local(i * 2 - 1, 0, i * 2), { stance: 'crouch', alert: 1 }), key(4 + i * 2.3, local(i * 2 - 1, 0, i * 2), { stance: 'crouch', hit: 1, dead: 0 }), key(5.5 + i * 2.3, local(i * 2 - 1, 0, i * 2), { dead: 1, roll: i ? 1.12 : -1.12, stance: 'low' })]);
-        stage(0, 'last-defense'); stage(4, 'fixed-sacrifice'); stage(8, 'radio-silence'); cue(8, 'fixed-outcome', { outcome: 'gordon-and-shughart-die', fixed: true }); caption(8, '叙事', '戈登与舒哈特在救援中牺牲。这个结局不因玩家选择而改变。', 4.8); break;
+        for (let i = 0; i < 2; i++) actor(`sniper-${i}`, 'soldier', [key(0, local(i * 2 - 1, 0, i * 2), { stance: 'crouch', alert: 1 }), key(4 + i * 2.3, local(i * 2 - 1, 0, i * 2), { stance: 'crouch', hit: 1, dead: 0 }), key(5.5 + i * 2.3, local(i * 2 - 1, 0, i * 2), { dead: 1, stance: 'low' })],{casualty:{side:i?-1:1,direction:{x:i?.35:-.3,z:-1}}});
+        stage(0, 'last-defense'); stage(4, 'fixed-sacrifice'); stage(8, 'radio-silence'); cue(8, 'fixed-outcome', { outcome: 'gordon-and-shughart-die', fixed: true }); caption(8, '叙事', '无线电那头再没有传来两人的回答。戈登与舒哈特在救援中牺牲。', 4.8); break;
       case 11:
         plan.duration = 13; actor('smith', 'wounded', [key(0, local(0, 0, 1))]);
         actor('medic', 'soldier', [key(0, local(-.9, 0, 1), { stance: 'treat', yaw: Math.PI / 2, aimTarget: local(0, .3, 1) }), key(7, local(-.9, 0, 1), { stance: 'kneel', alert: 0 }), key(12, local(-.9, 0, 1), { stance: 'kneel', alert: 0 })]);
-        actor('quiet-assistant', 'soldier', [key(0, local(1.2, 0, 2), { stance: 'kneel', alert: .1 })]); stage(0, 'treatment'); stage(7, 'treatment-stops'); cue(7, 'fixed-outcome', { outcome: 'smith-dies', fixed: true }); caption(7.1, '叙事', '史密斯没有活过这一夜。投入的救护资源不会改写他的死亡。', 4.8); break;
+        actor('quiet-assistant', 'soldier', [key(0, local(1.2, 0, 2), { stance: 'kneel', alert: .1 })]); stage(0, 'treatment'); stage(7, 'treatment-stops'); cue(7, 'fixed-outcome', { outcome: 'smith-dies', fixed: true }); caption(7.1, '叙事', '医护人员停下了动作，身旁的人没有离开。史密斯没有活过这一夜。', 4.8); break;
       case 12: plan.duration = 15; convoy('relief'); guard('night-sentry', local(-2.5, 0, 2), local(0, 0, -20)); stage(0, 'relief-headlights'); cue(5, 'relief-sighted'); break;
       case 15: lineOfSoldiers(3, -9, 3, 5); for (const spec of plan.actors) spec.keys[1].stance = 'kneel'; stage(0, 'safety-arrival'); stage(5, 'exhausted-rest'); cue(5, 'withdrawal-complete'); break;
       case 16:
@@ -321,6 +370,15 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
         stage(0, 'names-remembered'); cue(4, 'remembrance'); caption(2, '叙事', '选择留下的不是胜利分数，而是被记住的人和彼此承担的重量。', 6); break;
     }
     if (![10, 11, 16].includes(id)) caption(.8, '叙事', chapter.outro || '他们继续清点身边的人，然后走向下一段路。', Math.min(6, plan.duration - 1.5));
+  }
+  if([4,5,6,7,8,10,12,13,14,15].includes(id)){
+    const threat=local(-9,1.3,22);let guardSpec=plan.actors.find(a=>a.kind==='soldier'&&!a.crew&&!a.ropeActor&&a.keys.some(k=>k.aimTarget||k.stance==='crouch')&&!/carrier|medic|wounded|assistant|recovery/.test(a.id));
+    if(!guardSpec){guard('transfer-cover',local(-6,0,-3),local(-9,0,22));guardSpec=plan.actors.at(-1);}
+    if(guardSpec){for(const k of guardSpec.keys)if(!k.dead){k.aimTarget=threat;k.alert=1;}
+      for(const at of [1.35,1.48,1.61,3.25,3.38,5.35])if(at<plan.duration-1)cue(at,'ground-cover-fire',{source:guardSpec.id,to:[threat[0]+Math.sin(at)*.5,threat[1],threat[2]],weaponId:id===12?'m249':'m16a2'});
+    }
+    const air=plan.aircraft.find(a=>!a.crashed);if(air){for(const at of [.18,.29,.40,.72,.83,.94])cue(at,'aircraft-cover-fire',{source:air.id,localPosition:[-1.3,1.65,.8],to:local(-10,.5,18),weaponId:'m134'});}
+    if(id!==6&&(![14,15].includes(id)||!closing)){const blastAt=Math.min(plan.duration-2,closing?2.4:2.7);if(!(id===4&&!closing))cue(blastAt,'distant-impact',{position:local(-12,.2,20),strength:.35+id%3*.08});}
   }
   if (!plan.cameras.length) baseCamera();
   if (!plan.stages.length) stage(0, 'scene-action');
@@ -332,6 +390,25 @@ export function buildCinematicPlan({ chapter, layout = {}, phase = 'opening', ev
   }
   plan.events.sort((a, b) => a.at - b.at); plan.stages.sort((a, b) => a.at - b.at);
   return addPlayerAction(plan);
+}
+
+// Only an authored flat building slab may host the RPG performer. Test plans
+// without a loaded scene may use a marked proxy; runtime plans never add one.
+export function selectCinematicRoof(sceneState,preferred){
+ if(!sceneState)return null;const candidates=[];
+ for(const roof of sceneState.roofSurfaces||[]){if(!roof.flat||!roof.solid||roof.kind!=='building'||!Number.isFinite(roof.height))continue;const b=roof.bounds;if(!b)continue;
+  for(const fx of[.25,.5,.75])for(const fz of[.25,.5,.75]){const x=mix(b.minX,b.maxX,fx),z=mix(b.minZ,b.maxZ,fz);if(x<b.minX+.8||x>b.maxX-.8||z<b.minZ+.8||z>b.maxZ-.8)continue;
+   if((roof.obstacles||[]).some(o=>x>o.minX-.5&&x<o.maxX+.5&&z>o.minZ-.5&&z<o.maxZ+.5))continue;
+   candidates.push({id:roof.id,position:[x,roof.height,z],bounds:{...b},score:Math.hypot(x-preferred[0],z-preferred[2])});}}
+ return candidates.sort((a,b)=>a.score-b.score||a.id.localeCompare(b.id))[0]||null;
+}
+
+function buildBriefingPlan(chapter,layout){
+ if(![4,5,6,7,8,10,12,13,14,15].includes(chapter.id))throw new RangeError('This viewpoint does not receive a military briefing.');
+ const spawn=point(chapter.spawn||layout.spawn),task=chapter.tasks?.[0],goal=chapter.storyDirection?.acts?.[0]?.goal||task?.label||chapter.intro;
+ const threat={4:'索降点狭窄，落地后先让开绳下，照看失去平衡的人。',5:'伤员与登车队伍共用出口，先把交接说清。',6:'黑烟会飘动，靠建筑与残骸确认入口。',7:'不要追陌生背影；沿能说清的位置重新联络。',8:'车辆转弯受阻，后车需要明确而非猜测的路况。',10:'地面支援尚未到达，先找到仍在回应的幸存者。',12:'夜间辨认困难，先确认呼号与轮换位置。',13:'保持装载通路，逐人交接伤员。',14:'保持搬运通路，认清名字与随身物品。',15:'车队已经移动，盯住下一转角和落后队友。'}[chapter.id];
+ const center=[spawn[0]+1.5,0,spawn[2]+1.4],look=[center[0],1.1,center[2]],id='ch'+String(chapter.id).padStart(2,'0')+'-action-briefing';
+ return{id,chapterId:chapter.id,phase:'briefing',mood:chapter.mood,duration:8,anchor:center,crashPoint:center,actors:[{id:'briefing-commander',kind:'soldier',keys:[key(0,[center[0],0,center[2]+.8],{yaw:Math.PI,talk:1,carry:1}),key(4,[center[0],0,center[2]+.8],{talk:.6,gesture:'handover',carry:1}),key(8,[center[0]-.5,0,center[2]+1.1],{linear:true,talk:0,carry:0})]}],props:[{id:'action-map',kind:'map',keys:[key(0,center)]}],aircraft:[],cameras:[key(0,[spawn[0]-.8,1.65,spawn[2]-1.8],{lookAt:look,fov:62}),key(8,[spawn[0]-.5,1.60,spawn[2]-1.4],{lookAt:look,fov:62})],events:[{at:.2,type:'subtitle',speaker:'行动简报',text:chapter.role,duration:2.3},{at:2.55,type:'subtitle',speaker:'眼前目标',text:goal,duration:2.6},{at:5.2,type:'subtitle',speaker:'出发前确认',text:threat,duration:2.7},{at:7.8,type:'briefing-ready',chapterId:chapter.id}],stages:[{at:0,name:'role-and-map'},{at:2.55,name:'objective-handover'},{at:5.2,name:'threat-and-entry'}]};
 }
 
 function buildActionPlan(chapter, layout, event) {
@@ -400,67 +477,23 @@ function buildActionPlan(chapter, layout, event) {
   return addPlayerAction(plan);
 }
 
-const cloudVertex = `attribute vec3 offset;attribute vec3 shape;varying vec2 vUv;varying float opacity;varying float seed;
-void main(){vUv=uv;opacity=shape.y;seed=shape.z;vec4 p=modelViewMatrix*vec4(offset,1.);p.xy+=position.xy*shape.x;gl_Position=projectionMatrix*p;}`;
-const cloudFragment = `uniform vec3 tint;varying vec2 vUv;varying float opacity;varying float seed;
-float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}
-void main(){vec2 p=vUv*2.-1.;float d=dot(p,p);float noise=n(vUv*5.+seed)*.65+n(vUv*11.+seed)*.35;float a=(1.-smoothstep(.1,.95,d))*smoothstep(.15,.72,noise)*opacity;if(a<.008)discard;gl_FragColor=vec4(tint*(.78+noise*.3),a);
-#include <tonemapping_fragment>
-#include <colorspace_fragment>
-}`;
-
-function createCinematicEffects(parent, mood) {
-  const capacity = 128, base = new THREE.PlaneGeometry(1, 1), geo = new THREE.InstancedBufferGeometry();
-  geo.index = base.index.clone(); for (const [name, value] of Object.entries(base.attributes)) geo.setAttribute(name, value.clone()); base.dispose();
-  const offsets = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3), shapes = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
-  offsets.setUsage(THREE.DynamicDrawUsage); shapes.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('offset', offsets); geo.setAttribute('shape', shapes); geo.instanceCount = 0;
-  const material = new THREE.ShaderMaterial({ uniforms: { tint: { value: new THREE.Color(mood === 'night' ? '#29323b' : '#817669') } }, vertexShader: cloudVertex, fragmentShader: cloudFragment, transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide });
-  const cloud = new THREE.Mesh(geo, material); cloud.frustumCulled = false; cloud.renderOrder = 45; parent.add(cloud);
-  const debrisGeo = new THREE.BoxGeometry(.14, .05, .42), debrisMat = new THREE.MeshStandardMaterial({ color: '#514e44', roughness: .92, metalness: .25 });
-  const debris = new THREE.InstancedMesh(debrisGeo, debrisMat, 32); debris.count = 0; debris.frustumCulled = false; parent.add(debris);
-  const flash = new THREE.PointLight('#ffc67c', 0, 36, 2); parent.add(flash);
-  const packets = [], trails = [], dummy = new THREE.Object3D(), view = new THREE.Vector3(); let disposed = false;
-  const burst = (position, time, strength = 1) => { packets.push({ position: [...position], time, strength }); if (packets.length > 4) packets.shift(); };
-  function update(time, camera, trailPositions = []) {
-    if (disposed) return;
-    for (const p of trailPositions) { const previous = trails.at(-1); if (!previous || time - previous.time >= .06) trails.push({ position: [...p], time }); }
-    while (trails.length > 56 || trails[0] && time - trails[0].time > 5) trails.shift();
-    const particles = [];
-    for (const [index, trail] of trails.entries()) { const age = time - trail.time; particles.push({ p: [trail.position[0] + age * .7, trail.position[1] + age * .9, trail.position[2]], size: .6 + age * 1.1, alpha: .35 * (1 - age / 5), seed: index * .71 }); }
-    for (const packet of packets) {
-      const age = time - packet.time; if (age < 0 || age > 8) continue;
-      for (let i = 0; i < 26; i++) { const angle = i * 2.39996, spread = (1.3 + age * 1.7) * packet.strength * (.35 + (i % 7) / 7); particles.push({ p: [packet.position[0] + Math.cos(angle) * spread + age * .5, packet.position[1] + .4 + age * (.35 + i % 4 * .26), packet.position[2] + Math.sin(angle) * spread], size: (1.3 + age * .65) * packet.strength, alpha: .48 * (1 - age / 8), seed: i * .82 }); }
-    }
-    camera.getWorldPosition(view); particles.sort((a, b) => distance(b.p, view.toArray()) - distance(a.p, view.toArray()));
-    geo.instanceCount = Math.min(capacity, particles.length);
-    particles.slice(0, capacity).forEach((p, i) => { const near = clamp((distance(p.p, view.toArray()) - .5) / 1.4); offsets.setXYZ(i, ...p.p); shapes.setXYZ(i, p.size, p.alpha * near, p.seed); });
-    offsets.needsUpdate = shapes.needsUpdate = true;
-    const latest = packets.at(-1), age = latest ? time - latest.time : 99; debris.count = age >= 0 && age < 3.3 ? 32 : 0;
-    for (let i = 0; i < debris.count; i++) { const a = i * 2.39996, force = latest.strength, speed = 2 + i % 7 * .6, vertical = (3 + i % 5) * force; dummy.position.set(latest.position[0] + Math.cos(a) * speed * age * force, latest.position[1] + Math.max(.04, vertical * age - 4.9 * age * age), latest.position[2] + Math.sin(a) * speed * age * force); dummy.rotation.set(age * (i % 4 + 1), a + age, age * 3); dummy.scale.setScalar(.7 + i % 4 * .35); dummy.updateMatrix(); debris.setMatrixAt(i, dummy.matrix); }
-    if (debris.count) debris.instanceMatrix.needsUpdate = true;
-    flash.intensity = age >= 0 && age < .16 ? 90 * (1 - age / .16) * latest.strength : 0;
-    if (latest) flash.position.set(latest.position[0], latest.position[1] + 1.5, latest.position[2]);
-  }
-  return { burst, update, inspect: () => ({ clouds: geo.instanceCount, cloudCapacity: capacity, debris: debris.count, debrisCapacity: 32, trails: trails.length }), dispose() { if (disposed) return; disposed = true; cloud.removeFromParent(); debris.removeFromParent(); flash.removeFromParent(); geo.dispose(); material.dispose(); debris.dispose(); debrisGeo.dispose(); debrisMat.dispose(); packets.length = trails.length = 0; } };
-}
-
 export function createNarrativeCinematics({ scene, camera, world, audio, onSubtitle = () => {}, onComplete = () => {}, onEvent = () => {} }) {
   if (!scene?.isScene || !camera?.isCamera || !world) throw new TypeError('Cinematics require a Three scene, camera, and prepared world.');
   let running = false, paused = false, plan = null, time = 0, ambientTime = 0, cursor = 0, root = null, effects = null, ambientBefore = true, savedCamera = null, disposed = false;
-  let interactive = true, input = {}, playerAction = null, lookYaw = 0, lookPitch = 0;
+  let cameraTrack=[],interactive = true, input = {}, playerAction = null, lookYaw = 0, lookPitch = 0;
   const objects = new Map(), worldOwned = new Set(), localGeometries = new Set(), localMaterials = new Set(), hidden = new Map(), fires = [], trails = new Set(), ledger = [], convoys = new Map();
   const cameraWorld = new THREE.Vector3(), look = new THREE.Vector3(), cameraRight = new THREE.Vector3(), temp = new THREE.Vector3();
   const register = (object, spec, type, ownedByWorld = true) => {
     if (!object?.isObject3D) throw new TypeError(`World could not create ${type}: ${spec.id}`);
     root.add(object); object.name = `cinematic:${spec.id}`; object.userData.cinematic = true;
-    objects.set(spec.id, { object, spec, type, previous: new THREE.Vector3(), initialized: false }); if (ownedByWorld) worldOwned.add(object); return object;
+    objects.set(spec.id, { object, spec, type, track:resolveCinematicTrack(spec.keys),previous: new THREE.Vector3(), initialized: false }); if (ownedByWorld) worldOwned.add(object); return object;
   };
   const primitive = spec => {
     const group = new THREE.Group();
     const mesh = (g, m, p) => { localGeometries.add(g); localMaterials.add(m); const o = new THREE.Mesh(g, m); if (p) o.position.set(...p); group.add(o); return o; };
     if (spec.kind === 'rope') mesh(new THREE.CylinderGeometry(.024, .024, spec.length || 12, 7), new THREE.MeshStandardMaterial({ color: '#767264', roughness: 1 }));
-    else if (spec.kind === 'projectile') { const m = mesh(new THREE.CylinderGeometry(.035, .025, .38, 7), new THREE.MeshBasicMaterial({ color: '#ffdca1' })); m.rotation.x = Math.PI / 2; }
+    else if(spec.kind==='projectile'){const mat=new THREE.MeshStandardMaterial({color:'#5e6351',roughness:.7}),body=mesh(new THREE.CylinderGeometry(.045,.035,.52,10),mat);body.rotation.x=Math.PI/2;const nose=mesh(new THREE.ConeGeometry(.055,.18,10),mat,[0,0,.35]);nose.rotation.x=Math.PI/2;mesh(new THREE.SphereGeometry(.055,8,5),new THREE.MeshBasicMaterial({color:'#ffd689'}),[0,0,-.30]);}
+    else if(spec.kind==='roof-edge'){const mat=new THREE.MeshStandardMaterial({color:'#948772',roughness:1});mesh(new THREE.BoxGeometry(3.8,.22,3),mat,[0,-.1,0]);mesh(new THREE.BoxGeometry(3.8,.65,.26),mat,[0,.15,-1.25]);}
     else if (spec.kind === 'parcel') {
       const cloth = new THREE.MeshStandardMaterial({ color: '#7e8060', roughness: .97 }), strap = new THREE.MeshStandardMaterial({ color: '#3d4233', roughness: 1 });
       mesh(new THREE.BoxGeometry(.34, .25, .29), cloth);
@@ -495,6 +528,27 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     }
     return group;
   };
+  function prepareLauncher(record){
+    if(!record.spec.launcher)return;
+    const object=record.object,actual=object.userData.carriedWeapon;
+    if(!actual&&world.getSceneState)throw new Error('Cinematic RPG performer requires the prepared RPG-7 model.');
+    // The empty CPU-fixture adapter owns no invented weapon mesh. Runtime uses
+    // the exact carried RPG, its barrel socket and both authored hand grips.
+    const launcher=actual||new THREE.Group();if(!actual){launcher.userData={weaponId:'rpg7',grips:{right:[0,-.055,.005],left:[0,-.055,-.23]},muzzle:[0,.11,-.36],barrelDirection:[0,0,-1]};object.add(launcher);object.userData.weaponDropped=true;}
+    const bones=new Map();object.traverse(o=>{if(o.isBone)bones.set(o.name.replace(/:/g,'').replace(/_\d+$/,''),o);});
+    const limbs=['Right','Left'].map(side=>({arm:bones.get('mixamorig'+side+'Arm'),elbow:bones.get('mixamorig'+side+'ForeArm'),hand:bones.get('mixamorig'+side+'Hand'),side})).filter(l=>l.arm&&l.elbow&&l.hand);
+    record.launcher={object:launcher,limbs,actual:Boolean(actual),muzzle:[...launcher.userData.muzzle],grips:launcher.userData.grips};
+  }
+  function animateLauncher(record){
+    const data=record.launcher;if(!data)return;const spec=record.spec.launcher;
+    data.object.visible=true;const round=data.object.getObjectByName('Magazine');if(round)round.visible=time<spec.launchAt;
+    record.object.updateWorldMatrix(true,true);const direction=new THREE.Vector3(...spec.target).sub(new THREE.Vector3(...spec.launchPoint)).normalize();
+    const worldRotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...(data.object.userData.barrelDirection||[0,0,-1])),direction);
+    data.object.quaternion.copy(record.object.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(worldRotation));data.object.position.set(0,0,0);data.object.updateWorldMatrix(false,true);
+    const muzzleOffset=new THREE.Vector3(...data.muzzle).applyQuaternion(worldRotation),origin=new THREE.Vector3(...spec.launchPoint).sub(muzzleOffset);data.object.position.copy(record.object.worldToLocal(origin));data.object.updateWorldMatrix(false,true);
+    const wp=o=>o.getWorldPosition(new THREE.Vector3()),aim=(bone,child,target)=>{const a=wp(bone),from=wp(child).sub(a).normalize(),to=target.clone().sub(a).normalize(),q=bone.getWorldQuaternion(new THREE.Quaternion()).premultiply(new THREE.Quaternion().setFromUnitVectors(from,to));bone.quaternion.copy(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(q));bone.updateWorldMatrix(false,true);};
+    for(const l of data.limbs){const target=data.object.localToWorld(new THREE.Vector3(...data.grips[l.side.toLowerCase()])),origin=wp(l.arm),upper=origin.distanceTo(wp(l.elbow)),lower=wp(l.elbow).distanceTo(wp(l.hand)),axis=target.clone().sub(origin),d=clamp(axis.length(),Math.abs(upper-lower)+.0001,(upper+lower)*.998);axis.normalize();const pole=record.object.localToWorld(new THREE.Vector3(l.side==='Right'?-.45:.45,.88,.15)).sub(origin);pole.addScaledVector(axis,-pole.dot(axis)).normalize();const along=(upper*upper+d*d-lower*lower)/(2*d),middle=origin.clone().addScaledVector(axis,along).addScaledVector(pole,Math.sqrt(Math.max(0,upper*upper-along*along)));aim(l.arm,l.elbow,middle);aim(l.elbow,l.hand,origin.clone().addScaledVector(axis,d));}
+  }
   function prepareShoulderRadio(record) {
     if (!record.spec.shoulderRadio) return;
     const bones = new Map();
@@ -630,11 +684,25 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     const record = { ...event, time: event.at, sequenceId: plan.id, chapterId: plan.chapterId, phase: plan.phase };
     ledger.push(record); if (ledger.length > 128) ledger.shift();
     if (event.type === 'subtitle') { onSubtitle({ speaker: event.speaker, text: event.text, duration: event.duration, sequenceId: plan.id }); audio?.radio?.(); }
+    else if(event.type==='rpg-launched'){effects.emitExplosion({position:event.position,normal:new THREE.Vector3(...event.to).sub(new THREE.Vector3(...event.position)).normalize(),strength:event.strength,kind:'launch',time:ambientTime});camera.getWorldPosition(cameraWorld);audio?.shotAt?.(distance(event.position,cameraWorld.toArray()),0,'rpg7');record.position=[...event.position];}
+    else if(event.type==='distant-impact'){effects.emitExplosion({position:event.position,strength:event.strength,kind:'ground',time:ambientTime});camera.getWorldPosition(cameraWorld);audio?.impact?.(distance(event.position,cameraWorld.toArray()),-.5,false);}
+    else if(['aircraft-cover-fire','ground-cover-fire'].includes(event.type)){
+      const sourceRecord=objects.get(event.source),source=sourceRecord?.object,pose=sourceRecord?.pose;if(source?.visible&&!(event.type==='ground-cover-fire'&&(pose?.dead>.01||pose?.injured>.1||pose?.ropeGrip>.2))){source.updateWorldMatrix(true,true);let to=new THREE.Vector3(...event.to),from,socket,dot;
+        if(event.type==='aircraft-cover-fire'&&source.userData.gunSockets?.length){
+          const side=source.worldToLocal(to.clone()).x<0?'door-left':'door-right';socket=source.userData.gunSockets.find(s=>s.id===(event.socketId||side));
+          from=source.userData.aimDoorGun(socket.id,to);const barrel=new THREE.Vector3(...socket.forward).applyQuaternion(socket.pivot.getWorldQuaternion(new THREE.Quaternion())).normalize();dot=barrel.dot(to.clone().sub(from).normalize());
+          if(dot<.995){const length=Math.max(12,from.distanceTo(to));to=from.clone().addScaledVector(barrel,length);record.targetAdjustedToBarrel=true;dot=1;}
+          source.userData.animateDoorGun?.(socket.id,.045,{firing:true});record.socketId=socket.id;record.realDoorGun=true;record.barrelDot=dot;record.barrelForward=barrel.toArray();
+        }else from=event.localPosition?source.localToWorld(new THREE.Vector3(...event.localPosition)):source.userData.getMuzzlePosition?.()||source.localToWorld(new THREE.Vector3(0,1.3,.5));
+        effects.emitGunfire({from,to,weaponId:event.weaponId,time:ambientTime});camera.getWorldPosition(cameraWorld);const delta=from.clone().sub(cameraWorld);audio?.shotAt?.(delta.length(),delta.normalize().dot(cameraRight),event.weaponId);record.from=from.toArray();record.to=to.toArray();
+      }
+    }
     else if (event.type === 'tail-smoke') trails.add(event.target);
-    else if (['aircraft-hit', 'aircraft-impact', 'landing-accident'].includes(event.type)) {
+    else if(event.type==='landing-accident'){effects.emitDust({position:event.position,time:ambientTime,strength:.38});audio?.step?.(true);}
+    else if (['aircraft-hit', 'aircraft-impact'].includes(event.type)) {
       let position = event.position;
       if (!position) { const target = objects.get(event.target)?.object; if (target) { target.updateMatrixWorld(true); position = target.localToWorld(new THREE.Vector3(...event.localPosition)).toArray(); } }
-      if (position) { effects.burst(position, ambientTime, event.strength); camera.getWorldPosition(cameraWorld); const delta = temp.set(...position).sub(cameraWorld), pan = clamp(delta.normalize().dot(cameraRight), -1, 1); audio?.impact?.(distance(position, cameraWorld.toArray()), pan, false); }
+      if (position) { if(event.type==='aircraft-hit'){const target=objects.get(event.target)?.object;if(target)target.userData.cinematicDamage={tailRotorDisabled:true,hitAt:event.at,localPosition:[...event.localPosition]};}record.position=[...position];effects.emitExplosion({position,time:ambientTime,strength:event.strength,kind:event.type==='aircraft-impact'?'ground':'airburst'}); camera.getWorldPosition(cameraWorld); const delta = temp.set(...position).sub(cameraWorld), pan = clamp(delta.normalize().dot(cameraRight), -1, 1); audio?.impact?.(distance(position, cameraWorld.toArray()), pan, false); }
       if (event.type === 'aircraft-impact') trails.delete(event.target);
     } else if (event.type === 'wreck-fire') fires.push(createFire(root, { position: event.position, scale: event.scale || 1.4, intensity: 1 }));
     onEvent(record);
@@ -645,19 +713,30 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
       if (spec.crew) continue;
       // The evacuation column keeps rolling even while the playable soldier
       // stops or backs up. The world, rotors and idle skeletons also keep time.
-      const objectTime = playerAction?.active && playerAction.id === 'foot-withdrawal' && spec.kind === 'vehicle' ? Math.min(plan.duration, ambientTime) : time;
-      const pose = spec.convoy ? convoys.get(spec.convoy.groupId).at(objectTime, spec.convoy.index) : sampleCinematicTrack(spec.keys, objectTime);
-      object.visible = !spec.visible || time >= spec.visible[0] && time < spec.visible[1];
+      let objectTime = playerAction?.active && playerAction.id === 'foot-withdrawal' && spec.kind === 'vehicle' ? Math.min(plan.duration, ambientTime) : time;
+      if(playerAction?.id==='fast-rope'){if(spec.id===playerAction.actor)objectTime=playerAction.started?playerAction.start+(playerAction.end-playerAction.start)*playerAction.progress+(playerAction.completed?Math.max(0,ambientTime-playerAction.completedAt):0):time;else if(spec.id==='insertion-aircraft'&&playerAction.started)objectTime=playerAction.completed?Math.min(time,13+Math.max(0,ambientTime-playerAction.completedAt)):Math.min(time,13);}
+      const pose = spec.convoy ? convoys.get(spec.convoy.groupId).at(objectTime, spec.convoy.index) : sampleResolvedTrack(record.track,objectTime);
+      object.visible = !spec.visible || objectTime >= spec.visible[0] && objectTime < spec.visible[1];if(playerAction?.id==='fast-rope'&&spec.kind==='rope'&&(playerAction.active||playerAction.completed&&ambientTime-playerAction.completedAt<1.1))object.visible=true;
+      // A settled corpse has static authored placement. Keep its solved skin
+      // and supporting transform instead of rerunning the expensive full-body
+      // contact solver every frame. Camera, cues and living actors still tick.
+      const settled=record.settledTransform;
+      if(spec.casualty&&pose.dead===1&&settled&&pose.position.every((n,i)=>n===settled.position[i])&&(pose.yaw||0)===settled.yaw&&(pose.pitch||0)===settled.pitch&&(pose.roll||0)===settled.roll){record.previous.copy(object.position);record.initialized=true;record.pose=pose;record.casualtyPhase='settled';continue;}
+      record.settledTransform=null;
       object.position.set(...pose.position);
-      if(type==='actor'||type==='prop'&&!['rope','projectile','map'].includes(spec.kind))object.position.y+=world.sampleHeight?.(object.position.x,object.position.z)||0;
-      object.rotation.set(pose.pitch || 0, pose.yaw || 0, pose.roll || 0, 'YXZ');
+      if(type==='actor'&&!spec.launcher||type==='prop'&&!['rope','projectile','map','roof-edge'].includes(spec.kind))object.position.y+=world.sampleHeight?.(object.position.x,object.position.z)||0;
+      object.rotation.set(pose.pitch || 0, pose.yaw || 0, pose.roll || 0, 'YXZ');if(spec.trajectory){const d=new THREE.Vector3(...spec.trajectory.to).sub(new THREE.Vector3(...spec.trajectory.from)).normalize();object.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);}
       if (playerAction?.active && playerAction.id === 'cockpit-control' && type === 'aircraft' && !spec.crashed) { object.rotation.z += playerAction.tilt; object.position.y += Math.sin(ambientTime * 1.7) * .12; }
+      if(playerAction?.active&&playerAction.id==='fast-rope'&&spec.id===playerAction.actor&&!playerAction.holding){pose.ropePhase='brake';pose.ropeGrip=1;}
       if (playerAction?.active && playerAction.actor === spec.id && pose.stance === 'treat' && !playerAction.holding) pose.stance = 'kneel';
-      const speed = record.initialized && dt > 0 ? clamp(object.position.distanceTo(record.previous) / dt, 0, 5) : 0;
-      if (type === 'actor' && object.visible) object.userData.animate?.(speed, dt, { stance: pose.stance || 'stand', gesture: pose.gesture, aimTarget: pose.aimTarget, talk: pose.talk || 0, alert: pose.alert ?? .4, reload: pose.reload || 0, dead: pose.dead || 0, hit: pose.hit || 0, carry: pose.carry || 0 });
-      if (record.radio && object.visible) animateShoulderRadio(record, objectTime);
+      const speed = record.initialized && dt > 0 ? clamp(Math.hypot(object.position.x-record.previous.x,object.position.z-record.previous.z)/dt,0,5):0;
+      if(type==='actor'&&(spec.launcher||spec.ropeActor))object.userData.supportElevation=object.position.y;
+      if(spec.ropeActor)object.userData.weaponDropped=Boolean(pose.ropePhase||pose.ropeGrip>0||pose.injured>0);
+      if (type === 'actor' && object.visible) object.userData.animate?.(speed, dt, { stance: pose.stance || 'stand', gesture: pose.gesture, aimTarget: pose.aimTarget, talk: pose.talk || 0, alert: pose.alert ?? .4, reload: pose.reload || 0, dead: pose.dead || 0, hit: pose.hit || 0, carry: pose.carry || 0,ropePhase:pose.ropePhase,ropeGrip:pose.ropeGrip,ropeTarget:pose.ropeTarget,landing:pose.landing||0,injured:pose.injured||0,injuryPhase:pose.injuryPhase,treatmentTarget:pose.treatmentTarget });
+      if(spec.casualty&&pose.dead>0){const fall=casualtyPose(pose.dead,spec.casualty);object.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(fall.axis.x,0,fall.axis.z),fall.angle)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),fall.roll));object.userData.animate?.(0,0,{stance:fall.kneel>.5?'kneel':'stand',dead:fall.collapse,deadSide:spec.casualty.side,handRelease:fall.release,alert:0});placeActorOnSurface(object,world.sampleHeight?.(object.position.x,object.position.z)||0);record.casualtyPhase=fall.phase;if(pose.dead===1)record.settledTransform={position:[...pose.position],yaw:pose.yaw||0,pitch:pose.pitch||0,roll:pose.roll||0};}
+      if (record.radio && object.visible) animateShoulderRadio(record, objectTime);if(record.launcher&&object.visible)animateLauncher(record);
       for (const panel of object.userData.foldPanels || []) panel.object.rotation.z = panel.side * (1 - (pose.unfold || 0)) * 1.38;
-      if (type === 'aircraft') { const rotor = pose.rotor ?? (spec.crashed ? 0 : 1); if (object.userData.rotor) object.userData.rotor.rotation.y += dt * 27 * rotor; if (object.userData.tailRotor) object.userData.tailRotor.rotation.x += dt * 81 * rotor; }
+      if (type === 'aircraft') { const rotor = pose.rotor ?? (spec.crashed ? 0 : 1); if (object.userData.rotor) object.userData.rotor.rotation.y += dt * 27 * rotor; if (object.userData.tailRotor&&!object.userData.cinematicDamage?.tailRotorDisabled) object.userData.tailRotor.rotation.x += dt * 81 * rotor; }
       if (spec.kind === 'vehicle') object.userData.updateVehicleMotion?.(pose.speed ?? speed, pose.steer || 0, objectTime);
       record.previous.copy(object.position); record.initialized = true; record.pose = pose;
     }
@@ -666,7 +745,7 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     root.updateMatrixWorld(true);
   }
   function updateCamera() {
-    const shot = sampleCinematicTrack(plan.cameras, time); camera.position.set(...shot.position);
+    const shot = sampleResolvedTrack(cameraTrack,time); camera.position.set(...shot.position);
     look.set(...(shot.lookAt || plan.anchor));
     if (shot.convoyView && plan.convoy) {
       const frame = convoyCameraPose(convoys.get(plan.convoy.groupId), time, plan.convoy.count);
@@ -674,11 +753,11 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     }
     const follow = objects.get(shot.follow)?.object;
     if (follow) { follow.localToWorld(camera.position); look.set(...(shot.lookOffset || [0, 1.8, 20])); follow.localToWorld(look); }
-    if (playerAction?.active && playerAction.actor) {
+    if ((playerAction?.active||playerAction?.id==='fast-rope'&&playerAction.completed&&ambientTime-playerAction.completedAt<1.25) && playerAction.actor && !(playerAction.id==='fast-rope'&&time>=8.2&&time<=10.5)) {
       const performer = objects.get(playerAction.actor)?.object;
       if (performer) {
         const p = performer.position;
-        if (playerAction.id === 'fast-rope') { camera.position.set(p.x + .7, p.y + 1.45, p.z - 1.5); look.set(p.x, p.y - .7, p.z + 2.5); }
+        if (playerAction.id === 'fast-rope') { const y=plan.insertion.yaw,c=Math.cos(y),s=Math.sin(y);camera.position.set(p.x-.65*c-1.6*s,p.y+1.45,p.z+.65*s-1.6*c);look.set(p.x+1.4*c+2.3*s,p.y-.65,p.z-1.4*s+2.3*c);shot.fov=69; }
         else if (playerAction.id === 'foot-withdrawal') { camera.position.set(p.x + .48, p.y + 1.75, p.z + 2.5); look.set(p.x, p.y + 1.2, p.z - 7); }
         else { const yaw = performer.rotation.y; camera.position.set(p.x - Math.sin(yaw) * 1.35 + Math.cos(yaw) * .5, p.y + 1.5, p.z - Math.cos(yaw) * 1.35 - Math.sin(yaw) * .5); look.set(playerAction.id === 'carry-crew' ? p.x + .8 : plan.anchor[0], .65, playerAction.id === 'carry-crew' ? p.z - .4 : plan.anchor[2] - .4); }
       }
@@ -698,7 +777,7 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
   }
   function start(options) {
     if (disposed) throw new Error('The cinematic director has been disposed.');
-    cancel(); plan = buildCinematicPlan(options); time = ambientTime = cursor = 0; ledger.length = 0; paused = false;
+    cancel(); plan = buildCinematicPlan({...options,sceneState:world.getSceneState?.(),groundHeight:world.sampleHeight});cameraTrack=resolveCinematicTrack(plan.cameras); time = ambientTime = cursor = 0; ledger.length = 0; paused = false;
     interactive = options.interactive !== false; input = {}; lookYaw = lookPitch = 0;
     playerAction = interactive && plan.playerAction ? { ...plan.playerAction, active: false, completed: false, started: false, progress: 0, holding: false, stability: 0, tilt: .32, lastReport: -1 } : null;
     savedCamera = { position: camera.position.clone(), quaternion: camera.quaternion.clone(), fov: camera.fov };
@@ -708,7 +787,7 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     root = new THREE.Group(); root.name = `narrative:${plan.id}`; scene.add(root);
     try {
       if (plan.convoy) convoys.set(plan.convoy.groupId, createConvoyMotion(plan.convoy.config));
-      effects = createCinematicEffects(root, plan.mood);
+      effects = createCinematicEffects(root,{mood:plan.mood,groundHeight:world.sampleHeight});
       if (plan.convoy && plan.mood === 'night') {
         // A restrained moon/sky bounce keeps silhouettes legible between the
         // headlamp pools. These lights exist only during the convoy sequence.
@@ -716,9 +795,9 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
         const moon = new THREE.DirectionalLight('#8aa6c5', .62);
         moon.position.set(-26, 34, 18); root.add(sky, moon);
       }
-      for (const spec of plan.actors) { register(world.createActor(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.id, {civilian:plan.chapterId===1}), spec, 'actor'); prepareShoulderRadio(objects.get(spec.id)); }
+      for (const spec of plan.actors) { register(world.createActor(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.id, {civilian:plan.chapterId===1,...(spec.launcher?{weaponId:'rpg7',elevation:spec.keys[0].position[1]}:{}),...(spec.ropeActor?{elevation:spec.keys[0].position[1]}:{})}), spec, 'actor'); prepareShoulderRadio(objects.get(spec.id));prepareLauncher(objects.get(spec.id)); }
       for (const spec of plan.props) {
-        const localProp = ['rope', 'projectile', 'map', 'parcel', 'stretcher', 'covered-stretcher'].includes(spec.kind);
+        const localProp = ['rope', 'projectile', 'map', 'parcel', 'stretcher', 'covered-stretcher','roof-edge'].includes(spec.kind);
         const object = register(localProp ? primitive(spec) : world.createProp(spec.kind, [spec.keys[0].position[0], spec.keys[0].position[2]], spec.kind === 'vehicle' ? { type: spec.vehicleType || 'humvee', variant: spec.variant || 'olive', occupied: spec.convoy ? spec.convoy.index > 2 : true } : undefined), spec, 'prop', !localProp);
         if (spec.kind === 'vehicle' && plan.mood === 'night') {
           // One shadowless broad beam represents each pair of headlamps, so
@@ -760,9 +839,10 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
       emit({ at: Math.max(a.start, time), type: 'player-action-progress', action: a.id, progress: a.progress, stability: a.stability, holding: a.holding });
     }
     if (a.progress >= 1) {
-      a.active = false; a.completed = true; a.holding = false;
+      a.active = false; a.completed = true; a.holding = false;a.completedAt=ambientTime;
       emit({ at: a.end, type: 'player-action-completed', action: a.id, progress: 1 });
     }
+    if(a.id==='fast-rope')return Math.min(desiredTime,plan.duration-(a.completed?0:.001));
     return a.start + (a.end - a.start) * a.progress;
   }
   function setInput(next = {}) {
@@ -785,17 +865,18 @@ export function createNarrativeCinematics({ scene, camera, world, audio, onSubti
     }
     time = end; ambientTime = ambientBeforeFrame + dt; updateObjects(dt); updateCamera();
     const trailPositions = [...trails].flatMap(id => { const obj = objects.get(id)?.object; return obj?.visible ? [obj.localToWorld(new THREE.Vector3(.36, 3.85, -9.79)).toArray()] : []; });
-    effects.update(ambientTime, camera, trailPositions); for (const fire of fires) fire.update(dt, ambientTime, camera); updateAudio(dt);
-    if (time >= plan.duration) finish(false);
+    const projectilePositions=[...objects.values()].filter(r=>r.spec.kind==='projectile'&&r.object.visible).map(r=>r.object.position.toArray());effects.update(dt,camera,{trailPositions,projectilePositions}); for (const fire of fires) fire.update(dt, ambientTime, camera); updateAudio(dt);
+    if(time>=plan.duration&&!(playerAction?.id==='fast-rope'&&(!playerAction.completed||ambientTime-playerAction.completedAt<3.2)))finish(false);
   }
   function cancel() { if (!root && !running) return false; running = false; paused = false; cleanup(); return true; }
   function inspect() {
     const action = playerAction ? { id: playerAction.id, label: playerAction.label, prompt: playerAction.prompt, active: playerAction.active, completed: playerAction.completed, progress: playerAction.progress, holding: playerAction.holding, canReverse: Boolean(playerAction.canReverse), stability: playerAction.stability, tilt: playerAction.tilt, awaitingInput: playerAction.active && !playerAction.holding, position: objects.get(playerAction.actor)?.object.position.toArray() || null } : null;
-    return { active: running, paused, interactive, playerAction: action, ambientTime, sequenceId: plan?.id || null, chapterId: plan?.chapterId || null, phase: plan?.phase || null, time, duration: plan?.duration || 0, stage: plan?.stages.filter(s => s.at <= time).at(-1)?.name || null,
+    return { active: running, paused, interactive, playerAction: action, ambientTime, sequenceId: plan?.id || null, chapterId: plan?.chapterId || null, phase: plan?.phase || null,rooftop:plan?.rooftop||null,insertion:plan?.insertion||null, time, duration: plan?.duration || 0, stage: plan?.stages.filter(s => s.at <= time).at(-1)?.name || null,
       camera: { position: camera.position.toArray(), fov: camera.fov }, events: ledger.map(e => ({ ...e })),
-      aircraft: [...objects.values()].filter(r => r.type === 'aircraft').map(r => ({ id: r.spec.id, position: r.object.position.toArray(), altitude: r.object.position.y, yaw: r.object.rotation.y, roll: r.object.rotation.z, pitch: r.object.rotation.x, rotor: r.object.userData.rotor?.rotation.y || 0, visible: r.object.visible, crashed: Boolean(r.spec.crashed) })),
+      aircraft: [...objects.values()].filter(r => r.type === 'aircraft').map(r => ({ id: r.spec.id, position: r.object.position.toArray(), altitude: r.object.position.y, yaw: r.object.rotation.y, roll: r.object.rotation.z, pitch: r.object.rotation.x, rotor: r.object.userData.rotor?.rotation.y || 0, visible: r.object.visible, crashed: Boolean(r.spec.crashed),damage:r.object.userData.cinematicDamage||null })),
+      projectiles:[...objects.values()].filter(r=>r.spec.kind==='projectile').map(r=>({id:r.spec.id,position:r.object.position.toArray(),visible:r.object.visible,trajectory:r.spec.trajectory})),
       convoy: plan?.convoy ? { formation: plan.convoy.formation, visibleSubset: plan.convoy.visibleSubset, vehicles: [...objects.values()].filter(r => r.spec.convoy).map(r => ({ id: r.spec.id, type: r.spec.vehicleType, position: r.object.position.toArray(), yaw: r.object.rotation.y, speed: r.pose?.speed || 0, steer: r.pose?.steer || 0, distance: r.pose?.distance, offset: r.pose?.offset, length: r.pose?.length })), crew: [...objects.values()].filter(r => r.spec.crew).map(r => ({ id: r.spec.id, role: r.spec.crew.role, vehicle: r.spec.crew.vehicle, visible: r.object.visible, position: r.object.position.toArray() })) } : null,
-      actors: [...objects.values()].filter(r => r.type === 'actor').map(r => ({ id: r.spec.id, kind: r.spec.kind, position: r.object.position.toArray(), visible: r.object.visible, stance: r.pose?.stance || 'stand', gesture: r.pose?.gesture || null, carry: r.pose?.carry || 0, yaw: r.object.rotation.y, reload: r.pose?.reload || 0, dead: r.pose?.dead || 0, radio: r.radio?.weight || 0 })),
+      actors: [...objects.values()].filter(r => r.type === 'actor').map(r => ({ id: r.spec.id, kind: r.spec.kind, position: r.object.position.toArray(), visible: r.object.visible, stance: r.pose?.stance || 'stand', gesture: r.pose?.gesture || null, carry: r.pose?.carry || 0, yaw: r.object.rotation.y, reload: r.pose?.reload || 0, dead: r.pose?.dead || 0,weaponVisible:r.object.userData.carriedWeapon?.visible??null,weaponDropped:Boolean(r.object.userData.weaponDropped),casualtyPhase:r.casualtyPhase||null, radio: r.radio?.weight || 0,ropePhase:r.pose?.ropePhase||null,ropeGrip:r.pose?.ropeGrip??0,landing:r.pose?.landing||0,injured:r.pose?.injured||0,injuryPhase:r.pose?.injuryPhase||null,treatmentTarget:r.pose?.treatmentTarget||null,pose:r.object.userData.getPoseState?.()||null,launcher:r.launcher?{visible:r.launcher.object.visible,actualModel:r.launcher.actual,muzzle:r.launcher.object.localToWorld(new THREE.Vector3(...r.launcher.muzzle)).toArray(),gripErrors:r.launcher.limbs.map(l=>({side:l.side,error:l.hand.getWorldPosition(new THREE.Vector3()).distanceTo(r.launcher.object.localToWorld(new THREE.Vector3(...r.launcher.grips[l.side.toLowerCase()])))}))}:null })),
       owned: { objects: objects.size, worldObjects: worldOwned.size, fires: fires.length, geometries: localGeometries.size, materials: localMaterials.size }, particles: effects?.inspect() || { clouds: 0, cloudCapacity: 128, debris: 0, debrisCapacity: 32, trails: 0 } };
   }
   return { start, update, setInput, cancel, skip: () => finish(true), pause: () => { if (running) paused = true; setInput({}); }, resume: () => { if (running) paused = false; }, inspect, get active() { return running; }, dispose() { if (disposed) return; cancel(); disposed = true; } };

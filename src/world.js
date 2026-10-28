@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createSunShadows } from './sun-shadows.js';
+import {createActorContactShadows} from './actor-contact-shadows.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -10,12 +11,15 @@ import { buildChapterScene } from './chapter-world.js';
 import { prepareVehicles, createVehicle as makeVehicleAsset, disposeVehicles } from './vehicles.js';
 import { createFire } from './fire.js';
 import { tuneCharacterMaterial } from './character-surface.js';
+import {cutBlackHawkCabinDoors,BLACKHAWK_ROPE_SOCKETS} from './aircraft-door-geometry.js';
+import {prepareSupportModels,createTechnicalModel,attachBlackHawkDoorGuns,attachSupportGear,disposeSupportModels} from './support-models.js';
 
 // Metres, Y up. Static city geometry is merged by material; actors remain separate.
 const BASE = new URL('assets/', document.baseURI).href;
 const PI = Math.PI;
 const materials = new Set();
 const textures = new Set();
+const casualtyContactIndices = new WeakMap();
 let seed = 67041993;
 function random() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
 function rand(a, b) { return a + random() * (b - a); }
@@ -89,7 +93,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
         const across=localPoint(index).sub(localPoint(pinky));across.addScaledVector(fingerAxis,-across.dot(fingerAxis)).normalize();
         const normal=fingerAxis.clone().cross(across).normalize();
         const source=new THREE.Matrix4().makeBasis(fingerAxis,across,normal);
-        const direction=new THREE.Vector3(l.side==='Right'?0:-.70,l.side==='Right'?-1:.70,l.side==='Right'?.12:0).normalize();
+        const vertical=l.side==='Right'||rifle?.userData.weaponId==='rpg7';const direction=new THREE.Vector3(vertical?0:-.70,vertical?-1:.70,vertical?.12:0).normalize();
         const width=new THREE.Vector3(0,0,l.side==='Right'?1:-1);width.addScaledVector(direction,-width.dot(direction)).normalize();
         const target=new THREE.Matrix4().makeBasis(direction,width,direction.clone().cross(width).normalize());
         l.gripHandQ=new THREE.Quaternion().setFromRotationMatrix(target.multiply(source.invert())).multiply(l.handQ);
@@ -117,8 +121,9 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
   const baseHead=localPoint(rig.head);
   const phase=(Math.abs(root.position.x*1.73+root.position.z*.71)%6.283), state={stance:'stand',motion:0,lowering:0,aimYaw:0,aimPitch:0,recoil:0,headHeight:baseHead.y,hipHeight:localPoint(rig.hips).y,gripError:0,footError:0};
   let time=phase,gait=.31*Math.PI*2,gaitCycles=.31,motion=0,drop=0,kneel=0,treat=0,low=0,alert=.25,yaw=0,pitch=-.12,recoil=0,talk=0,lean=0,hit=0,wasStepping=false;
-  let runBlend=0,strideLength=1.05,pelvisLower=0,travelled=0,previousSpeed=0,acceleration=0;
-  const groundAt=(x,z)=>{const y=sampleGround(x,z);return Number.isFinite(y)?y:root.position.y;};
+  let runBlend=0,strideLength=1.05,pelvisLower=0,travelled=0,previousSpeed=0,acceleration=0,readyBlend=0,lookYaw=0,lookPitch=0;
+  const idlePeriod=25+phase*1.7,idleSeed=(phase*1.37)%6.283;
+  const groundAt=(x,z)=>{const mounted=root.userData.mountedVehicle;if(mounted?.userData.gunnerSocket){mounted.updateWorldMatrix(true,true);return mounted.userData.gunnerSocket.getWorldPosition(new THREE.Vector3()).y;}if(Number.isFinite(root.userData.supportElevation))return root.userData.supportElevation;const y=sampleGround(x,z);return Number.isFinite(y)?y:root.position.y;};
   const worldUp=new THREE.Vector3(0,1,0),footAxis=new THREE.Vector3(1,0,0);
   const lastPosition=root.position.clone(),travel=new THREE.Vector3(0,0,1);let lastYaw=root.rotation.y;
   for(const l of limbs){l.plant=root.localToWorld(l.ankle.clone());l.liftStart=l.plant.clone();l.landing=l.plant.clone();l.worldFoot=l.plant.clone();l.swinging=false;l.settling=0;l.initialized=false;l.firstStep=true;l.plantBodyQ=root.getWorldQuaternion(new THREE.Quaternion());l.plantQ=l.plantBodyQ.clone().multiply(l.footQ);}
@@ -144,6 +149,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
   const grips={right:[...authoredGrips.right],left:[...authoredGrips.left]};
   grips.left[2]+=.025; // Support hand uses the rear half of the long handguard.
   const gripSpan=new THREE.Vector3(...grips.left).distanceTo(new THREE.Vector3(...grips.right));
+  const rocketWeapon=rifle?.userData.weaponId==='rpg7';
   const reloadPart=rifle?.getObjectByName('Magazine')||rifle?.getObjectByName('AmmoContainer');
   const reloadBelt=rifle?.getObjectByName('FeedBelt'),reloadBeltVisible=reloadBelt?.visible;
   let reloadRest,magazineGrip;
@@ -157,22 +163,76 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
 
   const referenceAim=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,Math.PI,0,'YXZ'));
   const handAim=limbs.map(l=>referenceAim.clone().invert().multiply(l.gripHandQ||l.handQ));
+  // Contact probes come from referenced vertices of the shipped skinned mesh.
+  // Classify in its upright anatomical frame before animation, not from a
+  // cached bind-pose box or from the lowest loose pouch after a fall.
+  const contactRegions={hip:[],shoulder:[],RightFoot:[],LeftFoot:[],RightThigh:[],LeftThigh:[],RightHand:[],LeftHand:[]};
+  model.traverseVisible(mesh=>{if(!mesh.isSkinnedMesh)return;const g=mesh.geometry;let regions=casualtyContactIndices.get(g);
+    if(!regions){regions=Object.fromEntries(Object.keys(contactRegions).map(key=>[key,[]]));const ids=[...new Set(g.index?g.index.array:Array.from({length:g.attributes.position.count},(_,i)=>i))];
+      for(const index of ids){const v=root.worldToLocal(mesh.getVertexPosition(index,new THREE.Vector3()).applyMatrix4(mesh.matrixWorld));
+        let pelvisWeight=0;for(let k=0;k<4;k++){const name=mesh.skeleton.bones[g.attributes.skinIndex.getComponent(index,k)]?.name||'';if(/Hips|Spine/.test(name))pelvisWeight+=g.attributes.skinWeight.getComponent(index,k);}
+        if(v.y>.88&&v.y<1.10&&Math.abs(v.x)<.23&&pelvisWeight>.65)regions.hip.push(index);
+        if(v.y>1.30&&v.y<1.49&&Math.abs(v.x)<.27)regions.shoulder.push(index);
+        const weights=g.attributes.skinWeight,indices=g.attributes.skinIndex;for(let k=0;k<4;k++){if(weights.getComponent(index,k)<.55)continue;const name=mesh.skeleton.bones[indices.getComponent(index,k)]?.name||'';if(/Right(?:Foot|ToeBase)/.test(name))regions.RightFoot.push(index);if(/Left(?:Foot|ToeBase)/.test(name))regions.LeftFoot.push(index);if(/RightUpLeg/.test(name))regions.RightThigh.push(index);if(/LeftUpLeg/.test(name))regions.LeftThigh.push(index);if(/RightHand/.test(name))regions.RightHand.push(index);if(/LeftHand/.test(name))regions.LeftHand.push(index);}
+      }casualtyContactIndices.set(g,regions);
+    }
+    for(const[name,indices]of Object.entries(regions))for(const index of indices)contactRegions[name].push([mesh,index]);
+  });
+  let contactFloorOffset=0;
+  const contactHeight=(x,z)=>groundAt(x,z)+contactFloorOffset;
+  const contactMinimum=region=>{let lowest=null,gap=Infinity;root.updateMatrixWorld(true);for(const[mesh,index]of region){if(!mesh.visible)continue;const v=mesh.getVertexPosition(index,new THREE.Vector3()).applyMatrix4(mesh.matrixWorld),d=v.y-contactHeight(v.x,v.z);if(d<gap){gap=d;lowest=v;}}return lowest?{point:lowest,gap}:null;};
+  root.userData.finalizeGroundContact=(floor,clearance=.006)=>{
+    const weight=THREE.MathUtils.smoothstep(state.dead,.72,1);if(!rifle||weight<=0)return false;
+    contactFloorOffset=floor-groundAt(root.position.x,root.position.z);
+    const authoredAnchor=root.getWorldPosition(new THREE.Vector3());
+    let hip=contactMinimum(contactRegions.hip),shoulder=contactMinimum(contactRegions.shoulder);if(!hip||!shoulder)return false;
+    // Re-evaluate the supporting surface after each small rotation: the
+    // lowest shoulder vertex can change as padded clothing rolls into contact.
+    for(let iteration=0;iteration<3;iteration++){
+      hip=contactMinimum(contactRegions.hip);shoulder=contactMinimum(contactRegions.shoulder);
+      const pivot=hip.point.clone().add(shoulder.point).multiplyScalar(.5),axis=shoulder.point.clone().sub(hip.point),target=axis.clone();target.y=contactHeight(shoulder.point.x,shoulder.point.z)-contactHeight(hip.point.x,hip.point.z);
+      if(axis.length()>.12&&target.length()>.12){const correction=new THREE.Quaternion().setFromUnitVectors(axis.normalize(),target.normalize()),angle=2*Math.acos(Math.min(1,Math.abs(correction.w))),fraction=weight*Math.min(1,.30/Math.max(.00001,angle));correction.slerp(new THREE.Quaternion(),1-fraction);
+        const worldQ=root.getWorldQuaternion(new THREE.Quaternion()).premultiply(correction),worldP=root.getWorldPosition(new THREE.Vector3()).sub(pivot).applyQuaternion(correction).add(pivot);worldP.x=authoredAnchor.x;worldP.z=authoredAnchor.z;
+      root.quaternion.copy(root.parent?root.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(worldQ):worldQ);root.position.copy(root.parent?root.parent.worldToLocal(worldP):worldP);root.updateMatrixWorld(true);
+      }
+      hip=contactMinimum(contactRegions.hip);shoulder=contactMinimum(contactRegions.shoulder);const translation=(clearance-Math.min(hip.gap,shoulder.gap))*weight,worldP=root.getWorldPosition(new THREE.Vector3());worldP.y+=translation;root.position.copy(root.parent?root.parent.worldToLocal(worldP):worldP);root.updateMatrixWorld(true);
+      if(Math.abs(hip.gap-shoulder.gap)<.002)break;
+    }
+    // Root settling is complete. The two heels now solve independently onto
+    // their sampled support planes; no subsequent global minimum lifts them.
+    for(const l of limbs){for(let pass=0;pass<2;pass++){const contact=contactMinimum(contactRegions[l.side+'Foot']);if(!contact)break;const ankle=l.foot.getWorldPosition(new THREE.Vector3());ankle.y+=(clearance-contact.gap)*weight;const target=root.worldToLocal(ankle),knee=l.knee.getWorldPosition(new THREE.Vector3());knee.y=contactHeight(knee.x,knee.z)+.19;const pole=root.worldToLocal(knee),footWorldQ=l.foot.getWorldQuaternion(new THREE.Quaternion());solve(l.thigh,l.knee,l.legEnd||l.foot,target,pole,l.upperLeg,l.lowerLeg);l.foot.quaternion.copy(l.foot.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(footWorldQ));root.updateMatrixWorld(true);
+      // A holster or thigh pouch also has volume. Rotate the relaxed thigh
+      // around its own long axis within anatomical range when it would hit
+      // the floor, while retaining the already solved knee and heel points.
+      const thighContact=contactMinimum(contactRegions[l.side+'Thigh']);if(thighContact&&thighContact.gap<clearance){const restThigh=l.thigh.quaternion.clone(),restCalf=l.knee.quaternion.clone(),restFoot=l.foot.getWorldQuaternion(new THREE.Quaternion()),axis=l.knee.getWorldPosition(new THREE.Vector3()).sub(l.thigh.getWorldPosition(new THREE.Vector3())).normalize();let best=thighContact.gap,bestTwist=0;
+        const twist=angle=>{l.thigh.quaternion.copy(restThigh);l.knee.quaternion.copy(restCalf);root.updateMatrixWorld(true);const q=l.thigh.getWorldQuaternion(new THREE.Quaternion()).premultiply(new THREE.Quaternion().setFromAxisAngle(axis,angle));l.thigh.quaternion.copy(l.thigh.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(q));root.updateMatrixWorld(true);point(l.knee,l.legEnd||l.foot,target);l.foot.quaternion.copy(l.foot.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(restFoot));root.updateMatrixWorld(true);};
+        for(const angle of[-.60*weight,.60*weight]){twist(angle);const gap=contactMinimum(contactRegions[l.side+'Thigh'])?.gap??-Infinity;if(gap>best){best=gap;bestTwist=angle;}}twist(bestTwist);
+      }
+    }}
+
+    for(const l of limbs){const contact=contactMinimum(contactRegions[l.side+'Hand']);if(contact&&contact.gap<clearance){const wrist=l.hand.getWorldPosition(new THREE.Vector3()),handQ=l.hand.getWorldQuaternion(new THREE.Quaternion());wrist.y+=(clearance-contact.gap)*weight;const target=root.worldToLocal(wrist),elbow=l.elbow.getWorldPosition(new THREE.Vector3());elbow.y=Math.max(elbow.y,contactHeight(elbow.x,elbow.z)+.10);solve(l.arm,l.elbow,l.hand,target,root.worldToLocal(elbow),l.upperArm,l.lowerArm);l.hand.quaternion.copy(l.hand.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(handQ));root.updateMatrixWorld(true);}}
+    const contacts={hip:contactMinimum(contactRegions.hip),shoulder:contactMinimum(contactRegions.shoulder),feet:limbs.map(l=>contactMinimum(contactRegions[l.side+'Foot']))};state.groundContact={weight,hip:contacts.hip?.gap,shoulder:contacts.shoulder?.gap,feet:contacts.feet.map(c=>c?.gap),points:{hip:contacts.hip?.point.toArray(),shoulder:contacts.shoulder?.point.toArray(),feet:contacts.feet.map(c=>c?.point.toArray())}};return true;
+  };
   root.userData.poseState=state;
+  root.userData.setMountedGun=vehicle=>{root.userData.mountedVehicle=vehicle||null;};
   root.userData.getPoseState=()=>({...state,head:localPoint(rig.head).toArray(),hips:localPoint(rig.hips).toArray(),limbs:limbs.map(l=>({side:l.side,knee:localPoint(l.knee).toArray(),ankle:localPoint(l.foot).toArray(),hand:localPoint(l.hand).toArray(),ankleWorld:l.foot.getWorldPosition(new THREE.Vector3()).toArray(),plant:l.plant.toArray(),swinging:l.swinging,settling:l.settling>0,footRoll:l.roll||0,supportError:l.supportError||0}))});
   root.userData.animate=(speed=0,dt=0,pose={})=>{
     if(root.userData.disposed)return;
     dt=clamp(Number.isFinite(dt)?dt:0,0,.1);time+=dt;
     const stance=['stand','crouch','kneel','treat','low'].includes(pose.stance)?pose.stance:'stand',commanded=Math.abs(Number.isFinite(speed)?speed:0);
+    const ropeWeight=clamp(Number(pose.ropeGrip??(pose.gesture==='fast-rope'?1:0)),0,1),landing=clamp(Number(pose.landing||0),0,1),landingBend=Math.sin(landing*Math.PI),injured=clamp(Number(pose.injured||0),0,1),handRelease=clamp(Number(pose.handRelease||0),0,1);
+    const ropeSource=pose.ropeTarget||pose.ropeAnchor,ropeLocal=ropeSource?root.worldToLocal(new THREE.Vector3(ropeSource.x??ropeSource[0],root.position.y,ropeSource.z??ropeSource[2]??ropeSource[1])):new THREE.Vector3(0,0,.30);
+    const supportedRope=ropeWeight>.05&&pose.ropePhase!=='land'&&pose.ropePhase!=='release';
     const dead=clamp(Number(pose.dead||0),0,1),collapse=THREE.MathUtils.smoothstep(dead,.05,.9),aliveWeight=1-collapse,deadSide=pose.deadSide===-1?-1:1;
     const delta=root.position.clone().sub(lastPosition),distanceMoved=Math.hypot(delta.x,delta.z),yawDelta=Math.atan2(Math.sin(root.rotation.y-lastYaw),Math.cos(root.rotation.y-lastYaw));
     // Actual distance drives the cycle. Collided actors do not march in place;
     // chapter/preview repositioning does not become a giant animation step.
-    const relocated=distanceMoved>Math.max(.7,commanded*dt*4+.1),realTravel=!relocated&&dt>0&&distanceMoved>.000001;
+    const relocated=Math.abs(delta.y)>.45||distanceMoved>Math.max(.7,commanded*dt*4+.1),realTravel=!relocated&&dt>0&&distanceMoved>.000001;
     const amount=realTravel?distanceMoved/dt:pose.inPlace?commanded:0,turnSpeed=dt>0&&!relocated?Math.abs(yawDelta)/dt:0;
     if(realTravel){const c=Math.cos(root.rotation.y),s=Math.sin(root.rotation.y);travel.set(delta.x*c-delta.z*s,0,delta.x*s+delta.z*c).normalize();}
     lastPosition.copy(root.position);lastYaw=root.rotation.y;
     acceleration=damp(acceleration,dt>0?clamp((amount-previousSpeed)/dt,-5,5):0,dt,7);previousSpeed=amount;
-    const moving=dead<.05&&amount>.035,turning=dead<.05&&turnSpeed>.12;
+    const moving=dead<.05&&amount>.035&&!supportedRope&&injured<.4,turning=dead<.05&&turnSpeed>.12&&!supportedRope&&injured<.4;
     motion=damp(motion,Math.min(amount/1.7,1.25)*aliveWeight,dt,10);
     runBlend=damp(runBlend,stance==='stand'?THREE.MathUtils.smoothstep(amount,2.0,2.9):0,dt,7);
     const wantedStride=stance==='crouch'||stance==='low'?clamp(.48+amount*.27,.55,.96):THREE.MathUtils.lerp(clamp(.76+amount*.27,.85,1.36),clamp(1.40+(amount-2.1)*.22,1.4,2.1),runBlend);
@@ -182,15 +242,27 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
     gait=gaitCycles*Math.PI*2;travelled+=realTravel?distanceMoved:0;wasStepping=moving||turning;
     lean=damp(lean,clamp(Number(pose.peek||0),-1,1),dt,7);
     const reloadPhase=clamp(Number(pose.reload||0),0,1)*aliveWeight,reloadWeight=reloadPhase>0?THREE.MathUtils.smoothstep(reloadPhase,0,.14)*(1-THREE.MathUtils.smoothstep(reloadPhase,.85,1)):0;
-    const targetDrop=({stand:0,crouch:.37,low:.51,kneel:.48,treat:.54})[stance]*aliveWeight;
-    drop=damp(drop,targetDrop,dt,9);kneel=damp(kneel,(stance==='kneel'||stance==='treat'?1:0)*aliveWeight,dt);treat=damp(treat,(stance==='treat'?1:0)*aliveWeight,dt);low=damp(low,(stance==='low'?1:0)*aliveWeight,dt);
+    const seatedInjury=injured*THREE.MathUtils.smoothstep(pose.injuryPhase==='ground'?1:0,0,1);
+    const targetDrop=Math.max(({stand:0,crouch:.37,low:.51,kneel:.48,treat:.54})[stance],ropeWeight*.15,landingBend*.32,injured*.60,seatedInjury*.78)*aliveWeight;
+    drop=damp(drop,targetDrop,dt,9);kneel=damp(kneel,Math.max(stance==='kneel'||stance==='treat'?1:0,injured*.85)*(1-seatedInjury)*aliveWeight,dt);treat=damp(treat,(stance==='treat'?1:0)*aliveWeight,dt);low=damp(low,(stance==='low'?1:0)*aliveWeight,dt);
     alert=damp(alert,clamp(Number(pose.alert??.3),0,1),dt,4);talk=damp(talk,clamp(Number(pose.talk||0),0,1),dt,5);
-    let targetYaw=Number(pose.aimYaw||0),targetPitch=Number(pose.aimPitch??(-.12+.08*alert));
-    if(pose.aimTarget){const p=pose.aimTarget,worldTarget=new THREE.Vector3(p.x??p[0],p.y??p[1]??1.4,p.z??p[2]);root.worldToLocal(worldTarget);const chest=localPoint(rig.chest),dx=worldTarget.x-chest.x,dz=worldTarget.z-chest.z;targetYaw=Math.atan2(dx,dz);targetPitch=Math.atan2(worldTarget.y-chest.y,Math.hypot(dx,dz));}
-    yaw=damp(yaw,clamp(targetYaw,-.9,.9),dt,8);pitch=damp(pitch,clamp(targetPitch,-.55,.5),dt,8);
+    const talking=Boolean(pose.talking)||(Number(pose.talk)||0)>.1;
+    const ready=Boolean(rifle)&&!talking&&(pose.weaponReady===undefined?Boolean(pose.aimTarget||pose.aimPitch!==undefined||pose.recoil>0):Boolean(pose.weaponReady));
+    readyBlend=damp(readyBlend,ready?1:0,dt,ready?10:4);
+    let targetYaw=Number(pose.aimYaw||0),targetPitch=Number(pose.aimPitch??0),attentionYaw=0,attentionPitch=0;
+    const attention=pose.lookTarget||pose.aimTarget;
+    if(attention){const p=attention,worldTarget=new THREE.Vector3(p.x??p[0],p.y??p[1]??1.4,p.z??p[2]);root.worldToLocal(worldTarget);const chest=localPoint(rig.chest),head=localPoint(rig.head);attentionYaw=Math.atan2(worldTarget.x-chest.x,worldTarget.z-chest.z);attentionPitch=Math.atan2(worldTarget.y-head.y,Math.hypot(worldTarget.x-head.x,worldTarget.z-head.z));if(ready){targetYaw=attentionYaw;targetPitch=Math.atan2(worldTarget.y-chest.y,Math.hypot(worldTarget.x-chest.x,worldTarget.z-chest.z));}}
+    // Attention and muzzle direction are separate. A conversation directs the
+    // head toward the speaker while the barrel remains down and close in.
+    const loweredPitch=talking?-.90:-.67;
+    yaw=damp(yaw,clamp(targetYaw,-.9,.9)*(readyBlend||0),dt,8);pitch=damp(pitch,THREE.MathUtils.lerp(loweredPitch,clamp(targetPitch,-.55,.5),readyBlend),dt,8);
+    const glanceTime=(time+idleSeed)/5.7,glancePhase=glanceTime%1,glanceIndex=Math.floor(glanceTime),glance=[-.14,.06,.20,-.05][((glanceIndex%4)+4)%4],previousGlance=[-.14,.06,.20,-.05][((glanceIndex-1)%4+4)%4];
+    const glanceTarget=THREE.MathUtils.lerp(previousGlance,glance,THREE.MathUtils.smoothstep(glancePhase,.05,.25));
+    lookYaw=damp(lookYaw,clamp(attention?attentionYaw:glanceTarget,-.65,.65),dt,5);lookPitch=damp(lookPitch,clamp(attentionPitch,-.45,.45),dt,5);
     const impulse=clamp(Number(pose.recoil||0),0,1);recoil=Math.max(impulse,recoil*Math.exp(-dt*13));hit=Math.max(clamp(Number(pose.hit||0),0,1),hit*Math.exp(-dt*11));
     for(const[bone,r]of rest){bone.quaternion.copy(r.q);bone.position.copy(r.position);}
-    const crouch=clamp(drop/.37,0,1),breath=Math.sin(time*1.85)*.003*aliveWeight,rootQ=root.getWorldQuaternion(new THREE.Quaternion());
+    const crouch=clamp(drop/.37,0,1),idleWeight=(1-THREE.MathUtils.smoothstep(amount,0,.18))*(1-crouch)*aliveWeight,weightTransfer=Math.sin(time/idlePeriod*Math.PI*2+idleSeed)*.019*idleWeight,breath=Math.sin(time*(1.25+phase*.035)+idleSeed)*.003*aliveWeight,rootQ=root.getWorldQuaternion(new THREE.Quaternion());
+    const bodyGroundNormal=worldUp.clone().applyQuaternion(rootQ.clone().invert()),deathSupport=bodyGroundNormal.dot(limbs[0].hipRest.clone().add(limbs[1].hipRest).multiplyScalar(.5))-.14;
     const travelWorld=travel.clone().applyQuaternion(rootQ),stepActive=moving&&kneel<.15&&collapse<.01;
     const neutralOffset=l=>{const p=l.ankle.clone();p.x=l.sign*(civilian?.118:.135)+l.sign*.045*crouch;return Math.hypot(l.plant.x-root.localToWorld(p).x,l.plant.z-p.z);};
     const farthest=limbs.reduce((a,b)=>neutralOffset(a)>=neutralOffset(b)?a:b);
@@ -200,6 +272,9 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
     for(let i=0;i<limbs.length;i++){
       const l=limbs[i],cycle=((gaitCycles+i*.5)%1+1)%1,neutral=l.ankle.clone();
       neutral.x=l.sign*(civilian?.118:.135)+l.sign*.045*crouch;neutral.z+=kneel*(i?.27:-.38);neutral.y+=kneel*(i?0:.08);
+      if(supportedRope){neutral.x=THREE.MathUtils.lerp(neutral.x,ropeLocal.x+l.sign*.058,ropeWeight);neutral.z=THREE.MathUtils.lerp(neutral.z,ropeLocal.z+(i?.025:-.025),ropeWeight);neutral.y+=ropeWeight*(pose.ropePhase==='brake'?.36:.24);}
+      if(injured>.01){neutral.x+=l.sign*.07*injured;neutral.z+=injured*(i?.30:.12);neutral.y+=injured*(i?.045:.015);}
+      if(seatedInjury>.01){neutral.lerp(new THREE.Vector3(l.sign*.22,l.ankle.y,i?.64:.68),seatedInjury);}
       const neutralWorld=root.localToWorld(neutral.clone());neutralWorld.y=groundAt(neutralWorld.x,neutralWorld.z)+neutral.y;
       if(!l.initialized||relocated){l.plant.copy(neutralWorld);l.worldFoot.copy(neutralWorld);l.landing.copy(neutralWorld);l.plantBodyQ.copy(rootQ);l.initialized=true;l.swinging=false;l.settling=0;}
       let baseWorld=l.plant.clone(),bodyQ=l.plantBodyQ.clone(),roll=0,commitLanding=false;
@@ -230,7 +305,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
           else{baseWorld.copy(l.plant);bodyQ.copy(l.plantBodyQ);}const support=cycle/contact;
           roll=-.10*(1-THREE.MathUtils.smoothstep(support,0,.16))+THREE.MathUtils.lerp(.23,.34,runBlend)*THREE.MathUtils.smoothstep(support,.72,1);
         }l.swinging=swing;
-      }else if(kneel<.15&&collapse<.01){
+      }else if(kneel<.15&&collapse<.01&&!supportedRope&&seatedInjury<.01){
         const otherAirborne=limbs.some(other=>other!==l&&(other.swinging||other.settling>0));
         const needsTurn=turning&&l.plantBodyQ.angleTo(rootQ)>.34;
         const recovery=!otherAirborne&&l===farthest&&(offset>(turning?.12:.27)||needsTurn);
@@ -238,7 +313,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
           l.liftStart.copy(l.worldFoot);l.landing.copy(neutralWorld);l.startQ=l.plantBodyQ.clone();l.settling=.001;l.settleDuration=.18;l.swinging=false;baseWorld.copy(l.worldFoot);bodyQ.copy(l.startQ);
         }
       }else{baseWorld.copy(neutralWorld);bodyQ.copy(rootQ);l.plant.copy(baseWorld);l.plantBodyQ.copy(rootQ);l.swinging=false;l.settling=0;}
-      if(collapse>0){const bottom=l.sign===-deadSide,relaxed=new THREE.Vector3(-deadSide*(bottom?.14:.10),bottom?.125:.22,bottom?-.04:.26);baseWorld.lerp(root.localToWorld(relaxed),collapse);}
+      if(collapse>0){const bent=l.sign===deadSide,relaxed=new THREE.Vector3(l.sign*(bent?.22:.16),bent?.22:.115,bent?-.075:-.045);relaxed.addScaledVector(bodyGroundNormal,deathSupport-bodyGroundNormal.dot(relaxed));baseWorld.lerp(root.localToWorld(relaxed),collapse);}
       if((l.swinging||l.settling||commitLanding)&&kneel<.15&&collapse<.01){
         // A free foot can shorten its airborne path. Use the anatomical leg
         // lengths and a bounded pelvis drop, never scale bones or slide support.
@@ -247,6 +322,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
         if(horizontal>maxHorizontal){const clearance=baseWorld.y-groundAt(baseWorld.x,baseWorld.z);local.x=hip.x+dx/horizontal*maxHorizontal;local.z=hip.z+dz/horizontal*maxHorizontal;baseWorld.copy(root.localToWorld(local));baseWorld.y=groundAt(baseWorld.x,baseWorld.z)+clearance;}
       }
       if(commitLanding){baseWorld.y=groundAt(baseWorld.x,baseWorld.z)+neutral.y;l.plant.copy(baseWorld);l.plantBodyQ.copy(bodyQ);}
+      if((pose.ropePhase==='land'||pose.ropePhase==='release')&&collapse<.01){baseWorld.copy(neutralWorld);l.plant.copy(neutralWorld);l.plantBodyQ.copy(rootQ);l.swinging=false;l.settling=0;roll=0;}
       l.worldFoot.copy(baseWorld);l.roll=roll;
       const groundNormal=new THREE.Vector3((groundAt(baseWorld.x-.12,baseWorld.z)-groundAt(baseWorld.x+.12,baseWorld.z))/.24,1,(groundAt(baseWorld.x,baseWorld.z-.12)-groundAt(baseWorld.x,baseWorld.z+.12))/.24).normalize();
       const groundQ=new THREE.Quaternion().setFromUnitVectors(worldUp,groundNormal).multiply(bodyQ),rollQ=new THREE.Quaternion().setFromAxisAngle(footAxis,roll);
@@ -255,22 +331,26 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
       if(kneel>.01)l.targetQ.copy(rootQ).multiply(new THREE.Quaternion().setFromAxisAngle(footAxis,-kneel*(i?0:.75))).multiply(l.footQ);
       if(collapse>0){const relaxed=new THREE.Quaternion().setFromUnitVectors(l.toeDirection,new THREE.Vector3(0,-.45,1).normalize()).multiply(l.footQ);l.targetQ.slerp(rootQ.clone().multiply(relaxed),collapse);}
     }
-    model.position.copy(modelBase);model.position.y-=drop;model.position.y+=Math.sin(gait*2)*.016*runBlend;model.position.z-=crouch*.105+low*.025;
-    model.position.x+=-Math.sin(gait)*.022*Math.min(motion,1)+Math.sin(time*.71)*.003*Math.max(0,1-motion)*aliveWeight+lean*.055*aliveWeight;root.updateMatrixWorld(true);
+    model.position.copy(modelBase);model.position.addScaledVector(bodyGroundNormal,-.065*collapse);model.position.y-=drop;model.position.y+=Math.sin(gait*2)*.016*runBlend;model.position.z-=crouch*.105+low*.025;
+    model.position.x+=injured*.10;model.position.x+=-Math.sin(gait)*.022*Math.min(motion,1)+weightTransfer+lean*.055*aliveWeight;root.updateMatrixWorld(true);
     // Pelvis height follows the reach of the two real legs, so the body rises
     // in mid-stance instead of keeping the same lowered squat while walking.
     if(kneel<.15&&collapse<.01)for(const l of limbs){const hip=localPoint(l.thigh),horizontal=Math.hypot(hip.x-l.target.x,hip.z-l.target.z),reach=(l.upperLeg+l.lowerLeg)*.985;requiredLower=Math.max(requiredLower,hip.y-l.target.y-Math.sqrt(Math.max(.04,reach*reach-horizontal*horizontal)));}
     pelvisLower=Math.max(clamp(requiredLower,0,.19),damp(pelvisLower,clamp(requiredLower,0,.19),dt,10));model.position.y-=pelvisLower*aliveWeight;root.updateMatrixWorld(true);
     const hitVector=root.userData.hitDirection?new THREE.Vector3(root.userData.hitDirection.x||0,root.userData.hitDirection.y||0,root.userData.hitDirection.z||0).applyQuaternion(rootQ.clone().invert()).normalize():new THREE.Vector3(0,0,-1);
-    const weightShift=-Math.sin(gait)*.018*Math.min(motion,1),forwardLean=.035*motion+.065*runBlend+acceleration*.009;
-    rotate(rig.hips,0,Math.sin(gait)*.035*motion,weightShift*.35);
-    rotate(rig.spine,.10*crouch+.08*low+.16*treat+forwardLean+breath+hitVector.z*.11*hit-.035*collapse,yaw*.26-Math.sin(gait)*.026*motion,-weightShift-lean*.10-hitVector.x*.10*hit-deadSide*.22*collapse);
-    rotate(rig.chest,.045*alert+.07*crouch+.12*treat+.025*motion-recoil*.025+hitVector.z*.08*hit-.02*collapse,yaw*.32+hitVector.x*.07*hit,-lean*.06+deadSide*.10*collapse);
+    const weightShift=-Math.sin(gait)*.018*Math.min(motion,1)+weightTransfer*.55,forwardLean=.035*motion+.065*runBlend+acceleration*.009+injured*.20+landingBend*.18-ropeWeight*.06;
+    rotate(rig.hips,0,Math.sin(gait)*.035*motion,weightShift*.35+injured*.18);
+    rotate(rig.spine,.10*crouch+.08*low+.16*treat+forwardLean+breath+hitVector.z*.11*hit-.035*collapse,yaw*.26-Math.sin(gait)*.026*motion,-weightShift-lean*.10-hitVector.x*.10*hit-deadSide*.22*collapse+injured*.12);
+    rotate(rig.chest,.020*alert+.07*crouch+.12*treat+.025*motion-recoil*.025+hitVector.z*.08*hit-.02*collapse,yaw*.32+hitVector.x*.07*hit,-lean*.06+deadSide*.10*collapse);
     rotate(rig.neck,-.035*crouch-.02*treat,0,deadSide*.70*collapse);
-    const scan=Math.sin(time*.62)*(.045+.045*alert)*(1-treat)*(pose.aimTarget?0:1)*aliveWeight;
-    rotate(rig.head,(-pitch*.45-.04*crouch+.02*treat+Math.sin(time*7)*.012*talk-.04*hit)*aliveWeight-.10*collapse,yaw*.30*aliveWeight+scan-deadSide*.30*collapse,Math.sin(time*3)*.009*talk*aliveWeight);
+    // The gaze pauses between small, individually phased attention changes;
+    // it is not locked to a whole-body sinusoidal scan.
+    rotate(rig.head,(-lookPitch*.70-.025*crouch+.02*treat+Math.sin(time*4.1+idleSeed)*.008*talk-.04*hit)*aliveWeight-.10*collapse,lookYaw*.62*aliveWeight-deadSide*.30*collapse,Math.sin(time*2.3+idleSeed)*.006*talk*aliveWeight);
     for(const l of limbs){
-      const pole=new THREE.Vector3(l.sign*(.14+crouch*.06)+travel.x*.16,.45,.85+travel.z*.12);solve(l.thigh,l.knee,l.legEnd||l.foot,l.target,pole,l.upperLeg,l.lowerLeg);
+      const pole=new THREE.Vector3(l.sign*(.14+crouch*.06)+travel.x*.16,.45,.85+travel.z*.12);
+      if(collapse>.001){const restingPole=new THREE.Vector3(l.sign*.66,.53,-.04);restingPole.addScaledVector(bodyGroundNormal,deathSupport+.035-bodyGroundNormal.dot(restingPole));pole.lerp(restingPole,collapse);}
+      if(seatedInjury>.001)pole.lerp(new THREE.Vector3(l.sign*.40,.18,.52),seatedInjury);
+      solve(l.thigh,l.knee,l.legEnd||l.foot,l.target,pole,l.upperLeg,l.lowerLeg);
       if(l.legEnd){l.foot.position.copy(l.foot.parent.worldToLocal(root.localToWorld(l.target.clone())));l.foot.updateWorldMatrix(false,true);}
       orient(l.foot,rootQ.clone().invert().multiply(l.targetQ));footError=Math.max(footError,localPoint(l.foot).distanceTo(l.target));
       const actualPivot=l.pivotLocal.clone().applyQuaternion(l.foot.getWorldQuaternion(new THREE.Quaternion())).add(l.foot.getWorldPosition(new THREE.Vector3()));l.supportError=!l.swinging&&!l.settling?actualPivot.distanceTo(l.pivotWorld):0;supportError=Math.max(supportError,l.supportError);
@@ -279,26 +359,28 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
     if(collapse>0)aimQ.slerp(new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.32,Math.PI+.15,-.12,'YXZ')),collapse);
     let gripError=0;
     if(rifle){
-      const carryWeight=clamp(Number(pose.carry??(['carry','handover'].includes(pose.gesture)?1:0)),0,1)*aliveWeight,ropeGrip=pose.gesture==='fast-rope'?aliveWeight:0;
-      rifle.visible=!root.userData.weaponDropped&&treat<.55&&carryWeight<.4&&ropeGrip<.4;
-      const right=chest.clone().add(new THREE.Vector3(-.10,.025+alert*.025,.20-recoil*.04-hit*.035).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
+      const carryWeight=clamp(Number(pose.carry??(['carry','handover'].includes(pose.gesture)?1:0)),0,1)*aliveWeight,ropeGrip=ropeWeight*aliveWeight;
+      rifle.visible=collapse<.35&&injured<.30&&!root.userData.weaponDropped&&!root.userData.mountedVehicle&&treat<.55&&carryWeight<.4&&ropeGrip<.4;
+      const right=chest.clone().add(new THREE.Vector3(-.10,.025+alert*.025-(1-readyBlend)*.11,.20-recoil*.04-hit*.035-(1-readyBlend)*.045).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
       right.lerp(chest.clone().add(new THREE.Vector3(deadSide===1?-.10:-.05,deadSide===1?.06:-.23,deadSide===1?.20:.25)),collapse);
       const left=new THREE.Vector3(...grips.left).sub(new THREE.Vector3(...grips.right)).applyQuaternion(aimQ).add(right);
       left.lerp(chest.clone().add(new THREE.Vector3(deadSide===-1?-.02:.05,deadSide===-1?.12:-.23,deadSide===-1?.23:.25)),collapse);
       const palms=[right.clone().add(new THREE.Vector3(.022,0,0).applyQuaternion(aimQ)),left];
+      if(root.userData.mountedVehicle){const vehicle=root.userData.mountedVehicle;palms[0].copy(root.worldToLocal(vehicle.userData.turretPoint('rightGrip')));palms[1].copy(root.worldToLocal(vehicle.userData.turretPoint('leftGrip')));}
       rifle.quaternion.copy(aimQ);rifle.position.copy(right).sub(new THREE.Vector3(...grips.right).applyQuaternion(aimQ));
       if(reloadPhase>0&&reloadPhase<1){
         const localMagazine=magazineGrip?.clone()||new THREE.Vector3(-.025,-.15,-.105);
         const magazine=localMagazine.clone().applyQuaternion(aimQ).add(rifle.position);
         const extracted=localMagazine.clone().add(new THREE.Vector3(-.01,-.13,.015)).applyQuaternion(aimQ).add(rifle.position);
         const pouch=chest.clone().add(new THREE.Vector3(.17,-.31,.29));
-        const keys=[[0,left],[.17,magazine],[.34,extracted],[.50,pouch],[.69,extracted],[.84,magazine],[1,left]];
+        const keys=rocketWeapon?[[0,left],[.17,chest.clone().add(new THREE.Vector3(.17,-.22,.22))],[.37,magazine.clone().add(new THREE.Vector3(-.12,.03,-.48).applyQuaternion(aimQ))],[.58,magazine.clone().add(new THREE.Vector3(-.12,.03,-.48).applyQuaternion(aimQ))],[.86,magazine],[1,left]]:[[0,left],[.17,magazine],[.34,extracted],[.50,pouch],[.69,extracted],[.84,magazine],[1,left]];
         for(let k=1;k<keys.length;k++)if(reloadPhase<=keys[k][0]){const t=THREE.MathUtils.smoothstep(reloadPhase,keys[k-1][0],keys[k][0]);palms[1]=keys[k-1][1].clone().lerp(keys[k][1],t);break;}
       }
       if(reloadBelt)reloadBelt.visible=reloadBeltVisible&&!(reloadPhase>.17&&reloadPhase<.84);
       if(reloadPart&&reloadRest){
         reloadPart.position.copy(reloadRest.position);reloadPart.quaternion.copy(reloadRest.quaternion);
-        if(reloadPhase>.17&&reloadPhase<.84&&magazineGrip){
+        if(rocketWeapon)reloadPart.visible=(root.userData.weaponAmmo?.mag??1)>0||reloadPhase>0;
+        if(reloadPhase>.17&&reloadPhase<(rocketWeapon?.86:.84)&&magazineGrip){
           root.updateMatrixWorld(true);
           const seated=magazineGrip.clone().applyQuaternion(aimQ).add(rifle.position);
           const delta=palms[1].clone().sub(seated);
@@ -309,30 +391,38 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
       }
       for(let i=0;i<limbs.length;i++){
         const l=limbs[i],palm=palms[i];
-        if(treat>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.15,-.33,.37+Math.sin(time*3+i)*.025)),treat);
+        if(treat>.001){
+          const destination=Array.isArray(pose.treatmentTarget)&&pose.treatmentTarget.length===3&&pose.treatmentTarget.every(Number.isFinite)
+            ?root.worldToLocal(new THREE.Vector3(...pose.treatmentTarget)).add(new THREE.Vector3(l.sign*.035,i?-.075:0,0))
+            :chest.clone().add(new THREE.Vector3(l.sign*.15,-.33,.37+Math.sin(time*3+i)*.025));
+          palm.lerp(destination,treat);
+        }
         if(carryWeight>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.21,-.42,.34)),carryWeight);
-        if(ropeGrip>.001)palm.lerp(chest.clone().add(new THREE.Vector3(l.sign*.055,i?.13:-.06,.30)),ropeGrip);
+        if(ropeGrip>.001)palm.lerp(new THREE.Vector3(ropeLocal.x+l.sign*.028,chest.y+(i?.28:.07),ropeLocal.z+.015),ropeGrip);
+        if(injured>.001)palm.lerp(new THREE.Vector3(l.sign*.095,Math.max(.30,chest.y-.39)+(i?.08:0),.36+(i?.08:0)),injured);
+        if(collapse>.001){const resting=new THREE.Vector3(l.sign*(i?.34:.29),chest.y-(i?.44:.50),i?-.070:-.045);resting.addScaledVector(bodyGroundNormal,deathSupport-.035-bodyGroundNormal.dot(resting));palm.lerp(resting,collapse);}
         const handQ=aimQ.clone().multiply(handAim[i]);
         if(i&&reloadWeight>0){
           const magazineTurn=new THREE.Quaternion().setFromEuler(new THREE.Euler(.22,0,-.48));
           const reloadHand=aimQ.clone().multiply(handAim[i]).multiply(magazineTurn);
           handQ.slerp(reloadHand,reloadWeight);
         }
-        if(i&&collapse>0)handQ.slerp(l.handQ,collapse);
+        if(pose.treatmentTarget&&treat>0)handQ.slerp(l.handQ,treat);
+        if(collapse>0)handQ.slerp(l.handQ,collapse);
         if(l.thumb)l.thumb.bones.forEach((b,k)=>b.quaternion.copy(l.thumb.rest[k]));
         if(l.fingerCurls){
           // Open on departure and insertion, curl while carrying a magazine.
           const release=Math.max(0,1-Math.abs(reloadPhase-.08)/.10);
           const insert=Math.max(0,1-Math.abs(reloadPhase-.85)/.13);
           const carry=reloadPhase>.18&&reloadPhase<.76?1:0;
-          const grasp=i&&reloadPhase>0?Math.max(.20,1-.68*Math.max(release,insert)-.20*carry):1;
+          const grasp=(i&&reloadPhase>0?Math.max(.20,1-.68*Math.max(release,insert)-.20*carry):1)*(1-.84*handRelease)*(1-.55*injured)*(1-(pose.treatmentTarget?.length===3?.88:0)*treat);
           for(const f of l.fingerCurls)f.joint.quaternion.copy(f.open).multiply(new THREE.Quaternion().setFromAxisAngle(f.axis,f.angle*grasp));
         }
         const deltaQ=handQ.clone().multiply(l.handQ.clone().invert()),offset=l.palmOffset.clone().applyQuaternion(deltaQ),target=palm.clone().sub(offset);
         const armPole=new THREE.Vector3(l.sign*.43,chest.y-.32,chest.z+.03);armPole.lerp(new THREE.Vector3(0,chest.y-.15,chest.z+.8),collapse);
         solve(l.arm,l.elbow,l.hand,target,armPole,l.upperArm,l.lowerArm);
         orient(l.hand,handQ);
-        if(l.thumb&&(!i||reloadWeight<.02)&&treat<.02&&collapse<.02){
+        if(l.thumb&&(!i||reloadWeight<.02)&&treat<.02&&collapse<.02&&ropeGrip<.02&&injured<.02&&!root.userData.mountedVehicle){
           const [a,b,c]=l.thumb.bones;
           const grip=i?grips.left:grips.right;
           const touch=new THREE.Vector3(grip[0]+(i?-.027:-.022),grip[1]+(i?.025:.018),grip[2]+(i?.025:-.012)).applyQuaternion(aimQ).add(rifle.position);
@@ -344,7 +434,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
     }else{
       const head=localPoint(rig.head);
       for(let i=0;i<limbs.length;i++){
-        const l=limbs[i],swing=-Math.cos(gait+i*Math.PI)*(.14+.13*runBlend)*Math.min(motion,1);
+        const l=limbs[i],swing=-Math.cos(gait+i*Math.PI)*(.17+.13*runBlend)*Math.min(motion,1);
         const relaxed=chest.clone().add(new THREE.Vector3(l.sign*(.22+.025*runBlend),-.53+.17*runBlend,.035+swing));
         const protective=head.clone().add(new THREE.Vector3(l.sign*.135,.08,.025));
         const target=relaxed.lerp(protective,crouch*aliveWeight*(1-.5*Math.min(motion,1)));
@@ -353,7 +443,7 @@ export function installActorPoses(root, model, rawBones, rifle, kind, nativeAnim
       }
     }
     root.updateMatrixWorld(true);
-    Object.assign(state,{stance,motion,lowering:drop,headHeight:localPoint(rig.head).y,hipHeight:localPoint(rig.hips).y,aimYaw:yaw,aimPitch:pitch,recoil,hit,dead,reload:reloadPhase,lean,moveDirection:travel.toArray(),gripError:rifle?.visible?gripError:0,footError,gripSpan,gaitPhase:gaitCycles%1,gaitCycles,strideLength,contactFraction:contact,locomotion:stance==='crouch'||stance==='low'?'crouch':runBlend>.5?'run':amount>.035?'walk':turning?'turn':'idle',distanceTravelled:travelled,actualSpeed:amount,turnSpeed,pelvisLower,supportError,acceleration});
+    Object.assign(state,{stance,weaponReady:readyBlend,weaponPose:talking?'conversation':readyBlend>.55?'aim':'low-ready',lookYaw,lookPitch,weightTransfer,motion,lowering:drop,headHeight:localPoint(rig.head).y,hipHeight:localPoint(rig.hips).y,aimYaw:yaw,aimPitch:pitch,recoil,hit,dead,reload:reloadPhase,lean,moveDirection:travel.toArray(),gripError:rifle?.visible||root.userData.mountedVehicle||ropeWeight>.05?gripError:0,treatmentError:pose.treatmentTarget&&treat>.5?gripError:null,ropeWeight,ropePhase:pose.ropePhase||null,landing,injured,injuryPhase:pose.injuryPhase||null,handRelease,footError,gripSpan,gaitPhase:gaitCycles%1,gaitCycles,strideLength,contactFraction:contact,locomotion:stance==='crouch'||stance==='low'?'crouch':runBlend>.5?'run':amount>.035?'walk':turning?'turn':'idle',distanceTravelled:travelled,actualSpeed:amount,turnSpeed,pelvisLower,supportError,acceleration});
   };
   root.userData.animate(0,0,{});
 }
@@ -380,7 +470,7 @@ export async function createWorld(renderer) {
     new GLTFLoader().loadAsync(BASE+'uh60-blackhawk.glb'),
     new GLTFLoader().loadAsync(BASE+'urban-facade.glb'),
     new GLTFLoader().loadAsync(BASE+'pasgt-field-helmet.glb'),
-    prepareVehicles(renderer)
+    prepareVehicles(renderer),prepareSupportModels()
   ]);
   const wallColors=['#d2c6aa','#c5c5b5','#d7c9ad','#b6b6a1','#c6b7a4','#c0c0ab'];
   const walls=wallColors.map((color,i)=>material({...((i===0||i===3)?brokenMaps:wallMaps),color,roughness:1,normalScale:new THREE.Vector2(1.15,1.15)}));
@@ -516,7 +606,7 @@ export async function createWorld(renderer) {
   // Authored UH-60 by helijah, CC BY 4.0; source and licence ship in ASSET-SOURCES.
   // Source coordinates are already metres (longitudinal X, lateral Y, up Z).
   // Remove the presentation-only Sketchfab root scale rather than enlarging the world.
-  const helicopterTemplate=new THREE.Group(),airframeBatches=new Map();
+  const helicopterTemplate=new THREE.Group(),airframeBatches=new Map(),doorBatches=[new Map(),new Map()],doorCutAudit=[];
   const aircraftBasis=new THREE.Matrix4().set(0,1,0,-8.123, 0,0,1,0, -1,0,0,8.112, 0,0,0,1);
   let mainBladeGeometry=null,tailBladeGeometry=null;const mainRotorParts=[];
   const aircraftMaterials=new Map();
@@ -547,12 +637,14 @@ export async function createWorld(renderer) {
     if(!geometry.attributes.normal)geometry.computeVertexNormals();
     if(!geometry.attributes.uv)geometry.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count*2),2));
     for(const name of Object.keys(geometry.attributes))if(!['position','normal','uv'].includes(name))geometry.deleteAttribute(name);
+    if(['Object_42','Object_43','Object_50'].includes(object.name)){const cut=cutBlackHawkCabinDoors(geometry);geometry.dispose();geometry=cut.body;doorCutAudit.push({node:object.name,sourceTriangles:cut.sourceTriangles,removedTriangles:cut.removedTriangles});cut.doors.forEach((g,i)=>{if(!g.attributes.position.count){g.dispose();return;}if(!doorBatches[i].has(mat))doorBatches[i].set(mat,[]);doorBatches[i].get(mat).push(g);});}
     if(geometry.index)geometry=geometry.toNonIndexed();
     if(!airframeBatches.has(mat))airframeBatches.set(mat,[]);airframeBatches.get(mat).push(geometry);
   });
   mainBladeGeometry=mergeGeometries(mainRotorParts,false);mainRotorParts.forEach(g=>g.dispose());
   for(const [mat,parts]of airframeBatches){const geometry=mergeGeometries(parts,false);if(!geometry)continue;const object=mesh(geometry,mat);object.userData.sharedGeometry=true;helicopterTemplate.add(object);parts.forEach(g=>g.dispose());}
   airframeBatches.clear();
+  for(const [sideIndex,batches]of doorBatches.entries()){const slidingDoor=new THREE.Group();slidingDoor.name=sideIndex?'RightCabinSlidingDoor':'LeftCabinSlidingDoor';for(const[mat,parts]of batches){const geometry=mergeGeometries(parts,false);parts.forEach(g=>g.dispose());const object=mesh(geometry,mat);object.userData.sharedGeometry=true;slidingDoor.add(object);}slidingDoor.position.set(sideIndex?.12:-.12,0,-1.85);helicopterTemplate.add(slidingDoor);batches.clear();}
   const rotorBlurMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{opacity:{value:.13}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform float opacity;void main(){vec2 p=vUv*2.-1.;float r=length(p);float edge=smoothstep(.15,.55,r)*(1.-smoothstep(.92,1.,r));float streak=.35+.65*pow(abs(sin(atan(p.y,p.x)*4.)),5.);gl_FragColor=vec4(.09,.11,.10,edge*streak*opacity);}`});
   function helicopter(crashed=false,{managed=true}={}){
     const group=new THREE.Group();group.name=crashed?'UH-60 crash site':'UH-60 Black Hawk';
@@ -571,6 +663,8 @@ export async function createWorld(renderer) {
       const tailBlur=new THREE.Mesh(new THREE.PlaneGeometry(3.35,3.35),rotorBlurMaterial);tailBlur.rotation.y=PI/2;tailRotor.add(tailBlur);
       if(managed)rotors.push(group);
     } else {group.rotation.set(.045,.18,-.23);group.position.y=-.17;rotor.rotation.y=.4;}
+    if(!crashed)attachBlackHawkDoorGuns(group);
+    group.userData.ropeSockets=BLACKHAWK_ROPE_SOCKETS.map(spec=>({...spec,position:[...spec.position]}));group.userData.doorCutAudit=structuredClone(doorCutAudit);
     group.userData.dimensions={length:15.28,width:2.96,height:5.25,rotorDiameter:16.36};
     group.userData.collisionBoxes=[{minX:-1.7,maxX:1.7,minZ:-3.2,maxZ:4.7},{minX:-.55,maxX:.55,minZ:-10.7,maxZ:-3.2}];
     return group;
@@ -623,7 +717,7 @@ export async function createWorld(renderer) {
     return helmet;
   }
   function createActor(kind,position,name='',options={}){
-    const root=new THREE.Group();root.name=name||kind;root.position.set(position[0],0,position[1]);
+    const root=new THREE.Group();root.name=name||kind;root.position.set(position[0],Number.isFinite(options.elevation)?options.elevation:0,position[1]);if(Number.isFinite(options.elevation))root.userData.supportElevation=options.elevation;
     root.userData.instanceMaterials=new Set();
     let model,civilianMixer,civilianActions,actorBones,actorRifle;
     const civilian=kind==='civilian'||options.civilian===true;
@@ -694,7 +788,9 @@ export async function createWorld(renderer) {
       root.add(box(.9,.045,2.0,cloth,0,.12,0));
     }
     if(kind!=='wounded'&&humanAsset)installActorPoses(root,model,actorBones,actorRifle,civilian?'civilian':kind,root.userData.animate,sampleHeight);
-    root.userData.kind=kind;root.userData.civilianAppearance=civilian;root.userData.model=model;dynamic.add(root);dynamicActors.push(root);return root;
+    root.userData.kind=kind;root.userData.civilianAppearance=civilian;root.userData.model=model;
+    if(!civilian&&kind!=='wounded')attachSupportGear(root,root.userData.weaponId,options.gear);
+    root.updateMatrixWorld(true);const renderMeshes=[];root.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=true;if(o.isSkinnedMesh){const center=o.worldToLocal(root.localToWorld(new THREE.Vector3(0,.85,0))),scale=o.getWorldScale(new THREE.Vector3());o.boundingSphere=new THREE.Sphere(center,2.45/Math.max(.00001,Math.min(Math.abs(scale.x),Math.abs(scale.y),Math.abs(scale.z))));}o.userData.fullActorShadow=o.castShadow;renderMeshes.push(o);});root.userData.renderMeshes=renderMeshes;dynamic.add(root);dynamicActors.push(root);return root;
   }
   function createProp(kind,position,options={}){
     let g;
@@ -731,6 +827,7 @@ export async function createWorld(renderer) {
     if(g.userData.collisionBoxes)g.userData.collisionBounds=g.userData.collisionBoxes.map(b=>({minX:b.minX+position[0],maxX:b.maxX+position[0],minZ:b.minZ+position[1],maxZ:b.maxZ+position[1],...(kind==='vehicle'?{minY:g.position.y,maxY:g.position.y+1.86}:{}),material:kind==='vehicle'||kind==='wreck'?'metal':'masonry'}));
     dynamic.add(g);if(kind==='vehicle')dynamicVehicles.add(g);return g;
   }
+  function createTechnical(position,rotation=0,options={}){const vehicle=createTechnicalModel(options);vehicle.position.set(position[0],position.length>2?position[1]:sampleHeight(position[0],position[1]),position.length>2?position[2]:position[1]);vehicle.rotation.y=rotation;dynamic.add(vehicle);dynamicVehicles.add(vehicle);vehicle.updateMatrixWorld(true);return vehicle;}
   function createVehicle(position,rotation=0,burned=false){
     const vehicle=makeVehicleAsset({burned,medical:false});
     vehicle.position.set(position[0],position.length>2?position[1]:sampleHeight(position[0],position[1]),position.length>2?position[2]:position[1]);
@@ -807,10 +904,12 @@ export async function createWorld(renderer) {
     for(let p=object;p;p=p.parent)if(!p.visible)return false;return true;
   });}
   function getSceneState(){return chapterScene?structuredClone(chapterScene.state):null;}
+  function getStoryCueRoot(){return chapterScene?.storyCueRoot||null;}
   function getCinematicOcclusions(){return(chapterScene?.objects||[]).filter(o=>o.userData.chapterPropKind);}
   function setCinematicPropsVisible(visible,kinds=['wreck']){const changed=[];for(const object of getCinematicOcclusions())if(kinds.includes(object.userData.chapterPropKind)){changed.push({object,visible:object.visible});object.visible=!!visible;}return changed;}
   function update(dt,time,camera=null){
     sunShadows.update(camera);
+    if(camera){for(const actor of dynamicActors){const near=actor.position.distanceToSquared(camera.position)<38*38;for(const mesh of actor.userData.renderMeshes||[])mesh.castShadow=near&&mesh.userData.fullActorShadow;}for(const vehicle of dynamicVehicles)vehicle.userData.setModelDistance?.(vehicle.position.distanceTo(camera.position));}
     for(const h of rotors){h.userData.rotor.rotation.y+=dt*27;h.userData.tailRotor.rotation.x+=dt*81;}
     const t=time*.105;
     if(aircraftPreview){flying.position.set(...aircraftPreview.position);flying.rotation.set(...aircraftPreview.rotation);wingman.visible=false;}
@@ -821,7 +920,8 @@ export async function createWorld(renderer) {
     updateClouds(time,camera);
     for(const fire of fireSystems)fire.update(dt,time,camera);
   }
-  function dispose(){clearDynamic();chapterScene?.dispose();chapterScene=null;for(const fire of fireSystems)fire.dispose();fireSystems.length=0;disposeVehicles();for(const system of smokeSystems)for(const batch of system.batches){batch.material.dispose();batch.geometry.dispose();}smokeSystems.length=0;scene.traverse(o=>{if(o.isInstancedMesh&&!o.userData.instanceBuffersDisposed){o.dispose();o.userData.instanceBuffersDisposed=true;}o.geometry?.dispose();});helicopterTemplate.traverse(o=>o.geometry?.dispose());mainBladeGeometry?.dispose();tailBladeGeometry?.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();materials.clear();textures.clear();environment.dispose();skyMaterial.dispose();rotorBlurMaterial.dispose();}
+  function dispose(){actorContactShadows.dispose();clearDynamic();chapterScene?.dispose();chapterScene=null;for(const fire of fireSystems)fire.dispose();fireSystems.length=0;disposeVehicles();disposeSupportModels();for(const system of smokeSystems)for(const batch of system.batches){batch.material.dispose();batch.geometry.dispose();}smokeSystems.length=0;scene.traverse(o=>{if(o.isInstancedMesh&&!o.userData.instanceBuffersDisposed){o.dispose();o.userData.instanceBuffersDisposed=true;}o.geometry?.dispose();});helicopterTemplate.traverse(o=>o.geometry?.dispose());mainBladeGeometry?.dispose();tailBladeGeometry?.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();materials.clear();textures.clear();environment.dispose();skyMaterial.dispose();rotorBlurMaterial.dispose();}
+  const actorContactShadows=createActorContactShadows(scene,{sampleHeight});
   loadChapterScene(1);
-  return{scene,colliders,update,sampleHeight,getVehicleSources,updateShadows:camera=>sunShadows.update(camera),getLightingState:()=>sunShadows.inspect(),setMood,createActor,destroyActor,createProp,createVehicle,clearDynamic,dispose,loadChapterScene,getSceneState,setAmbientAircraftEnabled,getCinematicOcclusions,setCinematicPropsVisible,aircraft:flying,getUrbanState:getSceneState,getResourceState:()=>({materials:materials.size,actors:dynamicActors.length,fires:fireSystems.length,smokeSystems:smokeSystems.length,staticObjects:staticGroup.children.length,chapter:activeLayout?.id}),getFireSources:()=>fireSystems.map(system=>system.root.getWorldPosition(new THREE.Vector3()).toArray()),getAircraftState,setAircraftPreview,createAircraft:helicopter};
+  return{scene,colliders,update,sampleHeight,getVehicleSources,updateShadows:camera=>{sunShadows.update(camera);actorContactShadows.update(dynamicActors,camera);},getLightingState:()=>({...sunShadows.inspect(),actorContacts:actorContactShadows.inspect()}),setMood,createActor,destroyActor,createProp,createVehicle,createTechnical,clearDynamic,dispose,loadChapterScene,getSceneState,getStoryCueRoot,setAmbientAircraftEnabled,getCinematicOcclusions,setCinematicPropsVisible,aircraft:flying,getUrbanState:getSceneState,getResourceState:()=>({materials:materials.size,actors:dynamicActors.length,fires:fireSystems.length,smokeSystems:smokeSystems.length,staticObjects:staticGroup.children.length,chapter:activeLayout?.id}),getFireSources:()=>fireSystems.map(system=>system.root.getWorldPosition(new THREE.Vector3()).toArray()),getAircraftState,setAircraftPreview,createAircraft:helicopter};
 }

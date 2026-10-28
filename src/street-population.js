@@ -1,8 +1,9 @@
 import {blocked,lineBlocked} from './simulation.js';
+import {planEnemySupport} from './enemy-support.js';
 
 // Population is placed after scenery: shelter, cover edges and reserve approach
 // paths are checked against the same colliders used by walking and shooting.
-export function buildStreetPopulation(layout,colliders=[]){
+export function buildStreetPopulation(layout,colliders=[],{sceneState,groundHeight}={}){
   const inhabited=['civilian-courtyard','narrow-t-street','walled-compound','crash-plaza','market-dogleg','convoy-switchback','crash-perimeter','night-courtyard','relief-avenue','recovery-lane','dawn-switchbacks'].includes(layout.type);
   const war=layout.enemySpawns.length>0;
   if(!inhabited&&!war&&!layout.expansion)return {residents:[],contacts:[],reserves:[]};
@@ -128,5 +129,5 @@ export function buildStreetPopulation(layout,colliders=[]){
       reserves.push({pos:[anchor.x,anchor.z],coverAnchor:[anchor.x,anchor.z],safePeek:[peek.x,peek.z],lookAt:[approach.x,approach.z],patrol:[[anchor.x,anchor.z]],reserve:true,peripheral:true,sector:sector.group.id,activationDelay:8+index*3,fireDelay:3.8+index*.7,tacticalRole:['support','flank-left','flank-right'][index]});used.push(anchor,peek);added++;
     }
   }
-  return{residents,contacts,reserves};
+  return{residents,contacts,reserves,...(sceneState?{support:planEnemySupport({layout,sceneState,colliders,groundHeight})}:{})};
 }

@@ -2,11 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createWeaponRecoil,WEAPON_RECOIL_PROFILES as PROFILES,WEAPON_RECOIL_LIMITS as LIMITS} from '../src/weapon-recoil.js';
 const axes=Object.keys(LIMITS),ids=['m16a2','m249','ak','mp5','m1911','m4a1'];
+test('RPK and RPG have separate stable recoil and settle without an unknown-weapon failure',()=>{
+ for(const weaponId of ['rpk','rpg7']){const r=createWeaponRecoil();assert.doesNotThrow(()=>r.fire({weaponId}));const p=r.update(1/60);assert.ok(p.cameraPitch>0&&p.weaponKick>0);for(let i=0;i<180;i++)r.update(1/60);assert.ok(r.inspect().settled);}
+ const rpk=createWeaponRecoil(),rpg=createWeaponRecoil();rpk.fire({weaponId:'rpk'});rpg.fire({weaponId:'rpg7'});assert.ok(rpg.update(.04).cameraPitch<rpk.update(.04).cameraPitch);
+});
 const advance=(recoil,seconds,dt=1/240)=>{let pose;for(let t=0;t<seconds-1e-10;t+=dt)pose=recoil.update(Math.min(dt,seconds-t));return pose;};
 function peak(id,options={}){const r=createWeaponRecoil();r.fire({weaponId:id,...options});const maximum=Object.fromEntries(axes.map(k=>[k,0]));let peakAt=0;for(let t=0;t<.5;t+=1/1000){const p=r.update(1/1000);if(p.weaponKick>maximum.weaponKick)peakAt=t+1/1000;for(const k of axes)maximum[k]=Math.max(maximum[k],Math.abs(p[k]));}return {maximum,peakAt};}
 
 test('all six guns have a short distinct recoil impulse and settle without aim drift',()=>{
-  assert.deepEqual(new Set(Object.keys(PROFILES)),new Set(ids));const signatures=new Set();
+  assert.deepEqual(new Set(Object.keys(PROFILES)),new Set([...ids,'rpk','rpg7']));const signatures=new Set();
   for(const id of ids){
     const r=createWeaponRecoil();assert(r.inspect().settled);const shot=r.fire({weaponId:id});assert.equal(shot.shots,1);assert(!shot.settled);
     const first=r.update(.016),crest=r.update(.016),later=r.update(.20);assert(first.weaponKick>.004);assert(first.cameraPitch>0);assert(later.weaponKick<first.weaponKick*.12);

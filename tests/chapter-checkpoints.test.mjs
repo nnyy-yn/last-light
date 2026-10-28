@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {captureChapterCheckpoint,validateChapterCheckpoint,applyChapterCheckpoint,chapterTaskSignature,CHECKPOINT_WEAPON_CAPACITIES} from '../src/chapter-checkpoints.js';
 import {newCampaign,applyEffects} from '../src/simulation.js';
-import {createAmmoReserves,ammoTotal,collectWeaponDrop} from '../src/ammunition.js';
+import {createAmmoReserves,ammoTotal} from '../src/ammunition.js';
+import {createCarriedLoadout,replaceCarriedWeapon} from '../src/carried-loadout.js';
 import {INITIAL_RESOURCES,CHAPTERS} from '../src/story.js';
 import {createMountedGun,fireMountedGun,stepMountedGun,reloadMountedGun,MOUNTED_M2} from '../src/mounted-weapons.js';
 
@@ -15,10 +16,10 @@ function fixture(){
   ]};
   const campaign=newCampaign({...INITIAL_RESOURCES,ammo:90});campaign.chapter=5;
   const player={x:8,z:12,y:1.72,yaw:-1.4,pitch:.13,health:62,stamina:41,mag:11,weaponId:'m16a2'};
-  const stowedMagazines=Object.fromEntries(Object.keys(CHECKPOINT_WEAPON_CAPACITIES).map(k=>[k,k==='m249'?37:0]));
+  const stowedMagazines={m16a2:0,m1911:5},carriedLoadout=createCarriedLoadout();
   const gun=createMountedGun();for(let i=0;i<8;i++){stepMountedGun(gun,.12);fireMountedGun(gun);}reloadMountedGun(gun);stepMountedGun(gun,.6);
   const context={chapter,bounds:{minX:-120,maxX:120,minZ:-120,maxZ:120},enemyCount:26,mountedWeaponIds:['vehicle-gun-0'],fieldIds:['field-6-ammo','field-6-medicine']};
-  const input={...context,campaign,taskIndex:2,player,stowedMagazines,killedEnemyIndices:[7,1],weaponDrops:[{enemyIndex:7,weaponId:'ak',mag:0,reserve:0,taken:false,position:[7.25,-4]},{enemyIndex:1,weaponId:'ak',mag:0,reserve:0,taken:false,position:[1,3.5]}],smokeCharges:1,mountedWeapons:[{id:'vehicle-gun-0',gun}],fieldCollectedIds:['field-6-ammo'],pacingElapsed:628.42,taskDecisions:[{taskId:'share-kit',optionId:'share'}]};
+  const input={...context,campaign,taskIndex:2,player,stowedMagazines,carriedLoadout,killedEnemyIndices:[7,1],weaponDrops:[{dropId:'enemy-7',source:'enemy',enemyIndex:7,weaponId:'ak',mag:0,reserve:0,taken:false,position:[7.25,-4],elevation:0},{dropId:'enemy-1',source:'enemy',enemyIndex:1,weaponId:'ak',mag:0,reserve:0,taken:false,position:[1,3.5],elevation:0}],smokeCharges:1,mountedWeapons:[{id:'vehicle-gun-0',gun,aiWait:2.3,burst:2,shotsAI:8}],fieldCollectedIds:['field-6-ammo'],pacingElapsed:628.42,taskDecisions:[{taskId:'share-kit',optionId:'share'}]};
   return {chapter,campaign,context,input};
 }
 
@@ -41,8 +42,8 @@ test('captured/applied data never aliases caller, campaign or visual objects',()
   const {input,context,campaign}=fixture();input.player.obj={geometry:'do not serialize'};input.mountedWeapons[0].vehicle={geometry:'also not data'};
   input.chapter.tasks[0].obj={cycle:null};input.chapter.tasks[0].obj.cycle=input.chapter.tasks[0].obj;
   const saved=captureChapterCheckpoint(input);assert.equal('obj' in saved.player,false);assert.equal('vehicle' in saved.mountedWeapons[0],false);assert.ok(!JSON.stringify(saved).includes('geometry'));
-  input.player.health=1;input.stowedMagazines.m249=0;input.mountedWeapons[0].gun.ammo=0;input.campaign.resources.ammo=0;
-  assert.equal(saved.player.health,62);assert.equal(saved.stowedMagazines.m249,37);assert.equal(saved.mountedWeapons[0].gun.ammo,92);assert.equal(saved.resources.ammo,90);
+  input.player.health=1;input.stowedMagazines.m1911=0;input.mountedWeapons[0].gun.ammo=0;input.campaign.resources.ammo=0;
+  assert.equal(saved.player.health,62);assert.equal(saved.stowedMagazines.m1911,5);assert.equal(saved.mountedWeapons[0].gun.ammo,92);assert.equal(saved.resources.ammo,90);
   const restored=applyChapterCheckpoint(campaign,saved,context);restored.player.health=0;restored.resources.ammo=0;restored.fieldCollectedIds.push('invented');
   assert.equal(campaign.fieldCheckpoint.player.health,62);assert.equal(campaign.resources.ammo,90);assert.deepEqual(saved.fieldCollectedIds,['field-6-ammo']);
 });
@@ -68,7 +69,7 @@ test('decision choices must be valid, unique and owned by completed tasks',()=>{
 
 test('ammo, health, position, elapsed time and consumed-item identities are bounded',()=>{
   const {input,context}=fixture(),saved=captureChapterCheckpoint(input);
-  for(const mutate of[p=>p.resources.ammo=721,p=>p.player.mag=31,p=>p.player.mag=2.5,p=>p.player.health=NaN,p=>p.player.x=121,p=>p.player.weaponId='unknown',p=>p.stowedMagazines.m16a2=11,p=>p.stowedMagazines.m249=101,p=>delete p.stowedMagazines.ak,p=>p.smokeCharges=3,p=>p.pacingElapsed=-1,p=>p.pacingElapsed=Infinity,p=>p.fieldCollectedIds.push('field-5-ammo'),p=>p.fieldCollectedIds.push('field-6-ammo'),p=>p.killedEnemyIndices.push(26),p=>p.killedEnemyIndices.push(1)]){const bad=copy(saved);mutate(bad);assert.equal(validateChapterCheckpoint(bad,context),null);}
+  for(const mutate of[p=>p.resources.ammo=721,p=>p.player.mag=31,p=>p.player.mag=2.5,p=>p.player.health=NaN,p=>p.player.x=121,p=>p.player.weaponId='unknown',p=>p.stowedMagazines.m16a2=11,p=>p.stowedMagazines.m249=101,p=>delete p.stowedMagazines.m1911,p=>p.smokeCharges=3,p=>p.pacingElapsed=-1,p=>p.pacingElapsed=Infinity,p=>p.fieldCollectedIds.push('field-5-ammo'),p=>p.fieldCollectedIds.push('field-6-ammo'),p=>p.killedEnemyIndices.push(26),p=>p.killedEnemyIndices.push(1)]){const bad=copy(saved);mutate(bad);assert.equal(validateChapterCheckpoint(bad,context),null);}
 });
 
 test('partial mounted reload resumes its remaining time without replenishing reserve',()=>{
@@ -100,7 +101,7 @@ test('consumed squad assistance survives repeated checkpoint restores and cannot
   // injury may again satisfy the health threshold, but cannot grant aid twice.
   input.assistUsed=true;input.player.health=29;
   const saved=JSON.parse(JSON.stringify(captureChapterCheckpoint(input)));
-  assert.equal(saved.assistUsed,true);assert.equal(saved.version,3);
+  assert.equal(saved.assistUsed,true);assert.equal(saved.version,5);
   for(let n=0;n<3;n++){
     const restored=applyChapterCheckpoint(campaign,saved,context);
     let aidCount=0;
@@ -109,7 +110,7 @@ test('consumed squad assistance survives repeated checkpoint restores and cannot
     assert.equal(campaign.fieldCheckpoint.assistUsed,true);
   }
   const before=copy(campaign);
-  for(const mutate of[p=>delete p.assistUsed,p=>p.assistUsed=0,p=>p.assistUsed='false',p=>p.assistUsed=null,p=>p.version=1,p=>p.version=2]){
+  for(const mutate of[p=>delete p.assistUsed,p=>p.assistUsed=0,p=>p.assistUsed='false',p=>p.assistUsed=null,p=>p.version=1,p=>p.version=2,p=>p.version=3,p=>p.version=4]){
     const bad=copy(saved);mutate(bad);
     assert.equal(applyChapterCheckpoint(campaign,bad,context),null);
     assert.deepEqual(campaign,before,'old/invalid aid state must not partially restore a save');
@@ -118,10 +119,10 @@ test('consumed squad assistance survives repeated checkpoint restores and cannot
   assert.equal(captureChapterCheckpoint(input).assistUsed,false,'new captures default to unused only when the caller omits the flag');
 });
 
-test('schema 3 requires typed reserves to match the reserve total exactly',()=>{
+test('schema 5 requires typed reserves to match the reserve total exactly',()=>{
   const {input,context,campaign}=fixture();
-  const explicit={'556':40,'762':30,'9mm':13,'45':7};campaign.ammoReserves=copy(explicit);
-  const saved=captureChapterCheckpoint(input);assert.deepEqual(saved.ammoReserves,explicit);assert.equal(saved.version,3);
+  const explicit={'556':40,'762':30,'9mm':13,'45':7,rocket:0};campaign.ammoReserves=copy(explicit);
+  const saved=captureChapterCheckpoint(input);assert.deepEqual(saved.ammoReserves,explicit);assert.equal(saved.version,5);
   for(const mutate of[p=>delete p.ammoReserves,p=>p.ammoReserves=null,p=>p.ammoReserves['556']++,p=>p.ammoReserves['762']=-1,p=>p.ammoReserves['45']=.5,p=>p.ammoReserves['9mm']=Infinity,p=>p.ammoReserves.extra=0,p=>delete p.ammoReserves['45'],p=>p.resources.ammo=90.5,p=>p.version=2]){
     const bad=copy(saved),before=copy(campaign);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);
   }
@@ -134,32 +135,100 @@ test('schema 3 requires typed reserves to match the reserve total exactly',()=>{
 test('each defeated enemy requires exactly one bounded physical firearm record',()=>{
   const {input,context,campaign}=fixture(),saved=captureChapterCheckpoint(input);
   assert.deepEqual(saved.weaponDrops.map(d=>d.enemyIndex),[1,7]);
-  for(const mutate of[p=>delete p.weaponDrops,p=>p.weaponDrops=null,p=>p.weaponDrops.pop(),p=>p.weaponDrops.push(copy(p.weaponDrops[0])),p=>p.weaponDrops[1].enemyIndex=1,p=>p.weaponDrops[0].enemyIndex=0,p=>p.weaponDrops[0].enemyIndex=26,p=>p.weaponDrops[0].enemyIndex=.5,p=>p.weaponDrops[0].weaponId='missing',p=>p.weaponDrops[0].mag=31,p=>p.weaponDrops[0].mag=-1,p=>p.weaponDrops[0].mag=.5,p=>p.weaponDrops[0].reserve=301,p=>p.weaponDrops[0].reserve=-1,p=>p.weaponDrops[0].reserve=Infinity,p=>p.weaponDrops[0].taken=0,p=>p.weaponDrops[0].taken='false',p=>delete p.weaponDrops[0].taken,p=>delete p.weaponDrops[0].position,p=>p.weaponDrops[0].position=null,p=>p.weaponDrops[0].position=[0],p=>p.weaponDrops[0].position=[0,0,0],p=>p.weaponDrops[0].position=[121,0],p=>p.weaponDrops[0].position=[0,-121],p=>p.weaponDrops[0].position=[NaN,0],p=>p.weaponDrops[0].position=[0,Infinity],p=>p.weaponDrops[0].position=['1',2]]){
+  for(const mutate of[p=>delete p.weaponDrops,p=>p.weaponDrops=null,p=>p.weaponDrops.pop(),p=>p.weaponDrops.push(copy(p.weaponDrops[0])),p=>p.weaponDrops[1].enemyIndex=1,p=>p.weaponDrops[0].enemyIndex=0,p=>p.weaponDrops[0].enemyIndex=26,p=>p.weaponDrops[0].enemyIndex=.5,p=>p.weaponDrops[0].weaponId='missing',p=>p.weaponDrops[0].mag=31,p=>p.weaponDrops[0].mag=-1,p=>p.weaponDrops[0].mag=.5,p=>p.weaponDrops[0].reserve=301,p=>p.weaponDrops[0].reserve=-1,p=>p.weaponDrops[0].reserve=Infinity,p=>p.weaponDrops[0].taken=0,p=>p.weaponDrops[0].taken='false',p=>delete p.weaponDrops[0].taken,p=>delete p.weaponDrops[0].elevation,p=>p.weaponDrops[0].elevation=81,p=>p.weaponDrops[0].elevation=NaN,p=>delete p.weaponDrops[0].position,p=>p.weaponDrops[0].position=null,p=>p.weaponDrops[0].position=[0],p=>p.weaponDrops[0].position=[0,0,0],p=>p.weaponDrops[0].position=[121,0],p=>p.weaponDrops[0].position=[0,-121],p=>p.weaponDrops[0].position=[NaN,0],p=>p.weaponDrops[0].position=[0,Infinity],p=>p.weaponDrops[0].position=['1',2]]){
     const bad=copy(saved),before=copy(campaign);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);
   }
   for(const [weaponId,mag]of Object.entries(CHECKPOINT_WEAPON_CAPACITIES)){
-    const atLimit=copy(saved);Object.assign(atLimit.weaponDrops[0],{weaponId,mag,reserve:300,taken:true});assert(validateChapterCheckpoint(atLimit,context));atLimit.weaponDrops[0].mag++;assert.equal(validateChapterCheckpoint(atLimit,context),null);
+    const atLimit=copy(saved);Object.assign(atLimit.weaponDrops[0],{weaponId,mag,reserve:weaponId==='rpg7'?3:300,taken:true});assert(validateChapterCheckpoint(atLimit,context));atLimit.weaponDrops[0].mag++;assert.equal(validateChapterCheckpoint(atLimit,context),null);
   }
   delete input.weaponDrops;assert.throws(()=>captureChapterCheckpoint(input),'Missing drops must not be manufactured from kill IDs');
   input.killedEnemyIndices=[];assert.deepEqual(captureChapterCheckpoint(input).weaponDrops,[]);
 });
 
-test('collecting a firearm then repeatedly loading the checkpoint conserves all calibers and loaded rounds',()=>{
-  const {input,context,campaign}=fixture();campaign.ammoReserves={'556':80,'762':5,'9mm':3,'45':2};input.stowedMagazines.ak=9;
-  input.weaponDrops=[{enemyIndex:1,weaponId:'ak',mag:24,reserve:63,taken:false,position:[19.5,-8.25]},{enemyIndex:7,weaponId:'mp5',mag:0,reserve:0,taken:false,position:[-12,6]}];
-  const total=inventory=>ammoTotal(inventory.reserves)+inventory.mag+Object.values(inventory.stowedMagazines).reduce((a,b)=>a+b,0);
-  const inventory={weaponId:input.player.weaponId,mag:input.player.mag,stowedMagazines:input.stowedMagazines,reserves:campaign.ammoReserves},before=total(inventory);
-  const picked=collectWeaponDrop(inventory,input.weaponDrops[0]);assert(picked&&!picked.blocked);assert.equal(total(picked),before+87);
-  input.player={...input.player,weaponId:picked.weaponId,mag:picked.mag};input.stowedMagazines=picked.stowedMagazines;input.weaponDrops[0].taken=true;
-  campaign.ammoReserves=picked.reserves;campaign.resources.ammo=ammoTotal(picked.reserves);
-  const wire=JSON.parse(JSON.stringify(captureChapterCheckpoint(input))),expectedTotal=before+87;
-  for(let n=0;n<5;n++){
-    campaign.resources.ammo=0;campaign.ammoReserves=createAmmoReserves(0);
-    const restored=applyChapterCheckpoint(campaign,wire,context),live={weaponId:restored.player.weaponId,mag:restored.player.mag,stowedMagazines:restored.stowedMagazines,reserves:restored.ammoReserves};
-    assert.equal(total(live),expectedTotal);assert.deepEqual(campaign.ammoReserves,wire.ammoReserves);
-    assert.equal(collectWeaponDrop(live,restored.weaponDrops.find(d=>d.enemyIndex===1)),null,'A taken weapon cannot grant its ammo again after a reload');
-    assert.deepEqual(restored.weaponDrops,wire.weaponDrops);
-    restored.weaponDrops[0].mag=0;restored.weaponDrops[0].position[0]=999;restored.ammoReserves['762']=0;
-    assert.deepEqual(campaign.fieldCheckpoint.weaponDrops,wire.weaponDrops);assert.deepEqual(campaign.ammoReserves,wire.ammoReserves);
+
+test('schema 5 accepts only one carried primary and one sidearm and atomically rejects old six-gun state',()=>{
+  const {input,context,campaign}=fixture(),saved=captureChapterCheckpoint(input);assert.deepEqual(saved.carriedLoadout,{primary:'m16a2',sidearm:'m1911'});assert.equal(saved.version,5);
+  for(const mutate of[p=>delete p.carriedLoadout,p=>p.carriedLoadout=null,p=>p.carriedLoadout.primary='m1911',p=>p.carriedLoadout.sidearm='mp5',p=>p.carriedLoadout.extra='ak',p=>p.carriedLoadout.primary='ak',p=>p.player.weaponId='m249',p=>p.stowedMagazines.ak=5,p=>p.version=3]){
+    const bad=copy(saved),before=copy(campaign);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);
   }
+  const restored=applyChapterCheckpoint(campaign,saved,context);restored.carriedLoadout.primary='ak';assert.equal(campaign.fieldCheckpoint.carriedLoadout.primary,'m16a2');assert.equal(Object.hasOwn(campaign,'carriedLoadout'),false,'Chapter loadout is not transferred to a different protagonist through global campaign data');
+});
+
+test('player-discarded firearm identities coexist with every dead enemy and cannot masquerade as enemy drops',()=>{
+  const {input,context,campaign}=fixture();input.weaponDrops.push({dropId:'player-3',source:'player',weaponId:'m16a2',mag:11,reserve:0,taken:false,position:[4,-8],elevation:0});
+  const saved=captureChapterCheckpoint(input);assert.equal(saved.weaponDrops.length,3);assert.equal(saved.weaponDrops.at(-1).source,'player');assert.equal(Object.hasOwn(saved.weaponDrops.at(-1),'enemyIndex'),false);
+  for(const mutate of[p=>p.weaponDrops[2].enemyIndex=1,p=>p.weaponDrops[2].source='enemy',p=>p.weaponDrops[2].dropId='enemy-1',p=>p.weaponDrops[2].dropId='player-0',p=>p.weaponDrops[2].reserve=1,p=>p.weaponDrops.push(copy(p.weaponDrops[2])),p=>p.weaponDrops[0].dropId='enemy-7',p=>p.weaponDrops.splice(0,1)]){
+    const bad=copy(saved),before=copy(campaign);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);
+  }
+});
+
+test('replacing then reclaiming a dropped rifle survives repeated saves without extra weapons or rounds',()=>{
+  const {input,context,campaign}=fixture();campaign.ammoReserves={'556':80,'762':5,'9mm':3,'45':2,rocket:0};
+  input.weaponDrops=[{dropId:'enemy-1',source:'enemy',enemyIndex:1,weaponId:'ak',mag:24,reserve:63,taken:false,position:[19.5,-8.25],elevation:0},{dropId:'enemy-7',source:'enemy',enemyIndex:7,weaponId:'mp5',mag:0,reserve:0,taken:false,position:[-12,6],elevation:0}];
+  const total=(inventory,drops)=>ammoTotal(inventory.reserves)+inventory.mag+Object.values(inventory.stowedMagazines).reduce((a,b)=>a+b,0)+drops.filter(d=>!d.taken).reduce((a,d)=>a+d.mag+d.reserve,0);
+  let inventory={carriedLoadout:input.carriedLoadout,weaponId:input.player.weaponId,mag:input.player.mag,stowedMagazines:input.stowedMagazines,reserves:campaign.ammoReserves},before=total(inventory,input.weaponDrops);
+  const picked=replaceCarriedWeapon(inventory,input.weaponDrops[0]);assert(picked&&!picked.blocked);input.weaponDrops[0].taken=true;
+  input.weaponDrops.push({dropId:'player-1',source:'player',...picked.replaced,taken:false,position:[8,12],elevation:0});inventory=picked;assert.equal(total(inventory,input.weaponDrops),before);
+  input.player={...input.player,weaponId:inventory.weaponId,mag:inventory.mag};input.carriedLoadout=inventory.carriedLoadout;input.stowedMagazines=inventory.stowedMagazines;campaign.ammoReserves=inventory.reserves;campaign.resources.ammo=ammoTotal(inventory.reserves);
+  const wire=JSON.parse(JSON.stringify(captureChapterCheckpoint(input)));
+  for(let n=0;n<5;n++){
+    campaign.resources.ammo=0;campaign.ammoReserves=createAmmoReserves(0);const restored=applyChapterCheckpoint(campaign,wire,context);
+    const live={carriedLoadout:restored.carriedLoadout,weaponId:restored.player.weaponId,mag:restored.player.mag,stowedMagazines:restored.stowedMagazines,reserves:restored.ammoReserves};
+    assert.equal(total(live,restored.weaponDrops),before);assert.equal(replaceCarriedWeapon(live,restored.weaponDrops[0]),null,'Consumed enemy gun cannot be granted after restore');
+    const reclaimed=replaceCarriedWeapon(live,restored.weaponDrops.find(d=>d.dropId==='player-1'));assert.equal(reclaimed.carriedLoadout.primary,'m16a2');assert.equal(reclaimed.mag,11);assert.equal(reclaimed.replaced.weaponId,'ak');assert.equal(reclaimed.replaced.mag,24);
+    const ground=restored.weaponDrops.map(d=>({...d,taken:d.dropId==='player-1'?true:d.taken}));ground.push({dropId:'player-2',source:'player',...reclaimed.replaced,taken:false,position:[9,12],elevation:0});assert.equal(total(reclaimed,ground),before);
+    restored.carriedLoadout.primary='m249';restored.weaponDrops[0].position[0]=999;assert.equal(campaign.fieldCheckpoint.carriedLoadout.primary,'ak');assert.deepEqual(campaign.fieldCheckpoint.weaponDrops,wire.weaponDrops);
+  }
+});
+
+test('schema 5 restores an in-progress roof RPG reload without adding rockets or losing height',async()=>{
+ const {createSupportWeaponState,stepSupportWeapon}=await import('../src/enemy-support.js');const {input,context,campaign}=fixture();
+ const spec={id:'roof-six',supportId:'roof-six',enemyId:'enemy-8',weaponId:'rpg7',activationDelay:0,elevation:7,worldY:7,origin:[30,20],roofBounds:{minX:25,maxX:35,minZ:15,maxZ:25},retreat:[28,18]};
+ const state=createSupportWeaponState(spec);for(let t=0;t<3.6;t+=.05)stepSupportWeapon(state,.05,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true});assert.equal(state.shotsFired,1);assert(state.reloadRemaining>0);
+ context.supportSpecs=[spec];input.supportSpecs=[spec];input.supportState=[{supportId:spec.id,enemyId:spec.enemyId,weaponId:'rpg7',position:[30,7,20],state}];campaign.ammoReserves={...createAmmoReserves(90),rocket:2};
+ const saved=captureChapterCheckpoint(input);assert.equal(saved.version,5);const before=copy(campaign);
+ for(const mutate of[p=>p.version=4,p=>delete p.supportState,p=>p.supportState=[],p=>p.supportState.push(copy(p.supportState[0])),p=>p.supportState[0].state.reserve++,p=>p.supportState[0].state.shotsFired=0,p=>p.supportState[0].position[1]=0,p=>p.supportState[0].position[0]=90,p=>p.supportState[0].enemyId='enemy-9',p=>delete p.ammoReserves.rocket]){const bad=copy(saved);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);}
+ for(let n=0;n<4;n++){const restored=applyChapterCheckpoint(campaign,JSON.parse(JSON.stringify(saved)),context);assert.equal(restored.ammoReserves.rocket,2);assert.deepEqual(restored.supportState[0],saved.supportState[0]);const live=restored.supportState[0].state;for(let t=0;t<live.reloadRemaining-.3;t+=.05)stepSupportWeapon(live,.05,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true});assert.equal(live.mag+live.reserve+live.shotsFired,3);assert.equal(campaign.fieldCheckpoint.supportState[0].state.mag,0);}
+});
+
+test('a dead roof launcher keeps the exact remaining physical drop and can never resume aiming',async()=>{
+ const {createSupportWeaponState,stepSupportWeapon}=await import('../src/enemy-support.js');const {input,context,campaign}=fixture();const spec={id:'roof-dead',supportId:'roof-dead',enemyId:'enemy-7',weaponId:'rpg7',activationDelay:0,elevation:6,worldY:6,origin:[7,0],roofBounds:{minX:3,maxX:12,minZ:-5,maxZ:5}};
+ const state=createSupportWeaponState(spec);for(let t=0;t<3.4;t+=.05)stepSupportWeapon(state,.05,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true});stepSupportWeapon(state,0,{alive:false});
+ input.supportSpecs=context.supportSpecs=[spec];input.supportState=[{supportId:spec.id,enemyId:spec.enemyId,weaponId:'rpg7',position:[7,6,0],state}];const drop=input.weaponDrops.find(d=>d.enemyIndex===7);Object.assign(drop,{weaponId:'rpg7',mag:state.mag,reserve:state.reserve,elevation:6,position:[7,0]});const saved=captureChapterCheckpoint(input);
+ for(let n=0;n<3;n++){const restored=applyChapterCheckpoint(campaign,saved,context);assert.equal(restored.weaponDrops.find(d=>d.enemyIndex===7).elevation,6);assert.equal(restored.supportState[0].state.dead,true);assert.deepEqual(stepSupportWeapon(restored.supportState[0].state,20,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true}),[]);}
+ const bad=copy(saved);bad.weaponDrops.find(d=>d.enemyIndex===7).reserve++;assert.equal(validateChapterCheckpoint(bad,context),null,'The same spent rocket cannot reappear as extra loot');
+});
+
+test('schema 5 retains in-flight rockets from an already-dead roof operator and finite airborne support',async()=>{
+ const {createSupportWeaponState,stepSupportWeapon}=await import('../src/enemy-support.js');const {createRocketProjectiles}=await import('../src/rocket-projectiles.js');const {createAirSupport}=await import('../src/air-support.js');const {traceObstacles}=await import('../src/ballistics.js');
+ const {input,context,campaign}=fixture(),spec={id:'roof-flight',supportId:'roof-flight',enemyId:'enemy-7',weaponId:'rpg7',activationDelay:0,elevation:6,worldY:6,origin:[7,0],roofBounds:{minX:3,maxX:12,minZ:-5,maxZ:5}};
+ const state=createSupportWeaponState(spec);for(let t=0;t<3.3;t+=.05)stepSupportWeapon(state,.05,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true});assert.equal(state.shotsFired,1);stepSupportWeapon(state,0,{alive:false});input.supportSpecs=context.supportSpecs=[spec];input.supportState=[{supportId:spec.id,enemyId:spec.enemyId,weaponId:'rpg7',position:[7,6,0],state}];Object.assign(input.weaponDrops.find(d=>d.enemyIndex===7),{weaponId:'rpg7',mag:state.mag,reserve:state.reserve,elevation:6,position:[7,0]});
+ const flight=createRocketProjectiles();flight.launch({origin:{x:7,y:7.35,z:0},direction:{x:0,y:0,z:1},ownerId:'enemy-7',faction:'enemy'});flight.update(.1);input.rocketState=flight.snapshot();
+ const air=createAirSupport({enabled:true}),airContext={sockets:[{id:'hawk-gun',position:{x:0,y:25,z:0}}],targets:[{id:'enemy-8',hostile:true,alive:true,position:{x:0,y:0,z:45}}],friendlies:[],clear:()=>true,aim:()=>true};for(let t=0;t<10;t+=.05)air.update(.05,airContext);input.airSupportState=air.snapshot();assert(input.airSupportState.shots>0&&input.airSupportState.ammo<180);
+ const saved=captureChapterCheckpoint(input);assert.equal(saved.rocketState.records.length,1);const restored=applyChapterCheckpoint(campaign,JSON.parse(JSON.stringify(saved)),context);assert.deepEqual(restored.rocketState,saved.rocketState);assert.deepEqual(restored.airSupportState,saved.airSupportState);
+ let impacts=0;const resumed=createRocketProjectiles({trace:(from,to)=>traceObstacles(from,to,[{minX:5,maxX:9,minZ:30,maxZ:31,minY:0,maxY:10}]),onImpact:()=>impacts++});assert(resumed.restore(restored.rocketState));resumed.update(0);assert.equal(impacts,0);for(let t=0;t<.7;t+=.05)resumed.update(.05);assert.equal(impacts,1);assert.equal(resumed.snapshot().launched,1);const afterImpact=resumed.snapshot();assert(resumed.restore(afterImpact));resumed.update(.5);assert.equal(impacts,1,'A completed projectile cannot impact a second time after restore');
+ const resumedAir=createAirSupport();assert(resumedAir.restore(restored.airSupportState));assert.equal(resumedAir.snapshot().ammo,saved.airSupportState.ammo);resumedAir.update(0,airContext);assert.deepEqual(resumedAir.snapshot(),saved.airSupportState);
+});
+
+test('checkpoint rocket owners cannot be forged into ordinary enemies or unidentified allies',async()=>{
+ const {createRocketProjectiles}=await import('../src/rocket-projectiles.js');const {input,context,campaign}=fixture(),flight=createRocketProjectiles();flight.launch({origin:{x:0,y:1.7,z:0},direction:{x:0,y:0,z:1},ownerId:'player',faction:'player'});input.rocketState=flight.snapshot();const saved=captureChapterCheckpoint(input),before=copy(campaign);
+ for(const mutate of[p=>delete p.rocketState,p=>delete p.airSupportState,p=>p.rocketState.records[0].ownerId='enemy-1',p=>p.rocketState.records[0].faction='ally',p=>p.airSupportState.ammo++,p=>p.airSupportState.shots=10]){const bad=copy(saved);mutate(bad);assert.equal(applyChapterCheckpoint(campaign,bad,context),null);assert.deepEqual(campaign,before);}
+});
+
+
+test('mounted AI burst and wait survive repeated Continue and reject over-budget shots',()=>{
+ const {input,context,campaign}=fixture(),saved=captureChapterCheckpoint(input);
+ for(let i=0;i<4;i++){const m=applyChapterCheckpoint(campaign,saved,context).mountedWeapons[0];assert.equal(m.aiWait,2.3);assert.equal(m.burst,2);assert.equal(m.shotsAI,8);assert.equal(m.gun.shots,8);}
+ for(const patch of[{aiWait:-.1},{aiWait:31},{burst:6},{burst:1.2},{shotsAI:9},{shotsAI:-1}]){const bad=copy(saved);Object.assign(bad.mountedWeapons[0],patch);assert.equal(validateChapterCheckpoint(bad,context),null);}
+ const legacy=fixture();for(const key of['aiWait','burst','shotsAI'])delete legacy.input.mountedWeapons[0][key];const m=captureChapterCheckpoint(legacy.input).mountedWeapons[0];assert.equal(m.aiWait,0);assert.equal(m.burst,0);assert.equal(m.shotsAI,0);
+});
+
+test('a technical observer owns one portable drop while its mounted belt stays in the vehicle',async()=>{
+ const {createSupportWeaponState,stepSupportWeapon}=await import('../src/enemy-support.js');const {input,context,campaign}=fixture();
+ const spec={id:'technical-crew',supportId:'technical-crew',enemyId:'enemy-7',weaponId:'ak',fireControlledBy:'vehicle',vehicleId:'vehicle-gun-0',elevation:1.05,origin:[7,0]},state=createSupportWeaponState(spec);
+ for(let t=0;t<20;t+=.05)assert.deepEqual(stepSupportWeapon(state,.05,{alive:true,visible:true,aligned:true,distance:30,targetId:'player',combatAllowed:true}),[]);
+ assert.equal(state.phase,'observer');assert.equal(state.shotsFired,0);stepSupportWeapon(state,0,{alive:false});
+ input.supportSpecs=context.supportSpecs=[spec];input.supportState=[{supportId:spec.id,enemyId:spec.enemyId,weaponId:'ak',position:[7,1.05,0],state}];Object.assign(input.weaponDrops.find(d=>d.enemyIndex===7),{weaponId:'ak',mag:30,reserve:60,elevation:1.05,position:[7,0]});
+ const saved=captureChapterCheckpoint(input);for(let n=0;n<3;n++){const restored=applyChapterCheckpoint(campaign,saved,context);assert.equal(restored.supportState[0].state.phase,'dead');assert.equal(restored.supportState[0].state.shotsFired,0);assert.equal(restored.weaponDrops.find(d=>d.enemyIndex===7).mag,30);assert.equal(restored.mountedWeapons[0].gun.ammo,92);assert.equal(restored.mountedWeapons[0].gun.shots,8);}
+ assert.equal(validateChapterCheckpoint(saved,{...context,supportSpecs:[{...spec,vehicleId:'missing-technical'}]}),null);const forged=copy(saved);forged.supportState[0].state.phase='watching';assert.equal(validateChapterCheckpoint(forged,context),null);
 });

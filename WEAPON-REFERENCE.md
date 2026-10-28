@@ -42,3 +42,16 @@ AKM 的检索入口曾使用 `/content/weathered-akm-rifle`；实际取得的作
 模型进行了米制尺度和坐标统一、纹理内嵌及压缩、第一人称握持与机械瞄准位置适配。AKM 原 4K PBR 贴图降至 2K，保留原网格、UV 和表面法线。材质亮度、粗糙度、视角摆位以及换弹动作按游戏表现调整；碰撞、散布、伤害和节奏均为游戏规则，不是现实操作或性能模拟。
 
 保留模型原有的可辨识轮廓和部件区别；最终模型发生过的具体删改，以发行版 `ASSET-SOURCES.md` 为准。
+
+## 0.11 支援火力模型与史料边界
+
+本轮只将下列第一方资料用于外形、尺度与装备类别判断，不把资料图片再发布为游戏贴图。
+
+- **RPK**：美国海军陆战队《MCWP 3-11.1 Infantry Company Operations》附录C，第C-5页，Figure C-6，列出7.62×39mm、1040mm总长、591mm重型长枪管、固定木托与75发鼓。项目模型约1.11m，属于接近比例的原创游戏外形，未宣称每一尺寸均与原枪一致。参考： https://www.trngcmd.marines.mil/Portals/207/Docs/TBS/MCWP%203-11.1%20Infantry%20Company%20Operations.pdf?ver=cGmfZysFamJdHSIX5Qc65Q%3D%3D 。更新手册《MCRP 3-10A.3》附录H、Figure H-3也直接展示75发鼓： https://www.marines.mil/Portals/1/Publications/MCRP%203-10A.3%20%28SECURED%29.pdf?ver=k3ofW_UJtF1JNkjbC29jZg%3D%3D 。
+- **RPG-7外形**：厂家Rosoboronexport RPG-7V2资料列出953mm发射器及PGO光学瞄具： https://roe.ru/pdfs/pdf_4588.pdf 。这是较新的V2产品资料，只用于发射管/后喷口/光学装置的几何参考；游戏标为RPG-7，未加V2的UP-7V通用瞄具，也不把现行V2规格或现代附件说成1993配置。弹体、后喷效果与重新装填为简化的游戏表现。
+- **DShK外形**：BICC/Bundeswehr Verification Center SALW Guide提供DShK侧影、12.7×108mm、1625mm长度与带式供弹信息： https://salw-guide.bicc.de/en/weapon/view/37/dshk 。游戏采用约1.6m的散热环长枪管、明显制退器、后握把和带式供弹轮廓。100发游戏弹链与300发储备是有限游戏规则，不宣称是历史车辆的实载定额。
+- **技术车**：美国海军陆战队历史部《Restoring Hope: In Somalia with the Unified Task Force 1992–1993》解释“technical”为皮卡或类似车辆后斗装上重机枪、防空武器等班组武器的改装平台。参考： https://www.marines.mil/Portals/1/Publications/Restoring%20Hope_In%20Somalia%20with%20the%20Unified%20Task%20Force%201992-1993%20%20PCN%2019000413500.pdf?ver=2017-04-25-121519-137 。项目用无品牌原创开放后斗车体和三脚支座，不声称复刻某辆有可核实车牌的历史车辆。
+- **摩加迪沙空中武器区别**：USASOC历史办公室《Veritas》Vol.3 No.2，“If you liked Beirut, you'll love Mogadishu”说明AH-6使用火箭巢与六管机枪，MH-60L常规门武器是由机组操作的7.62mm minigun；专门DAP配置才可带火箭巢/30mm炮。参考： https://arsof-history.org/articles/pdf/v3n2_like_beirut_love_mogadishu.pdf 及 https://mail.arsof-history.org/articles/v3n2_like_beirut_love_mogadishu_page_1.html 。因此现有UH-60基础资产增加双侧M134式门枪，没有把AH-6或DAP重挂架混装到普通黑鹰上。基础机身并非完整MH-60L专用构型，不能据此宣称精确历史复刻。
+- **索降动作资料**：美国陆军FRIES/SPIES教学图示与军方现场训练照片用于手脚抱绳、脚部锁止、着陆屈膝与离开绳区的姿态参考，而非供玩家现实训练使用。 https://home.army.mil/campbell/application/files/9617/0023/5328/FRIES_and_SPIES_HANDOUT_FEB_2022.pdf ； https://www.dvidshub.net/news/6963/pathfinders-5th-battalion-101st-combat-aviation-brigade-conduct-fastrope-training-iraq 。游戏仍采用有边界的骨骼脚本演出。
+
+新资产脚本为 `scripts/support-models/build-support.py`，编辑源与manifest在 `weapon-sources/v0.11/`。来源仅用于研究；新增五模型全部为本项目原创几何。原枪、人物、手臂和黑鹰的独立许可继续保留，见 `ASSET-SOURCES.md`。

@@ -27,7 +27,7 @@ function assertHandsConnected(pose){
   }
 }
 
-test('actual six-gun assets retain articulated grips and complete reload paths while firing parts cycle',async t=>{
+test('actual weapon assets retain articulated grips and complete reload paths while firing parts cycle',async t=>{
   const previousDocument=globalThis.document;
   globalThis.document={baseURI:new URL('../public/',import.meta.url).href};
   t.after(()=>{if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;});
@@ -54,7 +54,8 @@ test('actual six-gun assets retain articulated grips and complete reload paths w
       controller.update({dt:.016,reload:phase});const pose=controller.inspectHands();assertHandsConnected(pose);stages.add(pose.stage);assert.equal(pose.mechanism.offset,0,'Reload owns the same bolt pivot exclusively');
       assert(pose.magazine?.every(Number.isFinite));magazineTravel.push(vectorDistance(pose.magazine,baseline.magazine));
     }
-    for(const stage of['reach','remove','retrieve','insert','settle','return'])assert(stages.has(stage),id+' '+stage);
+    const expectedStages=id==='rpg7'?['retrieve-rocket','align-front','insert-front','return']:['reach','remove','retrieve','insert','settle','return'];for(const stage of expectedStages)assert(stages.has(stage),id+' '+stage);
+    if(id==='rpg7'){controller.update({dt:.016,reload:.58});const outside=controller.inspectHands().magazine;controller.update({dt:.016,reload:.86});const inserted=controller.inspectHands().magazine;assert(inserted[2]-outside[2]>.40,'RPG round enters from the front along the tube, never through a rifle magazine well');}
     assert(Math.max(...magazineTravel)>.2,'The authored magazine must leave the well and visit its pouch path');
     controller.update({dt:1,reload:0});const returned=controller.inspectHands();assertHandsConnected(returned);assert.equal(returned.stage,'hold');assert.equal(returned.shotPulse,0);assert(vectorDistance(returned.magazine,baseline.magazine)<1e-8);
     if(part)assert.deepEqual(part.parent.position,partHome);

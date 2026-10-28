@@ -195,6 +195,17 @@ export function createDistrictBuildings({ add, box, line, materials, rnd, stats 
       }
     }
     function roof(cx, cz, ww, dd, roofY, damaged, vIndex) {
+      if(!damaged&&style!=='courtyard'&&style!=='camp'){
+        const center=at(cx,roofY+.175,cz),corners=[[-ww/2,-dd/2],[-ww/2,dd/2],[ww/2,-dd/2],[ww/2,dd/2]].map(([u,v])=>at(cx+u,roofY+.175,cz+v));
+        const bounds={minX:Math.min(...corners.map(p=>p[0])),maxX:Math.max(...corners.map(p=>p[0])),minZ:Math.min(...corners.map(p=>p[2])),maxZ:Math.max(...corners.map(p=>p[2]))},obstacles=[];
+        const reserve=(u,v,sw,sd,height)=>{const q=at(u,roofY+.175,v),hx=(Math.abs(c)*sw+Math.abs(s)*sd)/2,hz=(Math.abs(s)*sw+Math.abs(c)*sd)/2;obstacles.push({minX:q[0]-hx,maxX:q[0]+hx,minZ:q[2]-hz,maxZ:q[2]+hz,minY:center[1],maxY:center[1]+height});};
+        // Parapets, cistern/stair head/tank and aerial footprint use the same
+        // locations authored below; these are actual flat slab surfaces.
+        reserve(cx-ww/2,cz,.5,dd+.5,.85);reserve(cx+ww/2,cz,.5,dd+.5,.85);reserve(cx,cz-dd/2,ww,.5,.85);reserve(cx,cz+dd/2,ww,.5,.85);
+        if(!(far&&vIndex%2)){reserve(cx-ww*.25,cz-dd*.22,vIndex%3===1?Math.min(2.5,ww*.25)+.3:1.9,vIndex%3===1?Math.min(2.7,dd*.29)+.3:1.7,vIndex%3===1?2.2:1.7);}
+        if(!far)reserve(cx-ww*.38,cz+dd*.21,1.0,.9,2.3);
+        stats.roofSurfaces??=[];stats.roofSurfaces.push({id:'roof-'+stats.roofSurfaces.length,bounds,height:center[1],flat:true,solid:true,accessible:false,obstacles,kind:'building',source:{x,z,w,d,y,h,style,index:vIndex}});
+      }
       const cutW = ww * .34, cutD = dd * .43;
       if (damaged) {
         const edgeX = cx + ww / 2 - cutW, edgeZ = cz + dd / 2 - cutD;
@@ -252,14 +263,15 @@ export function createDistrictBuildings({ add, box, line, materials, rnd, stats 
     }
     function volume(cx, cz, ww, dd, height, vIndex, localDamage = damage, coveredBay = () => false) {
       result.volumes++;
-      const floors = style === 'workshop' || style === 'camp' ? Math.max(1, Math.min(2, Math.round(height / 3.4))) : Math.max(1, Math.min(5, Math.round(height / 3.15)));
+      const floors = style === 'workshop' || style === 'camp' ? Math.max(1, Math.min(2, Math.round(height / 3.4))) : Math.max(1, Math.min(spec.roofProfile ? 7 : 5, Math.round(height / 3.15)));
       const storey = height / floors, ruin = localDamage > .42 && (floors > 1 || style==='shop-house' || style==='workshop');
-      const setback = !ruin && floors > 2 && vIndex % 3 === 1;
+      const setback = !ruin && floors > 2 && (Number.isFinite(spec.setbackFactor)||vIndex % 3 === 1);
+      const setbackFactor=clamp(spec.setbackFactor??.80,.58,.92);
       let topW = ww, topD = dd;
       b(ww + .06, .18, dd + .06, exposed, cx, .06, cz);
       for (let floor = 0; floor < floors; floor++) {
         const base = floor * storey, upper = floor === floors - 1;
-        const fw = upper && setback ? ww * .80 : ww, fd = upper && setback ? dd * .80 : dd;
+        const fw = upper && setback ? ww * setbackFactor : ww, fd = upper && setback ? dd * setbackFactor : dd;
         topW = fw; topD = fd;
         // Horizontal slabs are the only full footprint solids: windows remain
         // real holes in the surrounding shell rather than skins over a box.

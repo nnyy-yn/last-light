@@ -6,6 +6,8 @@ import { STATIC_WEAPON_ASSETS } from './weapon-variants.js';
 import { createAnimatedHands } from './first-person-hands.js';
 
 export const WEAPON_DEFINITIONS = Object.freeze({
+  rpk: Object.freeze({id:'rpk',name:'RPK 鼓弹机枪',shortName:'RPK',category:'machinegun',fireMode:'auto',damage:42,recoil:1.05,magSize:75,fireInterval:.10,reloadTime:3.65}),
+  rpg7: Object.freeze({id:'rpg7',name:'RPG-7 火箭筒',shortName:'RPG-7',category:'launcher',fireMode:'semi',damage:160,recoil:1.8,magSize:1,fireInterval:.85,reloadTime:4.8}),
   m16a2: Object.freeze({ id: 'm16a2', name: 'M16A2 步枪', shortName: 'M16A2', category: 'rifle', fireMode: 'burst', burstCount: 3, damage: 39, recoil: .92, magSize: 30, fireInterval: .085, reloadTime: 2.05 }),
   m4a1: Object.freeze({ id: 'm4a1', name: 'M4A1 卡宾枪', shortName: 'M4A1', category: 'carbine', fireMode: 'auto', damage: 34, recoil: .80, magSize: 30, fireInterval: .09, reloadTime: 1.7 }),
   m249: Object.freeze({ id: 'm249', name: 'M249 支援机枪', shortName: 'M249', category: 'machinegun', fireMode: 'auto', damage: 31, recoil: .65, magSize: 100, fireInterval: .08, reloadTime: 4.2 }),
@@ -13,7 +15,7 @@ export const WEAPON_DEFINITIONS = Object.freeze({
   mp5: Object.freeze({ id: 'mp5', name: 'MP5 冲锋枪', shortName: 'MP5', category: 'smg', fireMode: 'auto', damage: 24, recoil: .48, magSize: 30, fireInterval: .075, reloadTime: 1.9 }),
   m1911: Object.freeze({ id: 'm1911', name: 'M1911 手枪', shortName: 'M1911', category: 'pistol', fireMode: 'semi', damage: 46, recoil: 1.35, magSize: 7, fireInterval: .20, reloadTime: 1.65 }),
 });
-export const PLAYER_WEAPON_IDS = Object.freeze(['m16a2', 'm249', 'ak', 'mp5', 'm1911', 'm4a1']);
+export const PLAYER_WEAPON_IDS = Object.freeze(['m16a2', 'm249', 'ak', 'mp5', 'm1911', 'm4a1', 'rpk', 'rpg7']);
 
 // Authored M4A1 by Firewarden3D, CC BY. First-person adaptation and arms are
 // documented in public/assets/ASSET-SOURCES.md. All textures ship in the GLB.
@@ -129,7 +131,7 @@ function prepareStaticVariant(gltf, id, info, arms, anisotropy) {
     object.material = Array.isArray(object.material) ? object.material.map(materialFor) : materialFor(object.material);
   });
   const bounds = new THREE.Box3().setFromObject(rifle);
-  rifle.userData = { weaponId: id, asset: info.credit, grips: { right: [...RIGHT_GRIP], left: [...info.left] }, muzzle: [...info.muzzle], sight: [...info.rear], frontSight: [...info.front], sightPitch: Math.atan2(info.rear[1] - info.front[1], info.rear[2] - info.front[2]), barrelDirection: [0, 0, -1], bounds: { min: bounds.min.toArray(), max: bounds.max.toArray() }, sharedGeometry: true };
+  rifle.userData = { weaponId: id, asset: info.credit,...(info.reloadProfile?{reloadProfile:structuredClone(info.reloadProfile)}:{}),...(info.backblast?{backblast:[...info.backblast],projectileTip:[...info.projectileTip]}:{}),...(info.hipPosition?{hipPosition:[...info.hipPosition]}:{}),...(info.adsDepth?{adsDepth:info.adsDepth}:{}), grips: { right: [...RIGHT_GRIP], left: [...info.left] }, muzzle: [...info.muzzle], sight: [...info.rear], frontSight: [...info.front], sightPitch: Math.atan2(info.rear[1] - info.front[1], info.rear[2] - info.front[2]), barrelDirection: [0, 0, -1], bounds: { min: bounds.min.toArray(), max: bounds.max.toArray() }, sharedGeometry: true };
   markShared(rifle); rifleTemplates.set(id, rifle);
   const view = new THREE.Group(); view.name = id + ' articulated first-person rig';
   view.add(rifle.clone(true)); view.userData = structuredClone(rifle.userData);
@@ -238,6 +240,7 @@ export function createRifle(id = 'm4a1') {
 // M249 asset has no separated bolt, so those models keep their authored mesh.
 export const WEAPON_FIRE_PARTS=Object.freeze({
   m16a2:Object.freeze({name:'BoltCarrier',role:'bolt',stroke:.018,attack:.010,hold:.008,duration:.085}),
+  rpk:Object.freeze({name:'ChargingHandle',role:'reciprocating-handle',stroke:.025,attack:.013,hold:.009,duration:.105}),
   ak:Object.freeze({name:'ChargingHandle',role:'reciprocating-handle',stroke:.026,attack:.013,hold:.009,duration:.105}),
   m1911:Object.freeze({name:'ChargingHandle',role:'slide',stroke:.023,attack:.012,hold:.012,duration:.110}),
 });
@@ -272,7 +275,7 @@ export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
   group.position.set(.23, -.24, -.32);
   group.userData = metadata();
   let rig = cloneSkeleton(firstPersonTemplate);
-  let hands, mechanism, pendingShot=false;
+  let hands, mechanism, pendingShot=false,roundsVisible=1;
   const liveViews=new Map();
   group.add(rig);
   markShared(rig, { firstPerson: true });
@@ -320,6 +323,7 @@ export function createWeapon(camera, initialId = PLAYER_WEAPON_IDS[0]) {
   return { group, flash, muzzle, sight, setWeapon, getMuzzlePosition, definitions: WEAPON_DEFINITIONS,
     // The main loop owns the complete rig recoil; only hands and separated
     // mechanisms move here. This leaves the grip relationship intact.
-    update(pose={}){hands.update({...pose,shot:pendingShot});mechanism.update(pose);pendingShot=false;},
+    update(pose={}){hands.update({...pose,shot:pendingShot});mechanism.update(pose);if(group.userData.weaponId==='rpg7'){const round=rig.getObjectByName('Magazine');if(round)round.visible=roundsVisible>0||(pose.reload>0&&pose.reload<1);}pendingShot=false;},
+    setAmmo(count){roundsVisible=Number.isFinite(count)?count:roundsVisible;},
     fire(){pendingShot=true;mechanism.fire();},inspectHands(){return {...hands.inspect(),mechanism:mechanism.inspect()};} };
 }

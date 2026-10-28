@@ -1,5 +1,6 @@
 import { blocked, movePlayer, lineBlocked } from './simulation.js';
 import {traceObstacles} from './ballistics.js';
+import {createSupportWeaponState,stepSupportWeapon,validateSupportWeaponState,snapshotSupportWeapon,SUPPORT_WEAPON_RULES,elevatedSupportObstacles} from './enemy-support.js';
 
 const point = value => Array.isArray(value) ? { x: value[0], z: value.length > 2 ? value[2] : value[1] } : { x: value?.x ?? 0, z: value?.z ?? 0 };
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -118,7 +119,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     actor.userData ||= {}; actor.rotation ||= { y: 0 };
     const kind = options.kind || actor.userData.kind || 'soldier';
     const role = options.role || (kind === 'enemy' ? 'enemy' : kind === 'civilian' ? 'civilian' : 'guard');
-    const encounter=options.encounter||{};
+    const encounter=options.encounter||{},support=options.support||encounter.support||null;
     const enemyIndex=actors.filter(a=>a.kind==='enemy').length;
     if(kind==='enemy'&&encounter.lookAt){const facing=point(encounter.lookAt);actor.rotation.y=Math.atan2(facing.x-actor.position.x,facing.z-actor.position.z);}
     const r = { id: options.id ?? `actor-${++nextId}`, actor, entity: options.entity, kind, role, index: actors.length,
@@ -133,12 +134,13 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
       lastSeen: -Infinity, lastKnown: null, heardUntil: 0, visible: false, suppression: 0, suppressedUntil: 0, threat: null,
       cover: null, peek: null, coverUntil: 0, target: null, aimTarget: null, recoil: 0, alert: 0,
       shotsFired: 0, shotsBlocked: 0, magSize:18+(actors.length%3)*3,mag:18+(actors.length%3)*3,reserve:(18+(actors.length%3)*3)*3,burstRemaining:0,shotAt:0,reloadStart:0,reloadUntil:0,reloadProgress:0,reloads:0,
-      stuckCount: 0, stuckTime: 0, patrol: 0, nextCallout: 0, scanAt: .2, scanYaw: actor.rotation.y || 0 };
-    if(!navigator.valid(r)){
+      stuckCount: 0, stuckTime: 0, patrol: 0, nextCallout: 0, scanAt: 3.2+actors.length%5, scanYaw: actor.rotation.y || 0,restYaw:actor.rotation.y||0,watchUntil:0 };
+    if(support){r.support=structuredClone(support);r.support.supportId=support.supportId||support.id;r.support.origin=[r.x,r.z];r.supportState=createSupportWeaponState(r.support);r.weaponId=r.supportState.weaponId;r.magSize=r.supportState.capacity;r.mag=r.supportState.mag;r.reserve=r.supportState.reserve;r.elevation=support.elevation??support.worldY??actor.position.y;r.actor.position.y=r.elevation;r.actor.userData.supportId=r.support.supportId;r.actor.userData.supportElevation=r.elevation;r.actor.userData.elevated=Boolean(support.roofId);}
+    if(!support&&!navigator.valid(r)){
       const extent=navigator.bounds,corrected=navigator.nearest({x:clamp(r.x,extent.minX+.5,extent.maxX-.5),z:clamp(r.z,extent.minZ+.5,extent.maxZ-.5)},null,14);
       if(corrected){r.x=corrected.x;r.z=corrected.z;actor.position.x=r.x;actor.position.z=r.z;r.startCorrected=true;if(r.entity){r.entity.x=r.x;r.entity.z=r.z;}if(!navigator.valid(r.anchor)||distance(r,r.anchor)>r.tether)r.anchor=copy(corrected);}
     }
-    if(kind==='enemy'&&encounter.coverAnchor&&encounter.safePeek){
+    if(!support&&kind==='enemy'&&encounter.coverAnchor&&encounter.safePeek){
       const position=point(encounter.coverAnchor),peek=point(encounter.safePeek);
       if(navigator.valid(position)&&navigator.valid(peek)&&navigator.findPath(position,peek,1800).length){
         r.sentryCover={position,peek};r.cover={position:copy(position),peek:copy(peek)};r.coverUntil=now+1.2;
@@ -276,9 +278,15 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     return ((target.x - r.x) * forwardX + (target.z - r.z) * forwardZ) / Math.max(.01, d) > -.12;
   }
   function guard(r) {
-    if (!r.goal || distance(r, r.goal) < .18 || now >= r.actionUntil) {
+    const threatened=r.kind!=='civilian'&&Boolean(r.target||r.suppression>.12||now<r.heardUntil),stance=threatened?'crouch':'stand';
+    // Speakers stay at their work station; a 0.3 m patrol circle reads as
+    // shuffling in place. Unthreatened sentries settle between vantage moves.
+    if(!threatened&&r.role==='story'&&r.tether<=.8){destination(r,null,'watch','stand');return;}
+    if(!threatened&&r.goal&&distance(r,r.goal)<.18){r.watchUntil=now+5+(r.index%4)*1.3;destination(r,null,'watch','stand');return;}
+    if(!threatened&&now<r.watchUntil){destination(r,null,'watch','stand');return;}
+    if (!r.goal || now >= r.actionUntil) {
       r.patrol++; const angle = r.index * 2.39 + r.patrol * 1.9, radius = Math.min(r.tether - .2, .95 + (r.index % 3) * .25);
-      destination(r, { x: r.anchor.x + Math.cos(angle) * radius, z: r.anchor.z + Math.sin(angle) * radius }, 'watch', r.kind !== 'civilian' && r.patrol % 3 === 0 ? 'crouch' : 'stand');
+      destination(r, { x: r.anchor.x + Math.cos(angle) * radius, z: r.anchor.z + Math.sin(angle) * radius }, 'watch',stance);
       r.actionUntil = now + 4.0 + (r.index % 3) * .7;
     }
   }
@@ -429,7 +437,8 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     return null;
   }
   function alliedThink(r, player) {
-    if(context.interactionActor===r.actor&&distance(r,player)<4){r.target=null;r.aimTarget={...point(player),y:player.y||1.6};destination(r,null,'interact',r.kind==='civilian'?'stand':'crouch');return;}
+    r.lookTarget=null;
+    if(context.interactionActor===r.actor&&distance(r,player)<4){r.target=null;r.aimTarget=null;r.lookTarget={...point(player),y:player.y||1.6};destination(r,null,'interact','stand');return;}
     if(r.role==='resident'&&r.shelter){
       r.target=null;
       const nearbyFight=!r.localThreatOnly||actors.some(a=>a.kind==='enemy'&&a.reserveActive&&live(a)&&a.alert>.6&&distance(a,r)<25);
@@ -525,6 +534,41 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     r.speed=Math.max(r.speed,adjustment/Math.max(dt,.001));r.actor.position.x=r.x;r.actor.position.z=r.z;
     if(r.entity){r.entity.x=r.x;r.entity.z=r.z;}
   }
+  function updateSupport(r,dt){
+    const spec=r.support,state=r.supportState,rules=SUPPORT_WEAPON_RULES[state.weaponId];
+    const sightBoxes=spec.roofBounds?elevatedSupportObstacles(obstacles,{bounds:spec.roofBounds,height:r.elevation,baseY:0}):obstacles;
+    const candidates=context.combatAllowed===false?[]:[...(context.player.health!==0?[{player:true,...point(context.player),y:context.player.y||1.68}]:[]),...actors.filter(a=>a.kind==='soldier'&&live(a)&&!a.actor.userData.carried)];
+    const visible=candidates.filter(a=>distance(r,a)>=rules.minRange&&distance(r,a)<=rules.maxRange&&!traceObstacles(sightPoint(r),sightPoint(a),sightBoxes)&&!smokeBlocked(r,a));visible.sort((a,b)=>distance(r,a)-distance(r,b));
+    const target=visible.find(a=>state.targetId===(a.player?'player':a.id))||visible[0]||null;
+    r.target=target;r.visible=Boolean(target);r.lookTarget=null;r.aimTarget=target?{x:target.x,y:sightPoint(target).y,z:target.z}:null;r.alert=target?1:.25;
+    const aimYaw=target?Math.atan2(target.x-r.x,target.z-r.z):r.actor.rotation.y,error=Math.atan2(Math.sin(aimYaw-r.actor.rotation.y),Math.cos(aimYaw-r.actor.rotation.y));
+    const retreat=point(spec.retreat||spec.origin),atRetreat=distance(r,retreat)<.12;
+    const events=stepSupportWeapon(state,dt,{alive:live(r),visible:Boolean(target),aligned:Math.abs(error)<.32,distance:target?distance(r,target):Infinity,targetId:target?(target.player?'player':target.id):null,suppressed:now<r.suppressedUntil,combatAllowed:context.combatAllowed,atRetreat});
+    r.mag=state.mag;r.reserve=state.reserve;r.shotsFired=state.shotsFired;r.reloadProgress=state.phase==='reloading'?1-state.reloadRemaining/rules.reload:0;r.behavior='support-'+state.phase;r.stance=['reloading','withdrawn'].includes(state.phase)||now<r.suppressedUntil?'crouch':'stand';r.goal=null;r.speed=0;r.velocityX=r.velocityZ=r.moveDistance=0;
+    if(state.phase==='withdrawing'&&!atRetreat){
+      const before=copy(r),length=distance(r,retreat),amount=Math.min(length,1.25*dt),next={x:r.x+(retreat.x-r.x)/length*amount,z:r.z+(retreat.z-r.z)/length*amount};
+      const b=spec.roofBounds,clear=b?next.x>b.minX+.45&&next.x<b.maxX-.45&&next.z>b.minZ+.45&&next.z<b.maxZ-.45&&!blocked(next.x,next.z,spec.roofObstacles||[],.4)&&!lineBlocked(r,next,spec.roofObstacles||[]):navigator.clear(r,next);
+      if(clear){r.x=next.x;r.z=next.z;r.actor.position.x=r.x;r.actor.position.z=r.z;r.velocityX=(r.x-before.x)/dt;r.velocityZ=(r.z-before.z)/dt;r.moveDistance=distance(r,before);r.speed=r.moveDistance/dt;if(r.entity){r.entity.x=r.x;r.entity.z=r.z;}}
+    }
+    r.actor.position.y=r.elevation;
+    for(const event of events){
+      if(event.type==='aim-start')onCallout({id:r.id,actor:r.actor,supportId:event.supportId,type:'heavy-aim',weaponId:r.weaponId,duration:event.duration,text:r.weaponId==='rpg7'?(r.support.supportType==='ground-rpg'?'街口火箭筒正在瞄准！找实体掩体！':'屋顶火箭筒正在瞄准！找实体掩体！'):'支援火力正在架枪瞄准！'});
+      if(event.type==='fire'&&target){r.recoil=1;onFire({...event,accuracy:event.accuracy*(1-r.suppression*.5),id:r.id,actor:r.actor,faction:'enemy',targetActor:target.actor||null,origin:{x:r.x,y:r.elevation+(r.stance==='crouch'?.94:1.35),z:r.z},aim:{x:target.x,y:sightPoint(target).y,z:target.z},time:now,mag:r.mag,reserve:r.reserve,capacity:r.magSize,tacticalRole:r.support.supportType});}
+    }
+    publishAmmo(r);publish(r,dt);
+  }
+  function supportDefinitions(){return actors.filter(r=>r.support).map(r=>({...structuredClone(r.support),supportId:r.support.supportId,enemyId:r.id,elevation:r.elevation,origin:[...r.support.origin]}));}
+  function snapshotSupport(){return actors.filter(r=>r.support).map(r=>{const state=snapshotSupportWeapon(r.supportState);if(!live(r))stepSupportWeapon(state,0,{alive:false});return {supportId:r.support.supportId,enemyId:r.id,weaponId:r.weaponId,position:[r.x,r.elevation,r.z],state};});}
+  function restoreSupport(values){
+    const records=actors.filter(r=>r.support);if(!Array.isArray(values)||values.length!==records.length)return false;
+    const seen=new Set(),pending=[];
+    for(const value of values){const r=records.find(r=>r.support.supportId===value.supportId);if(!r||seen.has(value.supportId)||value.enemyId!==r.id||value.weaponId!==r.weaponId)return false;
+      const state=validateSupportWeaponState(value.state,r.support),p=value.position;if(!state||state.dead===live(r)||!Array.isArray(p)||p.length!==3||!p.every(Number.isFinite)||Math.abs(p[1]-r.elevation)>.001)return false;
+      const b=r.support.roofBounds;if(b&&(p[0]<b.minX+.4||p[0]>b.maxX-.4||p[2]<b.minZ+.4||p[2]>b.maxZ-.4)||!b&&Math.hypot(p[0]-r.support.origin[0],p[2]-r.support.origin[1])>12)return false;
+      seen.add(value.supportId);pending.push({r,state,p});
+    }
+    for(const {r,state,p}of pending){r.supportState=state;r.x=p[0];r.z=p[2];r.actor.position.x=r.x;r.actor.position.y=r.elevation;r.actor.position.z=r.z;r.mag=state.mag;r.reserve=state.reserve;r.shotsFired=state.shotsFired;r.path=[];r.goal=null;r.speed=0;if(r.entity){r.entity.x=r.x;r.entity.z=r.z;}publishAmmo(r);}return true;
+  }
   function publishAmmo(r){r.actor.userData.weaponAmmo={mag:r.mag,reserve:r.reserve,capacity:r.magSize,weaponId:r.weaponId};}
   function beginReload(r){
     if(r.reserve<=0||r.mag>=r.magSize||now<r.reloadUntil)return false;
@@ -557,7 +601,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
   }
   function publish(r, dt) {
     const data=r.actor.userData;data.behavior=r.behavior;data.stance=r.stance;data.speed=r.speed;data.aimTarget=r.aimTarget;data.reload=r.reloadProgress;publishAmmo(r);
-    const look=r.aimTarget?Math.atan2(r.aimTarget.x-r.x,r.aimTarget.z-r.z):r.scanYaw;
+    const attention=r.lookTarget||r.aimTarget;const look=attention?Math.atan2(attention.x-r.x,attention.z-r.z):r.scanYaw;
     const travel=r.speed>.035?Math.atan2(r.velocityX,r.velocityZ):look;
     const faceTravel=r.speed>.035&&(!r.aimTarget||r.kind==='civilian'||r.speed>2.1&&['bound','flank','evacuate'].includes(r.behavior));
     const facing=faceTravel?travel:look,difference=Math.atan2(Math.sin(facing-r.actor.rotation.y),Math.cos(facing-r.actor.rotation.y));
@@ -565,8 +609,10 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     r.turnVelocity+=clamp(targetRate-r.turnVelocity,-dt*11,dt*11);
     let turn=r.turnVelocity*dt;if(turn*difference>0&&Math.abs(turn)>Math.abs(difference)){turn=difference;r.turnVelocity=dt>0?turn/dt:0;}
     r.actor.rotation.y+=turn;
+    const talking=r.behavior==='interact',weaponReady=!talking&&r.kind!=='civilian'&&Boolean(r.target&&r.visible||r.aimTarget&&(r.suppression>.12||now<r.heardUntil||r.behavior==='suppress-sector'));
+    data.weaponReady=weaponReady;data.lookTarget=attention;data.talking=talking;
     data.motion={velocity:{x:r.velocityX,z:r.velocityZ},distance:r.moveDistance,turnRate:r.turnVelocity,acceleration:r.acceleration,gait:r.stance==='crouch'?'crouch':r.speed>2.15?'run':r.speed>.035?'walk':'idle'};
-    data.animate?.(r.speed,dt,{stance:r.stance,aimTarget:r.aimTarget,alert:r.alert,recoil:r.recoil,reload:r.reloadProgress,hit:data.hitImpulse||0,velocity:data.motion.velocity,moveDistance:r.moveDistance,turnRate:r.turnVelocity,acceleration:r.acceleration});
+    data.animate?.(r.speed,dt,{stance:r.stance,aimTarget:r.aimTarget,lookTarget:attention,weaponReady,talking,talk:talking?.35:0,alert:r.alert,recoil:r.recoil,reload:r.reloadProgress,hit:data.hitImpulse||0,velocity:data.motion.velocity,moveDistance:r.moveDistance,turnRate:r.turnVelocity,acceleration:r.acceleration});
   }
   function update(dt, next = {}) {
     if (!Number.isFinite(dt) || dt <= 0) return;
@@ -577,14 +623,16 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
       now += step;
       if(suppressionOrder&&now>=suppressionOrder.until){suppressionOrder=null;for(const r of actors)if(r.role==='companion'){r.thinkAt=0;r.goal=null;r.path=[];r.cover=null;}}
       for (const r of actors) {
-        if (!live(r) || r.kind === 'wounded' || r.actor.userData.carried) continue;
+        if(!live(r)){if(r.supportState)stepSupportWeapon(r.supportState,0,{alive:false});continue;}
+        if (r.kind === 'wounded' || r.actor.userData.carried) continue;
+        if(r.supportState){r.suppression=Math.max(0,r.suppression-step*.10);r.recoil=Math.max(0,r.recoil-step*7);updateSupport(r,step);continue;}
         if((r.actor.userData.hitImpulse||0)>.55&&now>=r.nextHitReact){r.hitReactUntil=now+.16;r.nextHitReact=now+.75;r.burstRemaining=0;}
         r.recoil = Math.max(0, r.recoil - step * 7); r.suppression = Math.max(0, r.suppression - step * .10);
         if(r.reloadUntil>0){
           r.reloadProgress=clamp((now-r.reloadStart)/(r.reloadUntil-r.reloadStart),0,1);
           if(now>=r.reloadUntil){const count=Math.min(r.magSize-r.mag,r.reserve);r.mag+=count;r.reserve-=count;r.reloadUntil=0;r.reloadProgress=0;if(count>0)r.reloads++;r.fireAt=now+.45;r.thinkAt=0;r.cover=null;publishAmmo(r);}
         }
-        if (now >= r.scanAt && !r.aimTarget && r.speed < .05) { r.scanYaw += (r.patrol % 2 ? -1 : 1) * (.35 + random() * .55); r.scanAt = now + 1.6 + random(); }
+        if (now >= r.scanAt && !r.aimTarget && !r.lookTarget && r.speed < .05) {const quiet=context.combatAllowed===false||r.role==='story'||r.kind==='civilian';r.scanYaw=quiet?r.restYaw+[-.22,.16,.30,-.08][(r.patrol+r.index)%4]:r.scanYaw+(r.patrol%2?-1:1)*.42;r.scanAt=now+(quiet?6.5+(r.index%5)*.9:2.3+random());}
         if (now >= r.thinkAt) { r.thinkAt = now + .28 + r.index % 3 * .035;if(now<r.reloadUntil){r.aimTarget=null;destination(r,r.cover?.position,'reload','crouch');}else if (r.kind === 'enemy') enemyThink(r, context.player); else alliedThink(r, context.player); }
         const beforeMove=copy(r),previousSpeed=r.speed;move(r, step);personalSpace(r,step);
         r.velocityX=(r.x-beforeMove.x)/step;r.velocityZ=(r.z-beforeMove.z)/step;r.moveDistance=distance(r,beforeMove);r.speed=r.moveDistance/step;r.acceleration=clamp((r.speed-previousSpeed)/step,-8,8);
@@ -595,7 +643,7 @@ export function createActorDirector({ colliders = [], staticColliders = [], navi
     }
   }
   function inspect() { return actors.map(r => ({ id: r.id, kind: r.kind, role: r.role, x: r.x, z: r.z, anchor: copy(r.anchor), tether: r.tether, follow: r.follow,
-    behavior: r.behavior, stance: r.stance, speed: r.speed,velocity:{x:r.velocityX,z:r.velocityZ},turnRate:r.turnVelocity,moveDistance:r.moveDistance, goal: copy(r.goal), lastKnown: copy(r.lastKnown), lastSeen: Number.isFinite(r.lastSeen) ? r.lastSeen : null,
+    supportId:r.support?.supportId||null,elevation:r.elevation??r.actor.position.y,support:r.supportState?snapshotSupportWeapon(r.supportState):null,behavior: r.behavior, stance: r.stance, weaponReady:Boolean(r.actor.userData.weaponReady),talking:Boolean(r.actor.userData.talking),lookTarget:copy(r.lookTarget),speed: r.speed,velocity:{x:r.velocityX,z:r.velocityZ},turnRate:r.turnVelocity,moveDistance:r.moveDistance, goal: copy(r.goal), lastKnown: copy(r.lastKnown), lastSeen: Number.isFinite(r.lastSeen) ? r.lastSeen : null,
     visible: r.visible, targetId:r.target?.player?'player':r.target?.id||null,firstContactAt:r.firstContactAt,openingUntil:r.openingUntil,suppression: r.suppression, cover: copy(r.cover?.position),peek:copy(r.cover?.peek), shotsFired: r.shotsFired, shotsBlocked: r.shotsBlocked,mag:r.mag,reserve:r.reserve,weaponId:r.weaponId,magSize:r.magSize,burstRemaining:r.burstRemaining,reload:r.reloadProgress,reloading:now<r.reloadUntil,reloads:r.reloads,reloadStart:r.reloadStart,reloadUntil:r.reloadUntil,stuckCount: r.stuckCount, pathRemaining: r.path.length, alive: live(r), startCorrected:Boolean(r.startCorrected),tacticalRole:r.tacticalRole,reserveActive:r.reserveActive,reserveActivatedAt:r.reserveActivatedAt,maneuver:copy(r.maneuver),aimTime:r.aimTime,suppressionOrder:r.role==='companion'?getSuppressionOrder():null, time: now })); }
-  sync(); return { reset, setContext, add, remove, update, notifyThreat, setFollow, restoreActorPosition, setSquadOrder,setSuppressionTarget,getSuppressionOrder, inspect, navigator };
+  sync(); return { reset, setContext, add, remove, update, notifyThreat, setFollow, restoreActorPosition, supportDefinitions,snapshotSupport,restoreSupport,setSquadOrder,setSuppressionTarget,getSuppressionOrder, inspect, navigator };
 }

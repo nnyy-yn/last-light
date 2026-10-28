@@ -1,4 +1,5 @@
 import {getChapterMissionPlan} from './chapter-mission-plans.js';
+import {getChapterStoryDirection,getTaskStoryDirection,getDramaticDialogue} from './chapter-story-direction.js';
 import {createNavigator} from './actor-behavior.js';
 import {blocked,lineBlocked} from './simulation.js';
 
@@ -10,7 +11,13 @@ export function campaignChapter(base){
     for(const task of plan.tasks.filter(t=>(t.insertBeforeCore??((t.insertAfterCore??-1)+1))===slot))tasks.push({...structuredClone(task),extra:true,spawn:task.spawn,seconds:task.seconds||4,text:task.text||task.dialogue.at(-1).text,sceneEvent:task.sceneEvent||'mission-'+base.id+'-'+task.id});
     if(slot<base.tasks.length)tasks.push({...structuredClone(base.tasks[slot]),coreIndex:slot});
   }
-  return {...base,missionPlan:plan,tasks};
+  const storyDirection=getChapterStoryDirection(base.id);storyDirection.acts=structuredClone(plan.acts);
+  for(const task of tasks){const act=plan.acts.find(a=>a.taskIds.includes(task.id));task.actId=act.id;
+    if(task.extra&&base.id!==9)task.stageCluster=task.stageCluster||act.stageCluster;
+    Object.assign(task,getTaskStoryDirection(base.id,task));task.text=task.successText;
+    const dialogue=getDramaticDialogue(base.id,task);if(dialogue)task.dialogue=dialogue;
+  }
+  return {...base,intro:storyDirection.intro,throughline:storyDirection.throughline,stakes:storyDirection.stakes,turn:storyDirection.turn,outcome:storyDirection.outcome,handoff:storyDirection.handoff,storyDirection,missionPlan:plan,tasks};
 }
 function anchorPoint(anchor,layout){
   const key=String(anchor||'spawn'),core=layout.coreBounds||layout.bounds;
@@ -26,11 +33,11 @@ export function placeCampaignTasks(base,layout,colliders){
   chapter.tasks=chapter.tasks.map((task,index)=>{
     if(task.coreIndex!=null){const pos=layout.taskPositions[task.coreIndex];previous={x:pos[0],z:pos[1]};return {...task,pos:[...pos]};}
     if(task.actorFrom)return {...task};
-    const anchor=anchorPoint(task.anchor,layout);
+    const anchor=anchorPoint(task.stageCluster||task.anchor,layout);
     if(base.movementLocked)return {...task,pos:[...anchor],spawn:false,kind:'waypoint',carry:false};
     let target=null;
     const candidates=[];
-    for(const radius of[0,2.6,4,6,9,13,19])for(let angle=0;angle<(radius?16:1);angle++){
+    for(const radius of(task.stageCluster?[4,6,8,10,13]:[0,2.6,4,6,9,13,19]))for(let angle=0;angle<(radius?16:1);angle++){
       const a=(angle+index*.31)*Math.PI/8,p={x:anchor[0]+Math.cos(a)*radius,z:anchor[1]+Math.sin(a)*radius};
       if(!nav.valid(p)||blocked(p.x,p.z,colliders,1)||occupied.some(q=>Math.hypot(q.x-p.x,q.z-p.z)<2.3))continue;
       // An actor must have a clear, reachable standing place beside them.

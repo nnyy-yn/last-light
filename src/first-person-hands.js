@@ -53,13 +53,15 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
       return{n,bone,q:bone?.quaternion.clone(),axis:chain.axis.clone().applyQuaternion(quatLocal(bone).invert())};
     }).filter(f=>f.bone)};
   }
-  const staticRifle=['m16a2','m249','ak'].includes(id);
+  const profile=weapon.userData.reloadProfile||{},rocket=profile.type==='front-loaded-rocket',drum=profile.type==='drum';
+  const staticRifle=['m16a2','m249','ak','rpk','rpg7'].includes(id);
   const leftHome=arms.L.controlP.clone();
   if(staticRifle)leftHome.add(V(...weapon.userData.grips.left).sub(V(0,-.03635111,-.2725)));
   // The support palm stays beneath the handguard. Thicker guards need open
   // knuckles, not a stretched copy of the source rifle's finger mesh.
-  const holdOpening=id==='m16a2'?.13:id==='m249'?.17:id==='ak'?.09:0;
+  const holdOpening=rocket?.25:drum?.13:id==='m16a2'?.13:id==='m249'?.17:id==='ak'?.09:0;
   const leftHomeQ=arms.L.controlQ.clone();
+  if(rocket){const along=V(0,-1,0),across=V(0,0,-1),basis=new THREE.Matrix4().makeBasis(along,across,along.clone().cross(across)),delta=new THREE.Quaternion().setFromRotationMatrix(basis.multiply(arms.L.basis.clone().invert()));leftHomeQ.premultiply(delta);leftHome.copy(V(...weapon.userData.grips.left).sub(arms.L.palmOffset.clone().applyQuaternion(delta)));}
   const parts={};
   function movable(name,key){
     const object=rifle.getObjectByName(name);if(!object)return;
@@ -75,14 +77,14 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
   const magHome=parts.magazine?.home.clone()||V(0,-.10,-.12);
   const magBounds=parts.magazine?.bounds||new THREE.Box3(magHome.clone().sub(V(.015,.07,.035)),magHome.clone().add(V(.015,.07,.035)));
   const magSide=magBounds.min.x-magHome.x-(id==='m249'?.035:id==='m1911'?.018:.020);
-  const magGrip=magHome.clone().add(V(magSide,id==='m249'?-.025:id==='m1911'?-.055:-.012,.006));
+  const magGrip=profile.magazineGrip?V(...profile.magazineGrip):magHome.clone().add(V(magSide,id==='m249'?-.025:id==='m1911'?-.055:-.012,.006));
   const targetAlong=V(0,0,-1),targetAcross=V(0,1,0);
   const magBasis=new THREE.Matrix4().makeBasis(targetAlong,targetAcross,targetAlong.clone().cross(targetAcross));
   const gripDelta=new THREE.Quaternion().setFromRotationMatrix(magBasis.multiply(arms.L.basis.clone().invert()));
   const grabQ=gripDelta.clone().multiply(arms.L.controlQ);
   const grabOffset=arms.L.palmOffset.clone().applyQuaternion(gripDelta);
   const grabControl=magGrip.clone().sub(grabOffset);
-  const magPull=V(id==='m249'?-.07:-.018,-.15,.035),pouch=V(-.27,-.48,.14);
+  const magPull=rocket?V(...profile.pull):V(id==='m249'||drum?-.07:-.018,-.15,.035),pouch=rocket?V(-.27,-.38,-.38):V(-.27,-.48,.14);
   let last={reload:0,stage:'hold'},shotPulse=0;
 
   function solveArm(arm,p,q,side){
@@ -138,7 +140,7 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
   }
   function graspMagazine(weight){
     if(!parts.magazine||weight<=0)return;
-    const offset=parts.magazine.pivot.position.clone().sub(magHome),wide=id==='m249',pistol=id==='m1911';
+    const offset=parts.magazine.pivot.position.clone().sub(magHome),wide=id==='m249'||drum,pistol=id==='m1911';
     const box=magBounds.clone().translate(offset),center=magHome.clone().add(offset);
     for(const chain of arms.L.chains){
       const knuckle=toLocal(chain.bones[0]),thumb=chain.first===20;
@@ -154,6 +156,7 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
         target=V(wide?box.min.x-.010:box.max.x+.007,y,box.min.z-.009);
         pole=V(box.min.x-.023,target.y-.012,box.min.z-.024);
       }
+      if(rocket){const at=magGrip.clone().add(offset),ordinal=(chain.first-5)/4;target=thumb?at.clone().add(V(.020,.045,.015)):V(at.x+.045,at.y+.026-ordinal*.016,THREE.MathUtils.clamp(knuckle.z,at.z-.045,at.z+.045));pole=at.clone().add(V(-.055,.025,-.015));}
       aimFinger(chain,target,pole,weight);
     }
   }
@@ -184,11 +187,12 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
     weapon.position.set(-.08*envelope,(id==='m1911'?.08:.12)*envelope,(id==='m1911'?-.04:-.22)*envelope);
     let stage='hold';
     if(active){
-      const off=sample([[0,V()],[.19,V()],[.34,magPull],[.43,pouch],[.54,pouch],[.72,magPull],[.83,V()],[1,V()]],phase);
+      const off=rocket?sample([[0,pouch],[.18,pouch],[.37,magPull],[.58,magPull],[.86,V()],[1,V()]],phase):sample([[0,V()],[.19,V()],[.34,magPull],[.43,pouch],[.54,pouch],[.72,magPull],[.83,V()],[1,V()]],phase);
       if(parts.magazine)parts.magazine.pivot.position.add(off);
       if(parts.belt){parts.belt.pivot.position.addScaledVector(off,.8);parts.belt.pivot.visible=phase<.35||phase>.73;}
       const boltTouch=parts.bolt?parts.bolt.home.clone().add(V(-.035,.015,.025)).sub(grabOffset):grabControl.clone().add(V(-.025,.08,-.04));
       left=sample([[0,leftHome],[.19,grabControl],[.34,grabControl.clone().add(magPull)],[.43,grabControl.clone().add(pouch)],[.54,grabControl.clone().add(pouch)],[.72,grabControl.clone().add(magPull)],[.83,grabControl],[.90,boltTouch],[1,leftHome]],phase);
+      if(rocket){left=sample([[0,leftHome],[.18,grabControl.clone().add(pouch)],[.37,grabControl.clone().add(magPull)],[.58,grabControl.clone().add(magPull)],[.86,grabControl],[1,leftHome]],phase);}
       const grabBlend=smooth(phase/.18)*(1-smooth((phase-.90)/.10));leftQ.slerp(grabQ,grabBlend);
       const grasp=smooth((phase-.11)/.08)*(1-smooth((phase-.81)/.07));
       opening=THREE.MathUtils.lerp(holdOpening,.30,smooth(phase/.10));
@@ -196,7 +200,7 @@ export function createAnimatedHands({source,offset,weapon,rifle,id}){
       opening=THREE.MathUtils.lerp(opening,holdOpening,smooth((phase-.92)/.08));
       const boltCycle=phase>.84&&phase<.95?Math.sin((phase-.84)/.11*Math.PI):0;
       if(parts.bolt)parts.bolt.pivot.position.z+=.035*boltCycle;
-      stage=phase<.19?'reach':phase<.43?'remove':phase<.54?'retrieve':phase<.83?'insert':phase<.95?'settle':'return';
+      stage=rocket?(phase<.18?'retrieve-rocket':phase<.58?'align-front':phase<.86?'insert-front':'return'):phase<.19?'reach':phase<.43?'remove':phase<.54?'retrieve':phase<.83?'insert':phase<.95?'settle':'return';
     }
     fingers(arms.L,opening);fingers(arms.R,0,(active?.20:.07)-shotPulse*.14);
     const right=arms.R.controlP.clone();if(staticRifle||id==='m1911')right.x-=.009;

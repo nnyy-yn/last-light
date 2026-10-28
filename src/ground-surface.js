@@ -22,6 +22,22 @@ export function createGroundSurface({layout,roads,add,box,material,palette,stats
     if(routeDistance(x,z)>1.8&&!layout.taskPositions.some(p=>Math.hypot(x-p[0],z-p[1])<2))pits.push({x,z,rx:1.0+(n%3)*.17,rz:1.2+(n%4)*.13});
   }}
   const pitsAt=spatial(pits,p=>({minX:p.x-p.rx*1.5,maxX:p.x+p.rx*1.5,minZ:p.z-p.rz*1.5,maxZ:p.z+p.rz*1.5}));
+  // Roadside demolition and eroded drainage are real height, not a gravel
+  // decal on the same flat quad. Keep the authored travel corridor open.
+  const relief=[],war=layout.enemySpawns.length>0;
+  if(!flat)for(const r of segments){if(r.background)continue;
+    for(let along=7;along<r.length-5;along+=r.expansion?23:17)for(const side of[-1,1]){
+      const across=side*(r.width*.5+1.8),x=r.a[0]+r.dx*along+r.dz*across,z=r.a[1]+r.dz*along-r.dx*across;
+      if(routeDistance(x,z)<3||[layout.spawn,...layout.taskPositions].some(p=>Math.hypot(x-p[0],z-p[1])<4.5))continue;
+      if(buildingsAt(x,z).some(b=>x>b.minX-1&&x<b.maxX+1&&z>b.minZ-1&&z<b.maxZ+1))continue;
+      const phase=along*.47+r.seed+side;
+      relief.push({x,z,dx:r.dx,dz:r.dz,across:2.0+Math.abs(Math.sin(phase))*.7,along:3.2+Math.abs(Math.cos(phase))*1.6,height:(war?.52:.25)+(war?.27:.13)*Math.abs(Math.sin(phase)),kind:'rubble-bank'});
+      if(Math.sin(phase)>.15){const offset=side*(r.width*.5+.48),xx=r.a[0]+r.dx*(along+5)+r.dz*offset,zz=r.a[1]+r.dz*(along+5)-r.dx*offset;
+        if(routeDistance(xx,zz)>2.2)relief.push({x:xx,z:zz,dx:r.dx,dz:r.dz,across:.85,along:2.5,height:war?-.28:-.18,kind:'washed-drain'});
+      }
+    }
+  }
+  const reliefAt=spatial(relief,p=>{const r=Math.max(p.across,p.along);return{minX:p.x-r,maxX:p.x+r,minZ:p.z-r,maxZ:p.z+r};});
   let nearIndex=-1,nearAcross=0,nearAlong=0;
   function roadDistance(x,z){let best=1e9;nearIndex=-1;for(const r of roadAt(x,z)){
     const xx=x-r.a[0],zz=z-r.a[1],along=xx*r.dx+zz*r.dz,across=xx*r.dz-zz*r.dx;
@@ -32,7 +48,7 @@ export function createGroundSurface({layout,roads,add,box,material,palette,stats
   function fieldHeight(x,z){
     if(flat)return 0;
     const distance=roadDistance(x,z),r=segments[nearIndex],across=nearAcross,along=nearAlong;
-    let y=.022*Math.sin(x*.19)*Math.cos(z*.17)+.014*Math.sin(x*.41+z*.33);
+    let y=.052*Math.sin(x*.065+layout.chapter)*Math.cos(z*.047)+.022*Math.sin(x*.19)*Math.cos(z*.17)+.014*Math.sin(x*.41+z*.33);
     if(r&&distance<0){
       const crown=.027*(1-clamp(Math.abs(across)/(r.width*.5),0,1)**2);
       const track=Math.exp(-(((Math.abs(across)-1.65)/.34)**2))*(.016+.012*Math.sin(along*.4+r.seed));
@@ -43,6 +59,10 @@ export function createGroundSurface({layout,roads,add,box,material,palette,stats
       const clear=clamp((routeDistance(x,z)-1.2)/1.4,0,1);y+=(channel+bank)*clear;
     }
     for(const p of pitsAt(x,z)){if(Math.abs(x-p.x)>p.rx*1.5||Math.abs(z-p.z)>p.rz*1.5)continue;const q=Math.hypot((x-p.x)/p.rx,(z-p.z)/p.rz);if(q<1.5)y+=-.18*(1-smooth(.12,1,q))+.045*Math.exp(-(((q-.99)/.17)**2));}
+    for(const p of reliefAt(x,z)){
+      const dx=x-p.x,dz=z-p.z,u=(dx*p.dz-dz*p.dx)/p.across,v=(dx*p.dx+dz*p.dz)/p.along,q=u*u+v*v;
+      if(q<1){const corridor=smooth(1.5,3,routeDistance(x,z)),shape=(1-q)**1.5;y+=p.height*shape*corridor*(1+.10*Math.sin(x*2.1+z*1.8)*shape);}
+    }
     const bounds=layout.bounds,outside=Math.max(bounds.minX-x,x-bounds.maxX,bounds.minZ-z,z-bounds.maxZ,0);
     return y*interiorFade(x,z)*(1-smooth(8,18,outside));
   }
@@ -107,6 +127,7 @@ export function createGroundSurface({layout,roads,add,box,material,palette,stats
     if(r?.surface==='sand'&&d<0)shade*=.88;
     if(!flat&&d>0&&d<1.7)shade*=.72+.28*Math.abs((d-.7)/1.0);
     for(const p of pitsAt(x,z)){if(Math.abs(x-p.x)>p.rx*1.3||Math.abs(z-p.z)>p.rz*1.3)continue;const q=Math.hypot((x-p.x)/p.rx,(z-p.z)/p.rz);if(q<1.2)shade*=.59+.41*smooth(.24,1.2,q);}
+    for(const p of reliefAt(x,z)){const dx=x-p.x,dz=z-p.z,q=((dx*p.dz-dz*p.dx)/p.across)**2+((dx*p.dx+dz*p.dz)/p.along)**2;if(q<1)shade*=p.height<0?.69+.31*q:.86+.14*q;}
     data.color.push(shade,shade,shade*.985);
     cache[index]=values;for(const key of Object.keys(values))target[key].push(...values[key]);
   }
@@ -139,7 +160,14 @@ export function createGroundSurface({layout,roads,add,box,material,palette,stats
     box(.24,.13,length,palette.exposed,x,sampleHeight(x,z)+.065,z,yaw,.018*Math.sin(t),.04*Math.cos(t));brokenCurbs++;
     if(brokenCurbs%11===0){const xx=x+r.dz*side*.65,zz=z-r.dx*side*.65,y=sampleHeight(xx,zz)+.04;for(let bar=0;bar<7;bar++)box(.65,.035,.045,palette.metal,xx+r.dx*(bar-3)*.12,y,zz+r.dz*(bar-3)*.12,yaw);drainGrates++;}
   }}
+  let reliefFragments=0;
+  for(const [i,p]of relief.entries()){if(p.height<0)continue;for(let n=0;n<(war?13:6);n++){
+    const a=n*2.399+i,r=Math.sqrt((n+.5)/(war?15:8))*.83,u=Math.cos(a)*p.across*r,v=Math.sin(a)*p.along*r,x=p.x+p.dz*u+p.dx*v,z=p.z-p.dx*u+p.dz*v;
+    if(interiorFade(x,z)<.95||routeDistance(x,z)<1.8)continue;
+    const chip=new THREE.DodecahedronGeometry(1,0);chip.scale(.11+(n%3)*.055,.045+(n%2)*.025,.10+(n%4)*.035);
+    add(chip,n%3?palette.exposed:palette.road,[x,sampleHeight(x,z)+.035,z],[.14*Math.sin(a),a,.12*Math.cos(a)]);reliefFragments++;
+  }}
   for(const t of tileCache.values())t.vertices=null;
-  stats.groundSurface={triangles,materialBatches:Object.keys(mats).length,potholes:pits.length,brokenAsphalt,brokenCurbs,drainGrates,minHeight:min,maxHeight:max,minPosition,maxPosition,continuous:true,spatialIndex:true,tileResolutions:[24,12,4],extent};
-  return{sampleHeight,pits,segments};
+  stats.groundSurface={triangles,materialBatches:Object.keys(mats).length,potholes:pits.length,brokenAsphalt,brokenCurbs,drainGrates,reliefBanks:relief.filter(p=>p.height>0).length,washedDrains:relief.filter(p=>p.height<0).length,reliefFragments,minHeight:min,maxHeight:max,minPosition,maxPosition,continuous:true,spatialIndex:true,tileResolutions:[24,12,4],extent};
+  return{sampleHeight,pits,segments,relief};
 }

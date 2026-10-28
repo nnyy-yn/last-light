@@ -3,7 +3,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number.isFinite(v)?v:a));
 // Fixed pressure modes / decay / crack / action Hz + timing / attack decay /
 // pressure bandwidth / muzzle-front gap / first reflection. No falling tone.
 // The .50 has a wider pressure envelope, never an increased master ceiling.
-const GUNS={m16a2:[135,.025,.88,2500,.032,.0017,1100,.0011,.028],m4a1:[160,.022,1,3100,.028,.0015,1450,.0008,.025],m249:[108,.039,.88,1710,.045,.0022,820,.0014,.034],ak:[95,.043,.76,1300,.043,.0025,720,.0015,.038],mp5:[202,.016,.55,3800,.021,.0012,1600,.00055,.019],m1911:[104,.029,.66,1450,.037,.0020,610,.0012,.026],'mounted-m2':[63,.065,.95,780,.065,.0032,420,.0022,.044]};
+const GUNS={m16a2:[135,.025,.88,2500,.032,.0017,1100,.0011,.028],m4a1:[160,.022,1,3100,.028,.0015,1450,.0008,.025],m249:[108,.039,.88,1710,.045,.0022,820,.0014,.034],ak:[95,.043,.76,1300,.043,.0025,720,.0015,.038],mp5:[202,.016,.55,3800,.021,.0012,1600,.00055,.019],m1911:[104,.029,.66,1450,.037,.0020,610,.0012,.026],'mounted-m2':[63,.065,.95,780,.065,.0032,420,.0022,.044],m134:[125,.024,.91,2650,.022,.0015,1200,.0007,.024],rpk:[103,.043,.83,1590,.046,.0024,770,.0014,.036],dshk:[66,.072,.94,720,.070,.0033,410,.0023,.046],rpg7:[58,.085,.12,380,.11,.013,480,.004,.065]};
 const gunId=id=>id==='akm'?'ak':Object.hasOwn(GUNS,id)?id:'m4a1';
 const impactMaterial=value=>/metal|steel|vehicle|car|armor/i.test(value)?'metal':/wood|timber/i.test(value)?'wood':/sand|soil|dirt|cloth|ground/i.test(value)?'sand':/glass|window/i.test(value)?'glass':'masonry';
 const hitRegion=value=>['head','torso','limb','armor'].includes(value)?value:'torso';
@@ -17,12 +17,13 @@ function normalize(channels,peak=.88){let max=0;for(const ch of channels)for(con
 /** Original deterministic PCM; live playback and offline exports use the same synthesis. */
 export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gunType,distant=false,material='masonry',killed=false,hitZone='torso'}={}){
   weaponId=gunId(gunType||weaponId);material=impactMaterial(material);hitZone=hitRegion(hitZone);
-  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?(weaponId==='mounted-m2'?.78:.58):kind==='bullet-impact'?.24:kind==='hit-confirm'?.09:kind==='actor-impact'?.18:kind==='debris'?.75:.5;
+  const rng=randomStream(seed),duration=kind==='explosion'?3.5:['rotor','turbine','air','fire','engine'].includes(kind)?4:kind==='shot'?(['mounted-m2','dshk'].includes(weaponId)?.78:.58):kind==='bullet-impact'?.24:kind==='hit-confirm'?.09:kind==='actor-impact'?.18:kind==='debris'?.75:.5;
   const n=Math.ceil(duration*sampleRate),raw=new Float32Array(n),p=GUNS[weaponId];let low=0,mid=0,phase=0,pressureNoise=0;
   for(let i=0;i<n;i++){
     const t=i/sampleRate,w=rng()*2-1;low+=.008*(w-low);mid+=.18*(w-mid);
     if(kind==='shot'){
-      const attack=1-Math.exp(-t*18000),body=Math.exp(-t/p[1]),heavy=weaponId==='mounted-m2';
+      if(weaponId==='rpg7'){const onset=1-Math.exp(-t*1200),pressure=Math.sin(TAU*58*t)*Math.exp(-t/.065);raw[i]=onset*((mid-low)*2.0*Math.exp(-t/.075)+low*2.3*Math.exp(-t/.11)+pressure*.22+(w-mid)*.12*Math.exp(-t/.009));continue;}
+      const attack=1-Math.exp(-t*18000),body=Math.exp(-t/p[1]),heavy=['mounted-m2','dshk'].includes(weaponId);
       pressureNoise+=(1-Math.exp(-TAU*p[6]/sampleRate))*(w-pressureNoise);
       const crack=(w-mid)*Math.exp(-t/p[5])*p[2];
       // Two asymmetric pressure fronts, followed by noisy low-frequency mass.
@@ -33,7 +34,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gun
       const returnTime=t-p[4]-.014,closing=returnTime>=0?((w-mid)*.14+mid*.22)*Math.exp(-returnTime/.0028):0;
       raw[i]=attack*(crack+front+pressure)+bolt+closing;
     }else if(kind==='bullet-impact'){
-      const attack=Math.min(1,t/.0004),heavy=weaponId==='mounted-m2',u=t/(heavy?1.22:1);
+      const attack=Math.min(1,t/.0004),heavy=['mounted-m2','dshk'].includes(weaponId),u=t/(heavy?1.22:1);
       if(material==='metal'){
         raw[i]=attack*(w-mid)*Math.exp(-u/.0023)*.72;
         for(const[f,level,decay]of[[1730,.19,.036],[2910,.15,.052],[4280,.09,.022]])raw[i]+=attack*Math.sin(TAU*f*u)*Math.exp(-u/decay)*level;
@@ -54,7 +55,7 @@ export function renderSoundPCM(kind,{sampleRate=48000,seed=1,weaponId='m4a1',gun
       raw[i]=attack*((w-mid)*Math.exp(-t/(armor?.002:.0011))*.52+mid*Math.exp(-t/.006)*1.2);
       if(killed&&t>.021)raw[i]+=(w-mid)*Math.exp(-(t-.021)/.0024)*.16;
     }else if(kind==='actor-impact'){
-      const armor=hitZone==='armor',limb=hitZone==='limb',attack=Math.min(1,t/.00045),heavy=weaponId==='mounted-m2';
+      const armor=hitZone==='armor',limb=hitZone==='limb',attack=Math.min(1,t/.00045),heavy=['mounted-m2','dshk'].includes(weaponId);
       const bodyDecay=(limb?.010:.018)*(heavy?1.18:1);
       raw[i]=attack*(mid*Math.exp(-t/bodyDecay)*1.8+low*Math.exp(-t/.025)*1.4+(w-mid)*Math.exp(-t/.0019)*(armor?.44:.23));
       if(armor)raw[i]+=attack*Math.sin(TAU*1920*t)*Math.exp(-t/.009)*.15;
@@ -206,7 +207,7 @@ export class Soundscape{
     this._voice(this._buffer('explosion',{seed:412}),{level,pan,delay,lowpassHz:occluded?650:600+9500/(1+distance/24),rate:.92+Math.random()*.12,priority:3});
     if(distance<90&&!occluded)this._voice(this._buffer('debris',{seed:314}),{level:level*.23,pan:-pan*.25,delay:delay+.12,priority:1});
   }
-  shot(id='m4a1'){if(!this._canPlay())return;id=gunId(id);this._event('shots');this._event(`shot_${id}`);const variant=(this.events.shots-1)%3;this._voice(this._buffer('shot',{weaponId:id,seed:107+variant*71}),{level:id==='m249'?.74:id==='mp5'?.66:id==='mounted-m2'?.86:.83,rate:.987+Math.random()*.026,priority:2});}
+  shot(id='m4a1'){if(!this._canPlay())return;id=gunId(id);this._event('shots');this._event(`shot_${id}`);const variant=(this.events.shots-1)%3;this._voice(this._buffer('shot',{weaponId:id,seed:107+variant*71}),{level:id==='m134'?.70:id==='m249'?.74:id==='mp5'?.66:id==='mounted-m2'||id==='dshk'?.86:id==='rpg7'?.72:.83,rate:.987+Math.random()*.026,priority:2});}
   shotAt(distance=20,pan=0,id='m4a1',occluded=false){
     if(!this._canPlay())return;id=gunId(id);distance=clamp(distance,0,2000);this._event('remoteShots');this._event('remoteShot_'+id);if(occluded)this._event('occludedShots');
     const level=.74/(1+Math.pow(distance/(id==='mounted-m2'?27:19),1.35))*(occluded?.56:1),far=distance>40;

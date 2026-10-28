@@ -131,6 +131,7 @@ try {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('.main-menu').waitFor({ timeout: 90000 });
   assert.equal(await page.title(), '归途 · LAST LIGHT');
+  report.renderer=await page.evaluate(()=>{const gl=document.getElementById('game').getContext('webgl2'),info=gl?.getExtension('WEBGL_debug_renderer_info');return gl?{vendor:gl.getParameter(info?.UNMASKED_VENDOR_WEBGL||gl.VENDOR),renderer:gl.getParameter(info?.UNMASKED_RENDERER_WEBGL||gl.RENDERER),version:gl.getParameter(gl.VERSION)}:null;});
   assert.equal(new URL(page.url()).searchParams.get('qa'), '1', 'Hidden QA must enter qa=1 before any button is activated, so pointer capture is disabled.');
   const entryPath = fileURLToPath(page.url());
   assert.ok(entryPath.endsWith(path.join('resources', 'app', 'dist', 'index.html')), 'Expected the real unpacked application entry.');
@@ -196,7 +197,7 @@ try {
   report.checks.push('soldier and civilian gallery full and close views loaded');
 
   report.weaponGallery = [];
-  for (const id of ['m16a2', 'm249', 'ak', 'mp5', 'm1911', 'rifle']) {
+  for (const id of ['m16a2', 'm249', 'ak', 'mp5', 'm1911', 'rifle', 'rpk', 'rpg7']) {
     const button = page.locator(`[data-action="gallery-kind"][data-value="${id}"]`);
     const label = await button.innerText();
     await button.evaluate(button => button.click());
@@ -214,7 +215,7 @@ try {
   await page.getByRole('button', { name: '游骑兵', exact: true }).evaluate(button => button.click());
   await page.waitForTimeout(350);
   assert.equal(await page.locator('.gallery-caption span').innerText(), '游骑兵');
-  report.checks.push('all six authored weapons loaded in full and detail views; returned to soldier');
+  report.checks.push('all eight portable weapons loaded in full and detail views, including authored RPK/RPG; returned to soldier');
 
   await page.locator('[data-action="menu"]').evaluate(button => button.click());
   await page.locator('.main-menu').waitFor();
@@ -235,7 +236,12 @@ try {
   report.checks.push('first chapter rendered in hidden window with HUD; no desktop input or pointer capture');
   await page.evaluate(()=>{__game.loadChapter(11);__game.action('play');});
   await page.waitForFunction(()=>__game.getState().mode==='cinematic');
+  report.combatBriefing=await page.evaluate(()=>__game.inspect().cinematic);
+  assert.equal(report.combatBriefing.phase,'briefing','Combat chapter must enter its action briefing first');
   await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
+  assert.equal(await page.evaluate(()=>__game.inspect().cinematic.phase),'opening','Skipping only the briefing must retain the insertion');
+  await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
+  await page.waitForFunction(()=>__game.getState().mode==='playing');
   await page.waitForTimeout(500);
   report.nightOff=await page.evaluate(()=>({game:__game.getState(),flashlight:__game.inspect().flashlight}));
   assert.equal(report.nightOff.game.chapter,12);assert.equal(report.nightOff.flashlight.enabled,false);
@@ -244,7 +250,23 @@ try {
   await page.waitForTimeout(700);
   report.nightOn=await page.evaluate(()=>__game.inspect().flashlight);assert.equal(report.nightOn.enabled,true);assert.equal(report.nightOn.castShadow,true);
   await screenshot('night-light-on');
-  report.checks.push('actual EXE night chapter starts dark with flashlight off; page-local T enables a shadowed local light');
+  report.checks.push('actual EXE combat briefing leads to its separate opening; the night chapter starts dark with flashlight off and page-local T enables a shadowed local light');
+  const primaryInventory=await page.evaluate(()=>__game.getState());
+  assert.deepEqual(primaryInventory.carriedLoadout,{primary:'m16a2',sidearm:'m1911'});
+  assert.deepEqual(Object.keys(primaryInventory.stowedMagazines).sort(),['m16a2','m1911'].sort());
+  await page.evaluate(()=>{for(const code of ['Digit2']){window.dispatchEvent(new KeyboardEvent('keydown',{code,bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code,bubbles:true}));}});
+  await page.waitForFunction(()=>__game.getState().player.weaponId==='m1911');
+  const sidearmInventory=await page.evaluate(()=>__game.getState());
+  await page.evaluate(()=>{for(const code of ['Digit3','Digit4','Digit5','Digit6']){window.dispatchEvent(new KeyboardEvent('keydown',{code,bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code,bubbles:true}));}});
+  const afterForbidden=await page.evaluate(()=>__game.getState());
+  assert.equal(afterForbidden.player.weaponId,'m1911');
+  assert.deepEqual(afterForbidden.carriedLoadout,sidearmInventory.carriedLoadout);
+  assert.deepEqual(afterForbidden.stowedMagazines,sidearmInventory.stowedMagazines);
+  assert.deepEqual(afterForbidden.ammoReserves,sidearmInventory.ammoReserves);
+  await page.evaluate(()=>{window.dispatchEvent(new KeyboardEvent('keydown',{code:'Digit1',bubbles:true}));window.dispatchEvent(new KeyboardEvent('keyup',{code:'Digit1',bubbles:true}));});
+  await page.waitForFunction(()=>__game.getState().player.weaponId==='m16a2');
+  report.carriedLoadout=await page.evaluate(()=>({loadout:__game.getState().carriedLoadout,stowed:__game.getState().stowedMagazines,slots:document.getElementById('carried-slots')?.textContent}));
+  report.checks.push('actual offline EXE carries one primary and M1911, switches only slots 1/2 and ignores uncarried weapons on keys 3–6');
   report.chapterScenes=[];
   for(const index of [0,2,8,10]){
     await page.evaluate(index=>{__game.loadChapter(index);__game.action('play');},index);
@@ -254,6 +276,15 @@ try {
   }
   assert.equal(new Set(report.chapterScenes.map(s=>s.id)).size,4,'Clinic, hangar, cockpit and aid room must load different maps in the real EXE.');
   report.checks.push('four different chapter maps and their real-time openings load inside the offline EXE');
+  // Isolate the final casualty sequence in the real offline renderer as well.
+  await page.evaluate(()=>{__game.loadChapter(9);__game.playSequence('closing');window.__portableCasualtyPaused=false;const tick=()=>{const c=__game.inspect().cinematic;if(__game.getState().mode==='cinematic'&&c.phase==='closing'&&c.time>=8.3){for(const type of ['keydown','keyup'])window.dispatchEvent(new KeyboardEvent(type,{code:'Escape',bubbles:true}));window.__portableCasualtyPaused=true;return;}requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+  await page.waitForFunction(()=>window.__portableCasualtyPaused,undefined,{timeout:240000,polling:500});
+  report.casualtySequence=await page.evaluate(()=>({method:'QA chapter 10 closing entry, actual elapsed animation, DOM Escape pause; no pose/time injection',actors:__game.inspect().cinematic.actors.filter(a=>a.id.startsWith('sniper-')),shadows:__game.inspect().lighting.actorContacts}));
+  assert.equal(report.casualtySequence.actors.length,2);
+  for(const a of report.casualtySequence.actors){assert.equal(a.dead,1);assert.equal(a.weaponVisible,false);assert(a.pose.groundContact.hip<.03&&a.pose.groundContact.shoulder<.03);assert(a.pose.groundContact.feet.every(gap=>gap>=-.003&&gap<.03));}
+  assert.equal(report.casualtySequence.shadows.drawCalls,1);assert(report.casualtySequence.shadows.count>=10);
+  await screenshot('casualty-ground-contact');await page.locator('[data-action="resume"]').evaluate(button=>button.click());await page.locator('[data-action="skip-cinematic"]').evaluate(button=>button.click());
+  report.checks.push('offline EXE renders two settled casualties with individual hip/shoulder/heel contacts and the single-batch local shadow shader');
   await page.evaluate(()=>{__game.loadChapter(3);__game.action('play');});
   await page.waitForFunction(()=>__game.inspect().cinematic.playerAction?.active,undefined,{timeout:240000,polling:1000});
   const waitingAction=await page.evaluate(()=>__game.inspect().cinematic);
@@ -286,7 +317,7 @@ try {
   assert.ok(report.extractionCleaned, `NSIS did not remove its extraction directory: ${nsisTempDirectory}`);
   report.checks.push('game window and portable process exited normally', 'NSIS extraction directory removed automatically');
   report.passed = true;
-  console.log('PORTABLE PASS: approved embedded build, menu, character views, six weapon inspections, first chapter, exit and temporary cleanup.');
+  console.log('PORTABLE PASS: approved embedded build, menu, character views, eight weapon inspections, first chapter, exit and temporary cleanup.');
 } catch (error) {
   caught = error;
   report.failure = String(error.stack || error);

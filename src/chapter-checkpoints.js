@@ -1,11 +1,15 @@
 import {RESOURCE_LIMITS} from './simulation.js';
 import {MOUNTED_M2} from './mounted-weapons.js';
 import {createAmmoReserves,validateAmmoReserves,WEAPON_MAGAZINES} from './ammunition.js';
+import {validateCarriedInventory,validateWeaponDrop} from './carried-loadout.js';
+import {validateSupportWeaponState} from './enemy-support.js';
+import {createRocketProjectiles,validateRocketSnapshot} from './rocket-projectiles.js';
+import {createAirSupport,validateAirSupport} from './air-support.js';
 
 // Data only: no storage, rendering, actor creation or reward callbacks. Call
 // capture after applying a task's reward and incrementing the task cursor.
-export const CHAPTER_CHECKPOINT_VERSION=3;
-export const CHECKPOINT_WEAPON_CAPACITIES=Object.freeze({m16a2:30,m249:100,ak:30,mp5:30,m1911:7,m4a1:30});
+export const CHAPTER_CHECKPOINT_VERSION=5;
+export const CHECKPOINT_WEAPON_CAPACITIES=WEAPON_MAGAZINES;
 const RUNTIME_TASK_KEYS=new Set(['obj','done','participantActors','runtime']);
 const record=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const finite=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
@@ -62,7 +66,7 @@ function cleanGun(value){
  * enemyCount, mountedWeaponIds and fieldIds reject stale runtime identities.
  * A failed restore returns null and never normalizes invalid ammo/progress.
  */
-export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,mountedWeaponIds,fieldIds,weaponCapacities=CHECKPOINT_WEAPON_CAPACITIES}={}){
+export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,mountedWeaponIds,fieldIds,supportSpecs=[],weaponCapacities=CHECKPOINT_WEAPON_CAPACITIES}={}){
   try{
     const tasks=authoredTasks(chapter),signature=chapterTaskSignature(chapter),capacities=weaponCapacities;
     if(!record(capacities)||!Object.keys(capacities).length||Object.values(capacities).some(n=>!integer(n,1,1000)))return null;
@@ -70,29 +74,52 @@ export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,m
     if(!integer(value.taskIndex,0,tasks.length)||!Array.isArray(value.completedTaskIds)||value.completedTaskIds.length!==value.taskIndex||value.completedTaskIds.some((taskId,i)=>taskId!==tasks[i].id)||value.nextTaskId!==(tasks[value.taskIndex]?.id??null))return null;
     const resources=cleanResources(value.resources),player=cleanPlayer(value.player,capacities,bounds);
     if(!resources||!player||!record(value.stowedMagazines))return null;
-    const ammoReserves=validateAmmoReserves(value.ammoReserves,resources.ammo);if(!ammoReserves)return null;
-    const weaponIds=Object.keys(capacities),stowedMagazines={};
-    if(Object.keys(value.stowedMagazines).length!==weaponIds.length)return null;
-    for(const key of weaponIds){if(!integer(value.stowedMagazines[key],0,capacities[key]))return null;stowedMagazines[key]=value.stowedMagazines[key];}
-    if(stowedMagazines[player.weaponId]!==0)return null; // The active magazine exists only on the player.
+    const ammoReserves=validateAmmoReserves(value.ammoReserves,resources.ammo);if(!ammoReserves||!Object.hasOwn(value.ammoReserves,'rocket'))return null;
+    const inventory=validateCarriedInventory({carriedLoadout:value.carriedLoadout,weaponId:player.weaponId,mag:player.mag,stowedMagazines:value.stowedMagazines,reserves:ammoReserves});
+    if(!inventory)return null;const {carriedLoadout,stowedMagazines}=inventory;
     if(typeof value.assistUsed!=='boolean')return null;
     if(!integer(enemyCount,0,512)||!uniqueArray(value.killedEnemyIndices,n=>integer(n,0,enemyCount-1),enemyCount)||!integer(value.smokeCharges,0,2)||!finite(value.pacingElapsed,0,604800))return null;
-    // Every defeated enemy retains exactly one physical pickup record, even
-    // when that firearm is empty or was already taken. Never reconstruct loot
-    // from a kill count, because that would award new ammunition after reload.
-    if(!Array.isArray(value.weaponDrops)||value.weaponDrops.length!==value.killedEnemyIndices.length)return null;
-    const killed=new Set(value.killedEnemyIndices),dropIds=new Set(),weaponDrops=[];
-    for(const drop of value.weaponDrops){
-      if(!record(drop)||!integer(drop.enemyIndex,0,enemyCount-1)||!killed.has(drop.enemyIndex)||dropIds.has(drop.enemyIndex)||!Object.hasOwn(WEAPON_MAGAZINES,drop.weaponId)||!integer(drop.mag,0,WEAPON_MAGAZINES[drop.weaponId])||!integer(drop.reserve,0,300)||typeof drop.taken!=='boolean')return null;
-      if(!Array.isArray(drop.position)||drop.position.length!==2||!finite(drop.position[0],bounds?.minX??-5000,bounds?.maxX??5000)||!finite(drop.position[1],bounds?.minZ??-5000,bounds?.maxZ??5000))return null;
-      dropIds.add(drop.enemyIndex);weaponDrops.push({enemyIndex:drop.enemyIndex,weaponId:drop.weaponId,mag:drop.mag,reserve:drop.reserve,taken:drop.taken,position:[...drop.position]});
+    // Enemy ownership and dropped-object identity are separate. Every defeated
+    // enemy has exactly one original drop; each player swap can leave another
+    // magazine on the ground without inventing an enemy or losing ammunition.
+    if(!Array.isArray(value.weaponDrops)||value.weaponDrops.length>8192)return null;
+    const killed=new Set(value.killedEnemyIndices),dropIds=new Set(),enemyDropIds=new Set(),weaponDrops=[];
+    for(const raw of value.weaponDrops){
+      const drop=validateWeaponDrop(raw,{bounds,enemyCount});if(!drop||!Object.hasOwn(drop,'elevation')||dropIds.has(drop.dropId))return null;
+      if(drop.source==='enemy'){if(!killed.has(drop.enemyIndex)||enemyDropIds.has(drop.enemyIndex))return null;enemyDropIds.add(drop.enemyIndex);}
+      dropIds.add(drop.dropId);weaponDrops.push(drop);
     }
-    weaponDrops.sort((a,b)=>a.enemyIndex-b.enemyIndex);
+    if(enemyDropIds.size!==killed.size)return null;
+    weaponDrops.sort((a,b)=>a.source===b.source?(a.source==='enemy'?a.enemyIndex-b.enemyIndex:Number(a.dropId.slice(7))-Number(b.dropId.slice(7))):a.source==='enemy'?-1:1);
+    // Heavy weapons keep their finite magazine/reserve and relative timers.
+    // Restoring cannot restart a loaded RPG, finish a reload early, or revive
+    // a dead roof operator. Fixed vehicle gun ammo remains in mountedWeapons.
+    if(!Array.isArray(supportSpecs)||!Array.isArray(value.supportState)||value.supportState.length!==supportSpecs.length)return null;
+    const supportIds=new Set(),supportState=[];
+    for(const saved of value.supportState){
+      const spec=supportSpecs.find(s=>(s.supportId||s.id)===saved?.supportId);if(!spec||supportIds.has(saved.supportId)||saved.enemyId!==spec.enemyId||saved.weaponId!==spec.weaponId)return null;
+      const state=validateSupportWeaponState(saved.state,spec),position=saved.position,match=/^enemy-(\d+)$/.exec(saved.enemyId);
+      if(!state||!match||!integer(Number(match[1]),0,enemyCount-1)||state.dead!==killed.has(Number(match[1]))||!Array.isArray(position)||position.length!==3||!position.every(Number.isFinite)||Math.abs(position[1]-(spec.elevation??spec.worldY))>.001)return null;
+      const rb=spec.roofBounds;if(rb&&(position[0]<rb.minX+.4||position[0]>rb.maxX-.4||position[2]<rb.minZ+.4||position[2]>rb.maxZ-.4))return null;
+      if(!rb&&(!spec.origin||Math.hypot(position[0]-spec.origin[0],position[2]-spec.origin[1])>12))return null;
+      if(bounds&&(position[0]<bounds.minX||position[0]>bounds.maxX||position[2]<bounds.minZ||position[2]>bounds.maxZ))return null;
+      if(state.dead){const drop=weaponDrops.find(d=>d.source==='enemy'&&d.enemyIndex===Number(match[1]));if(!drop||drop.weaponId!==state.weaponId||drop.mag!==state.mag||drop.reserve!==state.reserve)return null;}
+      supportIds.add(saved.supportId);supportState.push({supportId:saved.supportId,enemyId:saved.enemyId,weaponId:saved.weaponId,position:[...position],state});
+    }
+    const rocketState=validateRocketSnapshot(value.rocketState),airSupportState=validateAirSupport(value.airSupportState);if(!rocketState||!airSupportState)return null;
+    const launchedByOwner=new Map();
+    for(const rocket of rocketState.records){
+      if(rocket.ownerId==='player'){if(rocket.faction!=='player')return null;}
+      else{const spec=supportSpecs.find(s=>s.enemyId===rocket.ownerId);if(!spec||spec.weaponId!=='rpg7'||rocket.faction!=='enemy'||!/^enemy-\d+$/.test(rocket.ownerId))return null;}
+      launchedByOwner.set(rocket.ownerId,(launchedByOwner.get(rocket.ownerId)||0)+1);
+    }
+    for(const [owner,count]of launchedByOwner)if(owner!=='player'&&count>(supportState.find(s=>s.enemyId===owner)?.state.shotsFired??0))return null;
     const allowedFields=fieldIds??[`field-${chapter.id}-medicine`,`field-${chapter.id}-ammo`];
     if(!uniqueArray(allowedFields,id,256)||!uniqueArray(value.fieldCollectedIds,key=>id(key)&&allowedFields.includes(key),allowedFields.length))return null;
     if(!Array.isArray(value.mountedWeapons)||value.mountedWeapons.length>64)return null;
     const mountedWeapons=[],mountedIds=new Set();
-    for(const item of value.mountedWeapons){if(!record(item)||!id(item.id)||mountedIds.has(item.id))return null;const gun=cleanGun(item.gun);if(!gun)return null;mountedIds.add(item.id);mountedWeapons.push({id:item.id,gun});}
+    for(const item of value.mountedWeapons){if(!record(item)||!id(item.id)||mountedIds.has(item.id))return null;const gun=cleanGun(item.gun),aiWait=item.aiWait??0,burst=item.burst??0,shotsAI=item.shotsAI??0;if(!gun||!finite(aiWait,0,30)||!integer(burst,0,5)||!integer(shotsAI,0,gun.shots))return null;mountedIds.add(item.id);mountedWeapons.push({id:item.id,gun,aiWait,burst,shotsAI});}
+    if(supportSpecs.some(spec=>spec.fireControlledBy==='vehicle'&&(!id(spec.vehicleId)||!mountedIds.has(spec.vehicleId))))return null;
     if(mountedWeaponIds&&(!uniqueArray(mountedWeaponIds,id,64)||mountedWeaponIds.length!==mountedIds.size||mountedWeaponIds.some(key=>!mountedIds.has(key))))return null;
     if(!Array.isArray(value.taskDecisions)||value.taskDecisions.length>value.taskIndex)return null;
     const requiredDecisions=tasks.slice(0,value.taskIndex).filter(t=>t.decision),decisionIds=new Set(),taskDecisions=[];
@@ -103,13 +130,13 @@ export function validateChapterCheckpoint(value,{chapter,bounds,enemyCount=512,m
       decisionIds.add(selected.taskId);taskDecisions.push({taskId:selected.taskId,optionId:selected.optionId});
     }
     if(requiredDecisions.some(task=>!decisionIds.has(task.id)))return null;
-    return {version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:signature,taskIndex:value.taskIndex,completedTaskIds:tasks.slice(0,value.taskIndex).map(t=>t.id),nextTaskId:tasks[value.taskIndex]?.id??null,resources,ammoReserves,player,stowedMagazines,weaponDrops,assistUsed:value.assistUsed,killedEnemyIndices:[...value.killedEnemyIndices].sort((a,b)=>a-b),smokeCharges:value.smokeCharges,mountedWeapons,fieldCollectedIds:[...value.fieldCollectedIds],pacingElapsed:value.pacingElapsed,taskDecisions};
+    return {version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:signature,taskIndex:value.taskIndex,completedTaskIds:tasks.slice(0,value.taskIndex).map(t=>t.id),nextTaskId:tasks[value.taskIndex]?.id??null,resources,ammoReserves,player,carriedLoadout,stowedMagazines,weaponDrops,supportState,rocketState,airSupportState,assistUsed:value.assistUsed,killedEnemyIndices:[...value.killedEnemyIndices].sort((a,b)=>a-b),smokeCharges:value.smokeCharges,mountedWeapons,fieldCollectedIds:[...value.fieldCollectedIds],pacingElapsed:value.pacingElapsed,taskDecisions};
   }catch{return null;}
 }
 
-export function captureChapterCheckpoint({chapter,campaign,taskIndex,player,stowedMagazines,assistUsed=false,killedEnemyIndices=[],weaponDrops=[],ammoReserves=Object.hasOwn(campaign||{},'ammoReserves')?campaign.ammoReserves:createAmmoReserves(campaign?.resources?.ammo),smokeCharges=0,mountedWeapons=[],fieldCollectedIds=[],pacingElapsed=0,taskDecisions=[],...context}){
+export function captureChapterCheckpoint({chapter,campaign,taskIndex,player,stowedMagazines,carriedLoadout,assistUsed=false,killedEnemyIndices=[],weaponDrops=[],supportState=[],rocketState=createRocketProjectiles().snapshot(),airSupportState=createAirSupport().snapshot(),ammoReserves=Object.hasOwn(campaign||{},'ammoReserves')?campaign.ammoReserves:createAmmoReserves(campaign?.resources?.ammo),smokeCharges=0,mountedWeapons=[],fieldCollectedIds=[],pacingElapsed=0,taskDecisions=[],...context}){
   if(!campaign||campaign.chapter!==chapter?.id-1||campaign.completed)throw new TypeError('Cannot capture a checkpoint outside the current unfinished chapter.');
-  const tasks=authoredTasks(chapter),candidate={version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:chapterTaskSignature(chapter),taskIndex,completedTaskIds:tasks.slice(0,taskIndex).map(t=>t.id),nextTaskId:tasks[taskIndex]?.id??null,resources:campaign.resources,ammoReserves,player,stowedMagazines,weaponDrops,assistUsed,killedEnemyIndices,smokeCharges,mountedWeapons,fieldCollectedIds,pacingElapsed,taskDecisions};
+  const tasks=authoredTasks(chapter),candidate={version:CHAPTER_CHECKPOINT_VERSION,chapterId:chapter.id,taskSignature:chapterTaskSignature(chapter),taskIndex,completedTaskIds:tasks.slice(0,taskIndex).map(t=>t.id),nextTaskId:tasks[taskIndex]?.id??null,resources:campaign.resources,ammoReserves,player,carriedLoadout,stowedMagazines,weaponDrops,supportState,rocketState,airSupportState,assistUsed,killedEnemyIndices,smokeCharges,mountedWeapons,fieldCollectedIds,pacingElapsed,taskDecisions};
   const clean=validateChapterCheckpoint(candidate,{...context,chapter});
   if(!clean)throw new TypeError('Cannot capture invalid chapter checkpoint data.');
   return clean;

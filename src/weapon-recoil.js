@@ -14,6 +14,8 @@ export const WEAPON_RECOIL_PROFILES=Object.freeze({
   ak:profile(.021,.0036,.0016,.032,.045,.0063,25,43),
   mp5:profile(.0075,.0015,.0006,.014,.019,.0030,36,59),
   m1911:profile(.030,.0027,.0012,.035,.065,.0068,24,40),
+  rpk:profile(.016,.0030,.0012,.028,.036,.0052,27,46),
+  rpg7:profile(.006,.0012,.0004,.016,.019,.0020,20,32),
 });
 const YAW_PATTERN=Object.freeze([.45,-.65,.25,.60,-.40,-.25]);
 const ROLL_PATTERN=Object.freeze([-.55,.35,-.25,.65,-.45,.25]);

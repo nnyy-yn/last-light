@@ -83,3 +83,21 @@ test('the reported resident stop-turn remains planted on the actual chapter-one 
   previous=p;
  }assert.ok(recoveryFrames>0,'the overextended foot must perform a visible recovery, not silently move its planted anchor');
 });
+
+test('unthreatened soldiers stand with barrel down while conversation gaze does not aim at the speaker',async()=>{
+ const r=await rig('soldier',{armed:true});const direction=()=>new THREE.Vector3(0,0,-1).applyQuaternion(r.rifle.getWorldQuaternion(new THREE.Quaternion()));
+ for(let n=0;n<120;n++)r.root.userData.animate(0,dt,{stance:'stand',weaponReady:false,alert:.2});let p=r.root.userData.getPoseState();
+ assert.equal(p.weaponPose,'low-ready');assert.ok(direction().y<-.50,'Low-ready muzzle must point down more than thirty degrees');assert.ok(Math.abs(p.lookPitch)<.08,'Lowering the rifle must not bow the head');assert.equal(p.lowering,0);assert.ok(p.gripError<.055);
+ for(let n=0;n<120;n++)r.root.userData.animate(0,dt,{stance:'stand',talking:true,weaponReady:false,lookTarget:{x:1,y:1.65,z:3},aimTarget:{x:1,y:1.65,z:3},talk:.4});p=r.root.userData.getPoseState();
+ assert.equal(p.weaponPose,'conversation');assert.ok(direction().y<-.65,'Looking at the speaker is not muzzle aim');assert.ok(p.lookYaw>.1);assert.ok(Math.abs(p.lookPitch)<.18);assert.ok(p.gripError<.055);
+ for(let n=0;n<100;n++)r.root.userData.animate(0,dt,{stance:'stand',weaponReady:true,aimTarget:{x:0,y:1.2,z:15},alert:1});p=r.root.userData.getPoseState();assert.equal(p.weaponPose,'aim');assert.ok(direction().y>-.15,'A confirmed hostile target still raises the weapon');assert.ok(p.gripError<.055);
+});
+
+test('quiet weight transfer stays small and individually phased without dragging either planted sole',async()=>{
+ const a=await rig('soldier',{armed:true,position:[0,0]}),b=await rig('soldier',{armed:true,position:[7,-4]}),poses=[[],[]],starts=[a.root.position.clone(),b.root.position.clone()];
+ for(let n=0;n<1800;n++)for(const[i,r]of[a,b].entries()){
+  r.root.userData.animate(0,1/30,{stance:'stand',weaponReady:false});const p=r.root.userData.getPoseState();assert.ok(p.footError<.015);assert.ok(p.supportError<.015);assert.ok(Math.abs(p.weightTransfer)<=.0191);assert.deepEqual(r.root.position,starts[i]);poses[i].push(p);
+ }
+ for(const values of poses){assert.ok(Math.max(...values.map(p=>p.weightTransfer))-Math.min(...values.map(p=>p.weightTransfer))>.03,'Standing shifts load slowly between two support sides');const first=values[60];for(const p of values.slice(60))for(let i=0;i<2;i++)assert.ok(separation(p.limbs[i].plant,first.limbs[i].plant)<1e-8,'Small idle weight transfers never slide support anchors');}
+ assert.ok(poses[0].some((p,i)=>Math.abs(p.lookYaw-poses[1][i].lookYaw)>.08),'Actors do not scan in synchrony');assert.ok(poses[0].some((p,i)=>Math.abs(p.weightTransfer-poses[1][i].weightTransfer)>.01));
+});

@@ -32,3 +32,7 @@ FAO SWALIM《W-01 Climate of Somalia》（2007）主要使用**1963–1990年**�
 ## 章节地点标注
 
 `src/setting.js`集中保存开场地点语境：第2–3章为机场基地，第4–7章围绕Bakara／Olympic Hotel附近的行动区，第8章为城内车队路线，第9–10章为第二坠机点，第11–12、14章为第一坠机点附近，第13、15章为救援与撤离路段，第16章回到机场基地。第1章居民区与原创人物支线使用区域级定位，不编造门牌或精确坐标。
+
+## 索降动作参考
+
+2026-10-27重新核对[美国陆军空中突击学校FRIES讲义](https://home.army.mil/campbell/application/files/9617/0023/5328/FRIES_and_SPIES_HANDOUT_FEB_2022.pdf)与[101空降师索降训练图文](https://www.dvidshub.net/news/6963/pathfinders-5th-battalion-101st-combat-aviation-brigade-conduct-fastrope-training-iraq)。它们用于观察手脚与绳索接触、下降和落地让开绳区的动作关系；这是现代训练参考，不能当作1993年事故动作的逐帧历史记录。失足、受伤与救护镜头由游戏重新编排，不复用电影画面，也不作为现实索降或急救教学。

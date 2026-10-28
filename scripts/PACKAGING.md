@@ -1,6 +1,6 @@
 # Windows 打包
 
-源码版本 0.9.0 是有限规模的战争叙事游戏原型。本文描述构建方式与输出范围；生成文件的版本、大小和哈希以 `release/release-manifest.json` 为准，公开下载验收见相应GitHub版本发布说明。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
+源码版本 0.10.0 是有限规模的战争叙事游戏原型。本文描述构建方式与输出范围；生成文件的版本、大小和哈希以 `release/release-manifest.json` 为准，公开下载验收见相应GitHub版本发布说明。桌面默认最大化、最小 960 × 600；F11 切换全屏，Alt + F4 退出。运行端为 Windows 10 / 11 x64。
 
 ## 一键构建
 
@@ -23,9 +23,13 @@ Vite 配置使用默认的 `public/` 复制行为；`pnpm build` 会把本地资
 | 当前新增文件 | 构建与打包位置 |
 | --- | --- |
 | `public/assets/mounted-makehuman-hands.glb` | 构建后为 `dist/assets/mounted-makehuman-hands.glb`，再随运行资源复制；可编辑源副本也在 `source/public/assets/` |
+| `public/assets/rpk-support.glb`、`rpg7-support.glb`、`dshk-support.glb`、`m134-door-support.glb`、`technical-pickup-support.glb` | 五个原创Blender导出随 `public/` 进入dist；可编辑建模脚本随scripts复制，来源说明随ASSET-SOURCES复制 |
 | `src/ammunition.js`、`src/weapon-pickups.js`、`src/weapon-recoil.js` | 运行时进入Vite构建；原始文件随整个 `src/` 复制 |
 | `src/chapter-mission-plans.js`、`src/campaign-tasks.js` | 进入 Vite JavaScript 构建；原始文件随整个 `src/` 复制到 `source/src/` |
+| `src/carried-loadout.js`、`src/mission-navigation.js`、`src/mission-map.js`、`src/chapter-story-direction.js`、`src/chapter-story-sets.js`、`src/story-scene-events.js`、`src/chapter-skyline.js`、`src/street-scatter.js` | 同上；包含两槽携行、现场导航、剧情地标与街肩建筑，不依赖外部网络服务 |
 | `src/chapter-checkpoints.js`、`src/chapter-transition.js`、`src/chapter-boundary.js`、`src/mounted-gunner-pose.js` | 同上，运行时构建和原始源码均保留 |
+| `src/enemy-support.js`、`src/air-support.js`、`src/support-models.js`、`src/rocket-projectiles.js`、`src/rocket-view.js`、`src/cinematic-effects.js` | 进入Vite构建及完整源文件；重火力/有限弹药/在途弹体规则不依赖联网 |
+| `src/aircraft-door-geometry.js`、`src/casualty-motion.js`、`src/actor-bounds.js`、`src/actor-contact-shadows.js` | 同上；机舱开门/绳口坐标、连续倒地、分点承载与单批次局部接触阴影 |
 | `scripts/makehuman/export-mounted-hands.py` 与新增 QA 脚本 | 整个 `scripts/` 递归复制到 `source/scripts/` |
 | `character-sources/makehuman/soldier-fitted-source.blend` | 进入 `source/character-sources/makehuman/`；只排除自动备份和缓存，不排除正式 `.blend` 文件 |
 | 根目录 `.md` 文档与 `public/assets/ASSET-SOURCES.md` | 根文档进入 `source/`；资源署名还会随 `public/` 进入运行资源 |
@@ -37,7 +41,7 @@ Vite 配置使用默认的 `public/` 复制行为；`pnpm build` 会把本地资
 ## 产物
 
 - `release/归途-LastLight/归途.exe`：直接启动版，需要保留同级运行库和 resources 目录。
-- `release/归途-LastLight-v0.9.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
+- `release/归途-LastLight-v0.10.0.exe`：单文件便携版，以普通用户权限解压到随机临时目录，等待游戏结束后由 NSIS 自动清理临时文件；不写入安装注册表。
 - `release/归途-LastLight/manifest.sha256.json`：目录内文件大小及 SHA-256 校验值（不含 manifest 自身）。
 - `release/release-manifest.json`：版本、runtime 版本、目录体积、便携 EXE 体积及 SHA-256。
 - 发布目录内的 `source` 保留可编辑工程和项目文档，排除 node_modules、测试截图和缓存。Electron、Chromium、Three.js 许可随包分发。

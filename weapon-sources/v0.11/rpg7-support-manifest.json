@@ -1,0 +1,62 @@
+{
+  "id": "rpg7-support",
+  "file": "public\\assets\\rpg7-support.glb",
+  "bytes": 185376,
+  "sha256": "b11c70260273aecff22a126f654e8930a741268f5e6195400dd3fc0230d743f9",
+  "triangles": 2916,
+  "meshCount": 11,
+  "materialCount": 7,
+  "source": "weapon-sources\\v0.11\\rpg7-support-source.blend",
+  "weaponId": "rpg7",
+  "sockets": {
+    "GripRight": [
+      0,
+      -0.055,
+      0.005
+    ],
+    "GripLeft": [
+      0,
+      -0.055,
+      -0.23
+    ],
+    "Muzzle": [
+      0,
+      0.11,
+      -0.36
+    ],
+    "ProjectileTip": [
+      0,
+      0.11,
+      -0.92
+    ],
+    "Backblast": [
+      0,
+      0.11,
+      0.7
+    ],
+    "RearSight": [
+      -0.1,
+      0.205,
+      0.156
+    ],
+    "FrontSight": [
+      -0.1,
+      0.205,
+      -0.085
+    ],
+    "MagazineGrip": [
+      -0.047,
+      0.1,
+      -0.61
+    ]
+  },
+  "launchTubeMetres": 0.95,
+  "reloadPart": "Magazine",
+  "frontLoaded": true,
+  "lod": {
+    "file": "public\\assets\\rpg7-support-lod.glb",
+    "bytes": 98456,
+    "triangles": 1348,
+    "sha256": "3b6a33ceda8514e8f40eab20c40bcfed45eed14e2a178f9ed0f20304f0ab3623"
+  }
+}

@@ -5,8 +5,6 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
-import { Pass } from 'three/addons/postprocessing/Pass.js';
 
 // Display-space grading is deliberately restrained: clear silhouettes and
 // readable shadows, a little airborne warmth, and no full-screen sepia wash.
@@ -16,53 +14,10 @@ export function createCinema(renderer, scene, camera) {
   });
   const composer = new EffectComposer(renderer, target);
   const worldPass = new RenderPass(scene, camera);
-  // Small contact shadows ground curbs, wall bases and props. Keep the radius
-  // under a metre so distant silhouettes do not gain broad black halos.
-  const contact = new SSAOPass(scene, camera, 640, 360, 16);
-  contact.kernelRadius = .72;
-  contact.minDistance = .025 / (camera.far-camera.near);
-  contact.maxDistance = .9 / (camera.far-camera.near);
-  const contactVisibility = [];
-  // Apply contact darkening before smoke, fire, glass and other translucent
-  // surfaces. Otherwise silhouettes behind dense smoke leak through as AO.
-  const hiddenMaterials = new Set();
-  function hideMaterials(translucent) {
-    scene.traverse(object=>{
-      for(const material of (Array.isArray(object.material)?object.material:[object.material]))
-        if(material?.visible && Boolean(material.transparent)===translucent){hiddenMaterials.add(material);material.visible=false;}
-    });
-  }
-  function restoreMaterials(){for(const material of hiddenMaterials)material.visible=true;hiddenMaterials.clear();}
-  const renderWorld=worldPass.render.bind(worldPass);
-  worldPass.render=(...args)=>{
-    if(!contact.enabled)return renderWorld(...args);
-    hideMaterials(true);
-    try{return renderWorld(...args);}finally{restoreMaterials();}
-  };
-  const translucentPass=new Pass();translucentPass.needsSwap=false;
-  translucentPass.render=(renderer,writeBuffer,readBuffer)=>{
-    const background=scene.background,autoClear=renderer.autoClear,shadows=renderer.shadowMap.autoUpdate;
-    hideMaterials(false);scene.background=null;renderer.autoClear=false;renderer.shadowMap.autoUpdate=false;
-    renderer.setRenderTarget(readBuffer);
-    try{renderer.render(scene,camera);}
-    finally{restoreMaterials();scene.background=background;renderer.autoClear=autoClear;renderer.shadowMap.autoUpdate=shadows;}
-  };
-  const renderContact = contact.render.bind(contact);
-  contact.render = (...args) => {
-    scene.traverse(object => {
-      if (!object.isMesh || !object.visible) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      if (materials.some(m => m && (m.isShaderMaterial || m.depthWrite === false))) {
-        contactVisibility.push(object); object.visible = false;
-      }
-    });
-    contact.ssaoMaterial.uniforms.cameraProjectionMatrix.value.copy(camera.projectionMatrix);
-    contact.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);
-    const shadows=args[0].shadowMap.autoUpdate;
-    args[0].shadowMap.autoUpdate=false;
-    try { renderContact(...args); }
-    finally { args[0].shadowMap.autoUpdate=shadows;for (const object of contactVisibility) object.visible=true; contactVisibility.length=0; }
-  };
+  // Render city geometry once. The former high preset repeated every skinned
+  // actor for normal/depth/AO and a separate translucent pass. Real sun/local
+  // shadows and authored recesses still ground geometry; smoke uses the same
+  // depth buffer as the world, without AO silhouettes leaking through it.
   const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .14, .32, 1.35);
   const output = new OutputPass();
   const antialias = new ShaderPass(FXAAShader);
@@ -86,8 +41,6 @@ export function createCinema(renderer, scene, camera) {
       }`,
   });
   composer.addPass(worldPass);
-  composer.addPass(contact);
-  composer.addPass(translucentPass);
   composer.addPass(bloom);
   composer.addPass(output);
   composer.addPass(grade);
@@ -95,32 +48,24 @@ export function createCinema(renderer, scene, camera) {
   const resize = () => {
     composer.setSize(innerWidth, innerHeight);
     const ratio=renderer.getPixelRatio();
-    const scale=Math.min(.5,1280/(innerWidth*ratio),720/(innerHeight*ratio));
-    contact.setSize(Math.max(1,Math.round(innerWidth*ratio*scale)),Math.max(1,Math.round(innerHeight*ratio*scale)));
     antialias.uniforms.resolution.value.set(1/(innerWidth*ratio),1/(innerHeight*ratio));
   };
   return {
     setQuality(quality) {
-      contact.enabled = quality === 'high';
-      translucentPass.enabled = contact.enabled;
       bloom.enabled = quality === 'high';
       grade.uniforms.grain.value = quality === 'low' ? 0 : .003;
-      // SSAO blends into the opaque target before translucent geometry reuses
-      // its depth. Re-entering a resolved MSAA target here corrupts the color
-      // buffer on some WebGL drivers; keep this composite single-sampled.
-      const samples = Math.min(quality === 'medium' ? 2 : 0, renderer.capabilities.maxSamples);
+      const samples = Math.min(quality === 'low' ? 0 : 2, renderer.capabilities.maxSamples);
       for (const buffer of [composer.renderTarget1, composer.renderTarget2]) {
         if (buffer.samples !== samples) { buffer.dispose(); buffer.samples = samples; }
       }
-      // FXAA smooths high-preset edges after the complete HDR composite;
-      // medium has a single scene pass and can safely retain geometry MSAA.
+      // One geometry pass permits MSAA without reopening a resolved target.
       antialias.enabled = samples === 0;
       composer.setPixelRatio(renderer.getPixelRatio());
       resize();
     },
     resize,
     render(time, delta) { grade.uniforms.time.value = time; composer.render(delta); },
-    inspect() { return {contactShadows:contact.enabled,contactResolution:[contact.width,contact.height],contactRadius:contact.kernelRadius,samples:composer.renderTarget1.samples,fxaa:antialias.enabled}; },
-    dispose() { contact.dispose();contact.ssaoMaterial.dispose();contact.noiseTexture.dispose();bloom.dispose(); output.dispose(); grade.dispose(); antialias.dispose(); composer.dispose(); },
+    inspect() { return {scenePasses:1,contactShadows:false,shadowSource:'sun-and-local-lights',samples:composer.renderTarget1.samples,fxaa:antialias.enabled}; },
+    dispose() { bloom.dispose(); output.dispose(); grade.dispose(); antialias.dispose(); composer.dispose(); },
   };
 }

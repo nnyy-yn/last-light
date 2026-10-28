@@ -1,0 +1,33 @@
+{
+  "id": "technical-pickup-support",
+  "file": "public\\assets\\technical-pickup-support.glb",
+  "bytes": 529148,
+  "sha256": "d957e30b94451e16385651961dd8a91d053971774a1c7c054ddd67ed4115a982",
+  "triangles": 7408,
+  "meshCount": 15,
+  "materialCount": 7,
+  "source": "weapon-sources\\v0.11\\technical-pickup-support-source.blend",
+  "dimensions": {
+    "width": 2.05,
+    "length": 4.92,
+    "height": 2.22
+  },
+  "openBed": true,
+  "collisionBoxes": [
+    {
+      "minX": -1.025,
+      "maxX": 1.025,
+      "minZ": -2.42,
+      "maxZ": 2.5,
+      "minY": 0,
+      "maxY": 1.94
+    }
+  ],
+  "gunnerFloor": 0.96,
+  "lod": {
+    "file": "public\\assets\\technical-pickup-support-lod.glb",
+    "bytes": 236644,
+    "triangles": 3356,
+    "sha256": "8b2ae6ba9f677bd357ef985422d3bb4d0413095d6e9d30731831f8e6824116d7"
+  }
+}

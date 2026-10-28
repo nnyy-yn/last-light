@@ -1,3 +1,4 @@
+import {getChapterStoryDirection,getTaskStoryDirection,getDramaticDialogue} from './chapter-story-direction.js';
 // 影片事件构成战役骨架；阿米娜、里德与米勒及选择分支均为原创。
 // 坐标使用 [x, z]；角色朝向 0 时面向 -z。
 export const INITIAL_RESOURCES = {
@@ -409,6 +410,15 @@ export const CHAPTERS = [
     hostiles: [],
   },
 ];
+
+// The core IDs, effects and fixed character outcomes remain the campaign spine.
+// Presentation now starts with the current human conflict and a visible place.
+for(const chapter of CHAPTERS){
+  const direction=getChapterStoryDirection(chapter.id);chapter.intro=direction.intro;
+  chapter.throughline=direction.throughline;chapter.stakes=direction.stakes;chapter.turn=direction.turn;chapter.outcome=direction.outcome;chapter.handoff=direction.handoff;chapter.storyDirection=direction;
+  chapter.choice.context=direction.choiceContext;
+  for(const task of chapter.tasks){Object.assign(task,getTaskStoryDirection(chapter.id,task));task.text=task.successText;const dialogue=getDramaticDialogue(chapter.id,task);if(dialogue)task.dialogue=dialogue;}
+}
 
 export function getEpilogue(state = {}) {
   const resources = state.resources || state;

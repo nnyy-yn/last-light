@@ -100,3 +100,5 @@ test('all seven gun profiles retain timing or spectral differences after amplitu
     assert.ok(dot/Math.sqrt(a*b)<.985,ids[i]+' and '+ids[j]+' must not be mere gain variants');
   }
 });
+
+test('new air support and heavy weapons keep independent finite original PCM with an RPG launch pressure envelope',()=>{const ids=['m134','rpk','rpg7','dshk'],list=ids.map(weaponId=>renderSoundPCM('shot',{weaponId,sampleRate:24000,seed:107}));for(const pcm of list){assert(pcm.channels[0].every(Number.isFinite));assert(Math.max(...pcm.channels[0].map(Math.abs))<=.881);assert(rms(pcm.channels[0])>.01);}for(let i=1;i<list.length;i++)assert.notDeepEqual(list[0].channels[0],list[i].channels[0]);const rocket=list[2].channels[0],rifle=renderSoundPCM('shot',{weaponId:'m4a1',sampleRate:24000,seed:107}).channels[0];const band=data=>rms(lowBand(data,24000,600),0,2400)/rms(data,0,2400);assert(band(rocket)>band(rifle),'RPG launch is pressure/jet dominant, not a reused brittle rifle crack');});

@@ -5,7 +5,10 @@ import {createRuinDetail} from './ruin-detail.js';
 import {createEnvironmentDetail} from './environment-detail.js';
 import {createGroundSurface} from './ground-surface.js';
 import {createStreetFrontage} from './street-frontage.js';
+import {buildStreetScatter} from './street-scatter.js';
 import {dressChapterInterior} from './chapter-interiors.js';
+import {buildChapterStorySets} from './chapter-story-sets.js';
+import {buildChapterSkyline,skylineBackgroundProfile} from './chapter-skyline.js';
 import {getChapterConvoy} from './chapter-convoys.js';
 import {createDistrictBuildings} from './district-buildings.js';
 import {buildChapterBoundary,planChapterBoundary,rectanglesOverlap} from './chapter-boundary.js';
@@ -61,8 +64,8 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   const district=createDistrictBuildings({add,box,line,materials:{...palette,plaster,exposed,brickEdge,burned,awning,interiorPlaster,weathering,scorch,signs:districtSigns},rnd,stats});
   const details=createEnvironmentDetail({material,canvasTexture,palette:{...palette,shard,exposed,brickEdge},stats});
   let ruins;
-  function obstacle(x,z,w,d,materialName='masonry'){
-    const b={minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,material:materialName};colliders.push(b);return b;
+  function obstacle(x,z,w,d,materialName='masonry',height=1.65){
+    const base=propElevation||0,b={minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:base,maxY:base+height,material:materialName};colliders.push(b);return b;
   }
   function routeDistance(x,z){let distance=Infinity;for(let i=1;i<layout.route.length;i++){const a=layout.route[i-1],b=layout.route[i],dx=b[0]-a[0],dz=b[1]-a[1],t=THREE.MathUtils.clamp(((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz||1),0,1);distance=Math.min(distance,Math.hypot(x-a[0]-t*dx,z-a[1]-t*dz));}return distance;}
   function safeProp(x,z,r=1.8){return routeDistance(x,z)>r&&![layout.spawn,...layout.taskPositions,...layout.enemySpawns.map(e=>e.pos)].some(p=>Math.hypot(x-p[0],z-p[1])<r+1.0);}
@@ -81,7 +84,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
   function bed(x,z,covered=false){
     box(.92,.1,2.05,cloth,x,.55,z);box(.9,.055,1.55,covered?white:cloth,x,.63,z+.16);box(.68,.13,.35,white,x,.67,z-.69);
     for(const dx of[-.46,.46])for(const dz of[-.91,.91])line([x+dx,.05,z+dz],[x+dx,.69,z+dz],.026,metal);
-    for(const dx of[-.46,.46])line([x+dx,.45,z-1],[x+dx,.45,z+1],.025,metal);obstacle(x,z,1.02,2.1,'metal');
+    for(const dx of[-.46,.46])line([x+dx,.45,z-1],[x+dx,.45,z+1],.025,metal);obstacle(x,z,1.02,2.1,'metal',.75);
   }
   // Exterior faces have real 0.36m thick piers and open window holes. Only
   // ground walls collide; an authored doorway remains physically passable.
@@ -105,7 +108,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
           if((index+j+f)%4===0)authoredWindow(at(u,bottom,.20),yaw,gap,top-bottom);
         }
       }
-      const register=(center,width)=>{const p=at(center,0);obstacle(p[0],p[2],Math.abs(c)*width+Math.abs(s)*.42,Math.abs(s)*width+Math.abs(c)*.42);};
+      const register=(center,width)=>{const p=at(center,0);obstacle(p[0],p[2],Math.abs(c)*width+Math.abs(s)*.42,Math.abs(s)*width+Math.abs(c)*.42,'masonry',height);};
       if(isDoor){register(u-(gap/2+pier/2),pier);register(u+(gap/2+pier/2),pier);}else register(u,bw);
     }
   }
@@ -119,14 +122,14 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     }
     if(b.ruin){
       ruins??=createRuinDetail({add,palette,stats,exposed,brickEdge,oldPlaster:walls[2],burned,rubble,awning,signs,material,canvasTexture,scorch});
-      ruins.building({cx:x,cz:z,w,d,h,index:index+layout.chapter*13});obstacle(x,z,w,d);stats.ruinedBays+=6;
+      ruins.building({cx:x,cz:z,w,d,h,index:index+layout.chapter*13});obstacle(x,z,w,d,'masonry',h+.18);stats.ruinedBays+=6;
       addCoastalRoofDetails({cx:x,cz:z,w,d,h,index,ruin:true,add,box,line,curve,palette});return;
     }
     if(b.style==='hangar'){
       // A tall open east portal, exposed roof trusses and a covered briefing
       // floor distinguish the hangar from the low masonry clinic interiors.
-      box(w,.18,d,concrete,x,-.09,z);box(.4,h,d,concrete,x-w/2,h/2,z);obstacle(x-w/2,z,.4,d);
-      for(const side of[-1,1]){box(w,h,.3,rusty,x,h/2,z+side*d/2);obstacle(x,z+side*d/2,w,.3);}
+      box(w,.18,d,concrete,x,-.09,z);box(.4,h,d,concrete,x-w/2,h/2,z);obstacle(x-w/2,z,.4,d,'masonry',h);
+      for(const side of[-1,1]){box(w,h,.3,rusty,x,h/2,z+side*d/2);obstacle(x,z+side*d/2,w,.3,'metal',h);}
       for(let t=-w/2;t<=w/2;t+=4.8){
         line([x+t,h-.3,z-d/2],[x+t,h+3,z],.1,metal);line([x+t,h+3,z],[x+t,h-.3,z+d/2],.1,metal);line([x+t,h-1,z-d/2],[x+t,h-1,z+d/2],.09,metal);
         for(let q=-d/2;q<d/2;q+=4)line([x+t,h-1,z+q],[x+t,h+3-Math.abs(q+2)*3/(d/2),z+q+2],.035,metal);
@@ -142,8 +145,10 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     facade(x,z-d/2,w,h,PI,m,doors.includes('north'),index+1);
     facade(x+w/2,z,d,h,PI/2,m,doors.includes('east'),index+2);
     facade(x-w/2,z,d,h,-PI/2,m,doors.includes('west'),index+3);
-    if(!b.interior){obstacle(x,z,w,d);for(let level=3.2;level<h;level+=3.2)box(w-.2,.17,d-.2,concrete,x,level,z);}
+    if(!b.interior){obstacle(x,z,w,d,'masonry',h+.18);for(let level=3.2;level<h;level+=3.2)box(w-.2,.17,d-.2,concrete,x,level,z);}
     box(w+.24,.18,d+.24,b.style==='barracks'?rusty:concrete,x,h+.09,z);
+    // Separate structural support metadata preserves combat rooftop IDs/order.
+    if(b.style!=='barracks'){stats.coreRoofSupports??=[];stats.coreRoofSupports.push({source:{x,z,w,d,h},height:h+.18,bounds:{minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2},flat:true,solid:true});}
     if(b.style==='barracks')for(const side of[-1,1])box(w+.5,.09,d*.52,rusty,x,h+.55,z+side*d*.25,0,-side*.16);
     else addCoastalRoofDetails({cx:x,cz:z,w,d,h,index:index+layout.chapter,ruin:false,add,box,line,curve,palette});
     if(b.label)label(b.label,x,2.9,z+d/2+.21);
@@ -152,7 +157,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
         // Keep the authored central routes and all interaction spots clear.
         if(!safeProp(x+dx,z+dz,1.8))continue;
         if(['clinic','treatment','recovery'].includes(b.interior))bed(x+dx,z+dz,b.interior==='recovery');
-        else {box(2.1,.10,.85,wood,x+dx,.75,z+dz);obstacle(x+dx,z+dz,2.1,.85);}
+        else {box(2.1,.10,.85,wood,x+dx,.75,z+dz);obstacle(x+dx,z+dz,2.1,.85,'wood',.80);}
       }
       for(const dx of[-w*.28,w*.28])lamp(x+dx,z,Math.min(h-.45,3.1),true);
       // An actual side room wall and doorway; the centre aisle stays open.
@@ -188,8 +193,8 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     }
     if(p.kind==='rubble'){fragmentPile(x,z,1.1);return;}
     if(p.kind==='lamp'){lamp(x,z);return;}
-    if(p.kind==='wall'){box(p.length,1.55,.4,walls[2],x,.775,z,yaw);obstacle(x,z,Math.abs(Math.cos(yaw))*p.length+.4,Math.abs(Math.sin(yaw))*p.length+.4);return;}
-    if(p.kind==='gate'){for(const side of[-1,1]){const px=x+Math.cos(yaw)*side*4,pz=z-Math.sin(yaw)*side*4;box(.45,3.5,.5,concrete,px,1.75,pz);obstacle(px,pz,.45,.5);}box(8.6,.4,.5,concrete,x,3.5,z,yaw);return;}
+    if(p.kind==='wall'){box(p.length,1.55,.4,walls[2],x,.775,z,yaw);obstacle(x,z,Math.abs(Math.cos(yaw))*p.length+.4,Math.abs(Math.sin(yaw))*p.length+.4,'masonry',1.55);return;}
+    if(p.kind==='gate'){for(const side of[-1,1]){const px=x+Math.cos(yaw)*side*4,pz=z-Math.sin(yaw)*side*4;box(.45,3.5,.5,concrete,px,1.75,pz);obstacle(px,pz,.45,.5,'masonry',3.5);}box(8.6,.4,.5,concrete,x,3.5,z,yaw);return;}
     if(p.kind==='helipad'){
       add(new THREE.RingGeometry(9.75,10,64),roadMark,[x,.069,z],[-PI/2,0,0]);for(const dx of[-1.3,1.3])box(.35,.012,4,roadMark,x+dx,.069,z);box(2.7,.012,.35,roadMark,x,.069,z);return;
     }
@@ -216,22 +221,22 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
         const off=(i-(count-1)/2+row%2*.45)*.63,xx=x+Math.cos(yaw)*off,zz=z-Math.sin(yaw)*off;
         const sack=new THREE.SphereGeometry(1,8,5);sack.scale(.36,.16,.25);add(sack,cloth,[xx,.16+row*.26,zz],[0,yaw,0]);
       }
-      obstacle(x,z,Math.abs(Math.cos(yaw))*count*.63+.5,Math.abs(Math.sin(yaw))*count*.63+.5);return;
+      obstacle(x,z,Math.abs(Math.cos(yaw))*count*.63+.5,Math.abs(Math.sin(yaw))*count*.63+.5,'masonry',.85);return;
     }
     if(p.kind==='well'){
-      add(new THREE.CylinderGeometry(1,1,.75,18,1,true),concrete,[x,.375,z]);add(new THREE.TorusGeometry(1,.1,5,18),trim,[x,.8,z],[PI/2,0,0]);for(const side of[-1,1])line([x+side*1.15,.6,z],[x+side*1.15,2.4,z],.065,wood);line([x-1.2,2.3,z],[x+1.2,2.3,z],.07,wood);obstacle(x,z,2.3,2.3);return;
+      add(new THREE.CylinderGeometry(1,1,.75,18,1,true),concrete,[x,.375,z]);add(new THREE.TorusGeometry(1,.1,5,18),trim,[x,.8,z],[PI/2,0,0]);for(const side of[-1,1])line([x+side*1.15,.6,z],[x+side*1.15,2.4,z],.065,wood);line([x-1.2,2.3,z],[x+1.2,2.3,z],.07,wood);obstacle(x,z,2.3,2.3,'masonry',.90);return;
     }
     if(p.kind==='stall'){
       for(const dx of[-1.7,1.7])for(const dz of[-1.0,1.0])line([x+dx,0,z+dz],[x+dx,2.6,z+dz],.035,wood);
       const g=new THREE.PlaneGeometry(3.8,2.5,12,6),v=g.attributes.position;for(let i=0;i<v.count;i++){const u=v.getX(i),t=v.getY(i);v.setXYZ(i,u,2.6-.18*Math.cos(u*.85)-t*.07,t);}g.computeVertexNormals();add(g,awning,[x,0,z]);
-      box(3.1,.12,1.1,wood,x,.8,z);for(let i=0;i<6;i++)box(.45,.18,.4,i%2?green:wood,x-1.2+i*.48,1,z);obstacle(x,z,3.2,1.2);
+      box(3.1,.12,1.1,wood,x,.8,z);for(let i=0;i<6;i++)box(.45,.18,.4,i%2?green:wood,x-1.2+i*.48,1,z);obstacle(x,z,3.2,1.2,'wood',1.1);
       details.cart((g,m,pos=[0,0,0],rot=[0,0,0])=>{const matrix=new THREE.Matrix4().compose(new THREE.Vector3(x-2.5+pos[0],pos[1]+.46,z+pos[2]),new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)),new THREE.Vector3(1,1,1));g.applyMatrix4(matrix);add(g,m);});return;
     }
     if(p.kind==='fuel'){
-      for(let i=0;i<5;i++)add(new THREE.CylinderGeometry(.32,.32,.88,16),rusty,[x+i*.8, .44,z]);obstacle(x+1.6,z,4.1,.7);return;
+      for(let i=0;i<5;i++)add(new THREE.CylinderGeometry(.32,.32,.88,16),rusty,[x+i*.8, .44,z]);obstacle(x+1.6,z,4.1,.7,'metal',.9);return;
     }
     // Cargo crates have planks, straps and lids, not an untextured marker cube.
-    for(let j=0;j<3;j++){const xx=x+(j-1)*1.05;box(.9,.64,.7,wood,xx,.32,z);for(const side of[-1,1])box(.055,.7,.73,metal,xx+side*.3,.35,z);box(.95,.055,.74,wood,xx,.68,z);}obstacle(x,z,3.1,.8);
+    for(let j=0;j<3;j++){const xx=x+(j-1)*1.05;box(.9,.64,.7,wood,xx,.32,z);for(const side of[-1,1])box(.055,.7,.73,metal,xx+side*.3,.35,z);box(.95,.055,.74,wood,xx,.68,z);}obstacle(x,z,3.1,.8,'wood',.72);
   }
   function cockpit(){
     // The authored UH-60 mesh supplies curved canopy, dashboard, seats and
@@ -279,7 +284,7 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     for(const side of[-1,1]){box(6.8,1.8,.38,plaster[1],x+side*5.2,y+.9,z);box(6.8,.14,.44,exposed,x+side*5.2,y+1.87,z);box(.48,2.4,.52,exposed,x+side*1.72,y+1.2,z);}
     for(let plank=0;plank<18;plank++)box(.17,2.1,.09,wood,x-1.53+plank*.18,y+1.05,z+.04);
     for(const h of[.35,1.55])box(3.25,.08,.14,rusty,x,y+h,z+.12);
-    line([x-1.5,y+.38,z+.14],[x+1.5,y+1.52,z+.14],.035,rusty);obstacle(x,z,17.2,.52);
+    line([x-1.5,y+.38,z+.14],[x+1.5,y+1.52,z+.14],.035,rusty);obstacle(x,z,17.2,.52,'masonry',2.4);
     fragmentPile(x-6.8,z+1.2,.65);stats.routeTerminations=1;
   }
   const coreLayout={...layout,bounds:layout.coreBounds||layout.bounds,buildings:layout.buildings.filter(b=>!b.district),roads:layout.roads.filter(r=>!r.expansion),props:layout.props.filter(p=>!p.expansion)};
@@ -374,9 +379,8 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     // The new continuous front ring supplies the near silhouette. Spend fewer
     // far shells behind it instead of drawing two equally dense full districts.
     for(const [i,lot]of lots.slice(0,camp?36:60).entries()){
-      const style=camp?'camp':['shop-house','apartment','courtyard','workshop'][i%4];
-      const floors=style==='workshop'?2:style==='courtyard'?3:3+(i%3),h=camp?rand(3.2,5.5):floors*3.05+rand(-.28,.44);
-      district.building({...lot,h,y:0,index:i,style,detail:lot.edge<28?'mid':'far',damage:camp?0:layout.enemySpawns.length?(i%3===0?.78:i%3===1?.42:.12):.08});
+      const profile=skylineBackgroundProfile(layout,lot,i);
+      district.building({...lot,...profile,y:0});
     }
     stats.backgroundBuildings=district.inspect().buildings-beforeBackground.buildings;stats.backgroundDamaged=district.inspect().damagedCorners-beforeBackground.damagedCorners;stats.backgroundFrontages=district.inspect().recessedRooms-beforeBackground.recessedRooms;
     if(!camp){let parked=0;for(let i=0;i<extensions.length;i++){
@@ -392,13 +396,22 @@ export function buildChapterScene(layout,{group,colliders,palette,rubbleMaps,fac
     }stats.backgroundVehicles=parked;}
     if(layout.enemySpawns.length){const haze=new THREE.Group();haze.position.set(bounds.maxX+9,0,bounds.minZ-7);group.add(haze);objects.push(haze);addSmoke(haze,0,0,12,{height:30,spread:.8,persistent:true,intensity:.38});}
   }
+  const storySets=buildChapterStorySets(layout,{group,colliders,add,box,line,material,canvasTexture,palette:{...palette,exposed,brickEdge},sampleHeight:surface.sampleHeight,stats});
+  buildChapterSkyline(layout,{district,colliders,box,line,add,palette:{...palette,exposed,brickEdge},sampleHeight:surface.sampleHeight,storySets,stats});
+  buildStreetScatter(layout,{add,palette:{...palette,exposed,brickEdge},sampleHeight:surface.sampleHeight,colliders,storySets,stats});
   for(const [mat,parts]of batches){
     const geometry=mergeGeometries(parts,false);parts.forEach(g=>g.dispose());if(!geometry)throw new Error(`Cannot merge chapter material ${mat.name||mat.uuid}`);
     geometry.computeBoundingSphere();const mesh=new THREE.Mesh(geometry,mat);mesh.castShadow=!mat.userData.noShadow;mesh.receiveShadow=true;mesh.name=`${layout.id}:batch`;group.add(mesh);stats.drawCalls++;stats.triangles+=geometry.attributes.position.count/3;
   }
+  // Upper masses are real obstacles on their underlying roof. Only emit
+  // occupied, flat surfaces inside this chapter, never the distant backdrop.
+  for(const roof of stats.roofSurfaces||[]){
+    for(const b of colliders)if(Number.isFinite(b.minY)&&b.minY>=roof.height-.10&&b.maxY>roof.height+.18&&rectanglesOverlap(roof.bounds,b))roof.obstacles.push({...b});
+  }
+  stats.roofSurfaces=(stats.roofSurfaces||[]).filter(r=>r.height>3&&r.bounds.minX>=layout.bounds.minX&&r.bounds.maxX<=layout.bounds.maxX&&r.bounds.minZ>=layout.bounds.minZ&&r.bounds.maxZ<=layout.bounds.maxZ);
   batches.clear();group.name=`chapter:${layout.id}`;group.updateMatrixWorld(true);
   const state={id:layout.id,chapter:layout.chapter,name:layout.name,type:layout.type,bounds:{...layout.bounds},bound:layout.bound,spawn:[...layout.spawn],route:structuredClone(layout.route),taskPositions:structuredClone(layout.taskPositions),landmarks:structuredClone(layout.landmarks),colliderCount:colliders.length,...stats};
-  return {state,objects,surface,dispose(){
+  return {state,objects,surface,storyCueRoot:group,storySets,dispose(){
     if(disposed)return;disposed=true;
     for(const object of objects)destroyObject(object);
     for(const light of lights){const i=nightLights.indexOf(light);if(i!==-1)nightLights.splice(i,1);light.dispose();light.removeFromParent();}

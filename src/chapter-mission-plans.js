@@ -1,3 +1,4 @@
+import {getChapterStoryDirection,getChapterStoryActs,getTaskStoryDirection,getDramaticDialogue} from './chapter-story-direction.js';
 // Original playable scenes written for this adaptation; no film dialogue is
 // reproduced. Minute budgets are design estimates for a first normal visit,
 // never timers, minimum playtime gates, or evidence of measured playtime.
@@ -13,7 +14,7 @@ const PLAYER={1:'阿米娜',2:'埃弗斯曼',3:'埃弗斯曼',4:'埃弗斯曼',5
 // A slot is before core 0/1/2, or after core 2 (3). Urgent aid happens
 // before peripheral checks. The slot order also defines checkpoint dependencies.
 const SLOTS={
-  1:[0,0,0,1,1,1,2,2,2],2:[0,0,1,1,1,2,2,2,3],3:[0,1,1,1,1,2,2,2,3],4:[1,1,1,1,2,2,2,2,3],
+  1:[1,1,1,1,1,1,2,2,2],2:[0,0,1,1,1,2,2,2,3],3:[0,1,1,1,1,2,2,2,3],4:[1,1,1,1,2,2,2,2,3],
   5:[0,1,1,1,2,2,2,3,3],6:[1,1,1,1,2,2,2,2,3],7:[0,0,1,1,1,2,2,2,3],8:[0,1,1,1,2,2,2,3,3],
   9:[0,0,0,1,1,1,2,2,2],10:[0,1,1,1,2,2,2,3,3],11:[1,1,1,2,2,2,2,3,3],12:[0,1,1,1,2,2,2,3,3],
   13:[0,1,1,1,2,2,2,3,3],14:[0,0,1,1,1,2,2,2,3],15:[0,0,1,1,1,2,2,2,2],16:[0,1,1,1,2,2,2,3,3]
@@ -38,14 +39,14 @@ function plan(chapterId,title,actTitles,steps,optional=null){
   if(optional){const id=prefix+'optional-perimeter';tasks.push({id,label:optional.label,speaker:optional.speaker,kind:'soldier',anchor:optional.anchor,insertBeforeCore:2,interaction:'defend',animation:'defend',seconds:3,defendSeconds:18,requiredKills:1,sceneEvent:id,optional:true,
     branch:{id:prefix+'support-route',mode:'optional',acceptLabel:'接替这处掩护',declineLabel:'保留队形，继续主线',outcome:'完成后前往原接应任务；不改变历史人物命运'},
     dialogue:optional.lines.map((text,i)=>({speaker:i===1?PLAYER[chapterId]:optional.speaker,text,channel:'local'})),objective:{reason:optional.reason,dependsOn:[coreTaskIds[1]]}});}
-  const minutes=[5.5,6,5.5,6],acts=['orientation','consequence','commitment','handover'].map((id,i)=>({id,title:actTitles[i],minutes:minutes[i],taskIds:ordered.slice(i*3,i*3+3)}));
-  if(optional){const core2Act=acts.find(a=>a.taskIds.includes(coreTaskIds[2]));core2Act.taskIds.splice(core2Act.taskIds.indexOf(coreTaskIds[2]),0,prefix+'optional-perimeter');core2Act.optionalMinutes=1.5;}
-  return {chapterId,title,targetMinutes:[20,25],estimatedMinutes:23,optionalEstimatedMinutes:optional?1.5:0,
-    estimateNote:'首次正常探索、听完原创对白并完成现场行动的设计估计，尚未实测；不以等待、降低移动速度或重复拾取强制凑时。可选掩护约另需1.5分钟，熟悉路线后可能明显更快。',
-    timeBudget:chapterId===9?{travel:0,dialogue:7.5,observation:8,care:4,reflection:3.5}:{travel:6.5,dialogue:5,observation:5.5,careOrCombat:4,reflection:2},
-    budgetNote:'acts.minutes与timeBudget仅计必做内容；可选掩护另计optionalMinutes。未进行正常首玩计时，不能据此宣称达到20分钟。',
+  const acts=['orientation','consequence','commitment','handover'].map((id,i)=>({id,title:actTitles[i],taskIds:ordered.slice(i*3,i*3+3)}));
+  if(optional){const core2Act=acts.find(a=>a.taskIds.includes(coreTaskIds[2]));core2Act.taskIds.splice(core2Act.taskIds.indexOf(coreTaskIds[2]),0,prefix+'optional-perimeter');}
+  return {chapterId,title,targetMinutes:[20,25],estimatedMinutes:null,optionalEstimatedMinutes:null,
+    estimateNote:'每章首玩20–25分钟仍为设计目标，尚未实测；先保证事件因果与人物体验，不设最低时间门槛，不以等待、减慢移动或重复拾取凑时。',
+    timeBudget:chapterId===9?{travel:0}:null,
+    budgetNote:'以正常首玩计时验证设计目标；当前没有估算总分钟，不能宣称已达到20–25分钟。',
     playerMode:chapterId===9?'injured-cockpit':'chapter-role',combat:COMBAT.has(chapterId),coreTaskIds:[...coreTaskIds],requiredTaskCount:12,totalTaskCount:tasks.length+3,acts,tasks,
-    ...(chapterId===9?{timelineNote:'受伤机长的主观意识片段与频道回忆；23分钟是交互体验预算，不声称坠落后的这些事件按此时长连续发生。角色始终留在驾驶舱，舱外声音不等于救援者已进入画面。'}:{}),
+    ...(chapterId===9?{timelineNote:'受伤机长的主观意识片段与频道回忆；体验时长尚未测定，不声称坠落后的这些事件按游玩时长连续发生。角色始终留在驾驶舱，舱外声音不等于救援者已进入画面。'}:{}),
     ...([10,11].includes(chapterId)?{fixedOutcome:chapterId===10?'戈登与舒加特的牺牲不随战斗成绩改变；可选掩护不是无限生存挑战。':'史密斯死亡为固定叙事节点；补充物资和陪护不会把它改写为可治愈结局。'}:{})};
 }
 
@@ -402,6 +403,14 @@ for(const p of plans){
       else if(prior)task.anchor=prior.anchor;
       if(['side-patient','protect-durant','care-living','run-help','visit-survivors','stay-smith'].includes(source))task.kind='wounded';
     }else firstActor.set(task.speaker,task.id);
+  }
+}
+for(const p of plans){
+  const ids=[];for(let slot=0;slot<4;slot++){ids.push(...p.tasks.filter(t=>(t.insertAfterCore===2?3:t.insertBeforeCore)===slot).map(t=>t.id));if(slot<3)ids.push(p.coreTaskIds[slot]);}
+  p.storyDirection=getChapterStoryDirection(p.chapterId);p.acts=getChapterStoryActs(p.chapterId,ids);
+  for(const task of p.tasks){const act=p.acts.find(a=>a.taskIds.includes(task.id));task.actId=act.id;if(p.chapterId!==9){const prior=p.tasks.find(t=>t.id===task.actorFrom);task.stageCluster=prior?.stageCluster||act.stageCluster;}
+    Object.assign(task,getTaskStoryDirection(p.chapterId,task));task.objective.reason=task.storyPurpose;task.text=task.successText;
+    const dialogue=getDramaticDialogue(p.chapterId,task);if(dialogue)task.dialogue=dialogue;
   }
 }
 plans.sort((a,b)=>a.chapterId-b.chapterId);
